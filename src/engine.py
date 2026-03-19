@@ -2,6 +2,7 @@ import json
 import os
 
 from src import validator
+from src.rule_types import RuleResult, Violation
 
 
 RULES_REGISTRY = {
@@ -19,22 +20,20 @@ def cargar_config(nombre_config: str = "config_equilibrado.json") -> dict:
         return json.load(f)
 
 
-def validar_estructura_violacion(violacion: dict, nombre_regla: str) -> None:
-    campos_obligatorios = ["codigo", "mensaje", "severidad", "penalizacion"]
+def validar_estructura_violacion(violacion: Violation, nombre_regla: str) -> None:
+    if not isinstance(violacion, Violation):
+        raise TypeError(
+            f"La regla '{nombre_regla}' devolvió un objeto de tipo "
+            f"{type(violacion).__name__}. Debe devolver instancias de Violation."
+        )
 
-    for campo in campos_obligatorios:
-        if campo not in violacion:
-            raise ValueError(
-                f"La regla '{nombre_regla}' devolvió una violación sin el campo obligatorio '{campo}'."
-            )
-
-    if violacion["severidad"] not in ("hard", "soft"):
+    if violacion.severidad not in ("hard", "soft"):
         raise ValueError(
-            f"La regla '{nombre_regla}' devolvió una severidad inválida: {violacion['severidad']}"
+            f"La regla '{nombre_regla}' devolvió una severidad inválida: {violacion.severidad}"
         )
 
 
-def ejecutar_regla(asignaciones, regla_config: dict) -> dict:
+def ejecutar_regla(asignaciones, regla_config: dict) -> RuleResult:
     nombre_regla = regla_config["nombre"]
     nombre_funcion = regla_config["funcion"]
     prioridad = regla_config["prioridad"]
@@ -57,23 +56,16 @@ def ejecutar_regla(asignaciones, regla_config: dict) -> dict:
         )
 
     for violacion in violaciones:
-        if not isinstance(violacion, dict):
-            raise TypeError(
-                f"La regla '{nombre_funcion}' devolvió una violación de tipo "
-                f"{type(violacion).__name__}. Cada violación debe ser un dict."
-            )
-
         validar_estructura_violacion(violacion, nombre_funcion)
 
-    return {
-        "regla": nombre_regla,
-        "prioridad": prioridad,
-        "ok": len(violaciones) == 0,
-        "violaciones": violaciones,
-    }
+    return RuleResult(
+        regla=nombre_regla,
+        prioridad=prioridad,
+        violaciones=violaciones,
+    )
 
 
-def validar_todo(asignaciones, config_file: str = "config_equilibrado.json") -> list[dict]:
+def validar_todo(asignaciones, config_file: str = "config_equilibrado.json") -> list[RuleResult]:
     config = cargar_config(config_file)
     resultados = []
 
@@ -81,5 +73,5 @@ def validar_todo(asignaciones, config_file: str = "config_equilibrado.json") -> 
         resultado = ejecutar_regla(asignaciones, regla_config)
         resultados.append(resultado)
 
-    resultados.sort(key=lambda r: r["prioridad"])
+    resultados.sort(key=lambda r: r.prioridad)
     return resultados
