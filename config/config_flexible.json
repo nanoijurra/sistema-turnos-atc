@@ -1,0 +1,16 @@
+{
+  "reglas": [
+    {
+      "nombre": "Descanso mínimo",
+      "funcion": "validar_descanso_minimo",
+      "prioridad": 2,
+      "parametros": { "horas_minimas": 8 }
+    },
+    {
+      "nombre": "Noches consecutivas",
+      "funcion": "validar_noches_consecutivas",
+      "prioridad": 3,
+      "parametros": { "max_noches": 4 }
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 from datetime import date
 
 from src.scenarios.v2_fatiga import crear_escenario
-from src.simulator import mostrar_roster, simular_swap_por_fecha
+from src.simulator import mostrar_roster, evaluar_swap
 
 asignaciones = crear_escenario()
 
@@ -9,16 +9,18 @@ print("Roster original:")
 mostrar_roster(asignaciones)
 print()
 
-resultado = simular_swap_por_fecha(
-    asignaciones,
-    fecha_a=date(2026, 3, 3),
-    fecha_b=date(2026, 3, 4),
-)
+resultado = evaluar_swap(asignaciones, 2, 3)
 
-print("Valido:", resultado["valido"])
-print("Score:", resultado["score"])
+print("ANTES:")
+print("  Valido:", resultado["valido_original"])
+print("  Score :", resultado["score_original"])
 
-for r in resultado["resultados"]:
-    print(f"[{r.regla}] {r.ok}")
-    for v in r.violaciones:
-        print("  ", v.codigo, v.mensaje)
+print("\nDESPUÉS:")
+print("  Valido:", resultado["valido_nuevo"])
+print("  Score :", resultado["score_nuevo"])
+
+print("\nDELTA:")
+print("  Delta score:", resultado["delta_score"])
+print("  Mejora:", resultado["mejora"])
+print("  Empeora:", resultado["empeora"])
+print("  Igual:", resultado["igual"])
