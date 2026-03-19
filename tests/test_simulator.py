@@ -6,6 +6,7 @@ from src.simulator import (
     simular_swap,
     simular_swap_por_fecha,
     evaluar_swap,
+    explorar_swaps,
 )
 
 
@@ -67,3 +68,20 @@ def test_evaluar_swap_devuelve_comparacion_antes_y_despues():
     assert "empeora" in resultado
     assert "igual" in resultado
     assert "resultado_swap" in resultado
+
+
+def test_explorar_swaps_devuelve_lista_ordenada():
+    asignaciones = crear_escenario()
+
+    pares = [(2, 3), (1, 3), (0, 3)]
+
+    resultados = explorar_swaps(asignaciones, pares)
+
+    assert isinstance(resultados, list)
+    assert len(resultados) == 3
+
+    for resultado in resultados:
+        assert "swap" in resultado
+        assert "valido_nuevo" in resultado
+        assert "score_nuevo" in resultado
+        assert "delta_score" in resultado

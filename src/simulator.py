@@ -134,13 +134,10 @@ def evaluar_swap(
     """
     Evalúa un swap comparando el estado antes y después.
     """
-
-    # Estado original
     resultados_original = validar_todo(asignaciones, config_file)
     valido_original = es_roster_valido(resultados_original)
     score_original = calcular_score(resultados_original)
 
-    # Estado simulado
     resultado_swap = simular_swap(
         asignaciones,
         idx_a,
@@ -164,3 +161,45 @@ def evaluar_swap(
         "igual": delta_score == 0,
         "resultado_swap": resultado_swap,
     }
+
+
+def explorar_swaps(
+    asignaciones: list,
+    pares: list[tuple[int, int]],
+    config_file: str = "config_equilibrado.json",
+) -> list[dict]:
+    """
+    Evalúa múltiples swaps y devuelve un ranking.
+
+    Orden de prioridad:
+    1. swaps válidos antes que inválidos
+    2. mayor score nuevo
+    3. mayor delta_score
+    """
+    evaluaciones = []
+
+    for idx_a, idx_b in pares:
+        evaluacion = evaluar_swap(
+            asignaciones=asignaciones,
+            idx_a=idx_a,
+            idx_b=idx_b,
+            config_file=config_file,
+        )
+
+        evaluacion["swap"] = {
+            "idx_a": idx_a,
+            "idx_b": idx_b,
+        }
+
+        evaluaciones.append(evaluacion)
+
+    evaluaciones.sort(
+        key=lambda e: (
+            e["valido_nuevo"],
+            e["score_nuevo"],
+            e["delta_score"],
+        ),
+        reverse=True,
+    )
+
+    return evaluaciones
