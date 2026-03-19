@@ -6,9 +6,6 @@ from src.models import Asignacion, crear_esquema_8h
 def crear_escenario_v1_basico() -> list[Asignacion]:
     """
     Escenario básico de ejemplo usando el esquema clásico de 3 turnos de 8 horas.
-
-    Este escenario no valida nada por sí mismo.
-    Solo construye una secuencia simple de asignaciones para pruebas iniciales.
     """
     esquema = crear_esquema_8h()
 
@@ -18,10 +15,12 @@ def crear_escenario_v1_basico() -> list[Asignacion]:
 
     fecha_base = date(2026, 3, 1)
 
-    asignaciones = [
+    return [
         Asignacion(fecha=fecha_base + timedelta(days=0), turno=turno_a),
         Asignacion(fecha=fecha_base + timedelta(days=1), turno=turno_b),
         Asignacion(fecha=fecha_base + timedelta(days=2), turno=turno_c),
     ]
 
-    return asignaciones
+
+def crear_escenario() -> list[Asignacion]:
+    return crear_escenario_v1_basico()
