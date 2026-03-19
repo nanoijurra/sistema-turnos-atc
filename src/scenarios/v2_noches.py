@@ -1,10 +1,23 @@
-from datetime import datetime
-from models import TipoTurno, Turno, Asignacion
+from datetime import date, timedelta
 
-def crear_escenario():
+from src.models import Asignacion, crear_esquema_8h
+
+
+def crear_escenario() -> list[Asignacion]:
+    """
+    Escenario de prueba con 4 noches consecutivas.
+
+    Está pensado para futuros validators de noches consecutivas,
+    no para validar por sí mismo.
+    """
+    esquema = crear_esquema_8h()
+    turno_noche = esquema.obtener_turno("C")
+
+    fecha_base = date(2026, 3, 1)
+
     return [
-        Asignacion(datetime(2026,3,1), Turno(TipoTurno.NOCHE, datetime(2026,3,1,22,30), datetime(2026,3,2,6,0))),
-        Asignacion(datetime(2026,3,2), Turno(TipoTurno.NOCHE, datetime(2026,3,2,22,30), datetime(2026,3,3,6,0))),
-        Asignacion(datetime(2026,3,3), Turno(TipoTurno.NOCHE, datetime(2026,3,3,22,30), datetime(2026,3,4,6,0))),
-        Asignacion(datetime(2026,3,4), Turno(TipoTurno.NOCHE, datetime(2026,3,4,22,30), datetime(2026,3,5,6,0))),
+        Asignacion(fecha=fecha_base + timedelta(days=0), turno=turno_noche),
+        Asignacion(fecha=fecha_base + timedelta(days=1), turno=turno_noche),
+        Asignacion(fecha=fecha_base + timedelta(days=2), turno=turno_noche),
+        Asignacion(fecha=fecha_base + timedelta(days=3), turno=turno_noche),
     ]
