@@ -53,6 +53,29 @@ def buscar_indice_asignacion(
     return candidatos[0]
 
 
+def resumir_violaciones(resultados: list[RuleResult]) -> dict:
+    """
+    Resume cantidad total de violaciones, hard y soft.
+    """
+    total = 0
+    hard = 0
+    soft = 0
+
+    for resultado in resultados:
+        for violacion in resultado.violaciones:
+            total += 1
+            if violacion.severidad == "hard":
+                hard += 1
+            elif violacion.severidad == "soft":
+                soft += 1
+
+    return {
+        "total": total,
+        "hard": hard,
+        "soft": soft,
+    }
+
+
 def simular_swap(
     asignaciones: list,
     idx_a: int,
@@ -137,6 +160,7 @@ def evaluar_swap(
     resultados_original = validar_todo(asignaciones, config_file)
     valido_original = es_roster_valido(resultados_original)
     score_original = calcular_score(resultados_original)
+    resumen_original = resumir_violaciones(resultados_original)
 
     resultado_swap = simular_swap(
         asignaciones,
@@ -147,18 +171,32 @@ def evaluar_swap(
 
     score_nuevo = resultado_swap["score"]
     valido_nuevo = resultado_swap["valido"]
+    resumen_nuevo = resumir_violaciones(resultado_swap["resultados"])
 
     delta_score = score_nuevo - score_original
+    delta_total_violaciones = resumen_nuevo["total"] - resumen_original["total"]
+    delta_hard = resumen_nuevo["hard"] - resumen_original["hard"]
+    delta_soft = resumen_nuevo["soft"] - resumen_original["soft"]
 
     return {
         "valido_original": valido_original,
         "score_original": score_original,
+        "resumen_original": resumen_original,
         "valido_nuevo": valido_nuevo,
         "score_nuevo": score_nuevo,
+        "resumen_nuevo": resumen_nuevo,
         "delta_score": delta_score,
-        "mejora": delta_score > 0,
-        "empeora": delta_score < 0,
-        "igual": delta_score == 0,
+        "delta_total_violaciones": delta_total_violaciones,
+        "delta_hard": delta_hard,
+        "delta_soft": delta_soft,
+        "mejora": delta_score > 0 or delta_total_violaciones < 0 or delta_hard < 0,
+        "empeora": delta_score < 0 or delta_total_violaciones > 0 or delta_hard > 0,
+        "igual": (
+            delta_score == 0
+            and delta_total_violaciones == 0
+            and delta_hard == 0
+            and delta_soft == 0
+        ),
         "resultado_swap": resultado_swap,
     }
 
@@ -173,8 +211,10 @@ def explorar_swaps(
 
     Orden de prioridad:
     1. swaps válidos antes que inválidos
-    2. mayor score nuevo
-    3. mayor delta_score
+    2. menor cantidad de hard después
+    3. menor cantidad total de violaciones después
+    4. mayor score nuevo
+    5. mayor delta_score
     """
     evaluaciones = []
 
@@ -196,6 +236,8 @@ def explorar_swaps(
     evaluaciones.sort(
         key=lambda e: (
             e["valido_nuevo"],
+            -e["resumen_nuevo"]["hard"],
+            -e["resumen_nuevo"]["total"],
             e["score_nuevo"],
             e["delta_score"],
         ),
@@ -203,6 +245,8 @@ def explorar_swaps(
     )
 
     return evaluaciones
+
+
 def generar_pares_swap(
     asignaciones: list,
     limite: int | None = None,
@@ -212,7 +256,6 @@ def generar_pares_swap(
 
     Si limite está definido, corta la cantidad de pares generados.
     """
-
     pares = []
     n = len(asignaciones)
 
@@ -224,6 +267,8 @@ def generar_pares_swap(
                 return pares
 
     return pares
+
+
 def filtrar_swaps_validos(evaluaciones: list[dict]) -> list[dict]:
     """
     Devuelve solo los swaps cuyo resultado nuevo es válido.
@@ -235,10 +280,9 @@ def filtrar_swaps_utiles(evaluaciones: list[dict]) -> list[dict]:
     """
     Devuelve swaps considerados útiles.
 
-    En esta etapa, útil = swap válido.
-    Más adelante puede refinarse para incluir:
-    - mejora de score
-    - reducción de violaciones
-    - eliminación de hard rules
+    En esta etapa, útil = swap válido y que reduzca violaciones hard o totales.
     """
-    return filtrar_swaps_validos(evaluaciones)
+    return [
+        e for e in evaluaciones
+        if e["valido_nuevo"] and (e["delta_hard"] < 0 or e["delta_total_violaciones"] < 0)
+    ]

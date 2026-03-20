@@ -7,6 +7,7 @@ from src.simulator import (
     simular_swap_por_fecha,
     evaluar_swap,
     explorar_swaps,
+    generar_pares_swap,
 )
 
 
@@ -85,3 +86,26 @@ def test_explorar_swaps_devuelve_lista_ordenada():
         assert "valido_nuevo" in resultado
         assert "score_nuevo" in resultado
         assert "delta_score" in resultado
+
+
+def test_generar_pares_swap_devuelve_combinaciones():
+    asignaciones = [1, 2, 3, 4]
+
+    pares = generar_pares_swap(asignaciones)
+
+    assert (0, 1) in pares
+    assert (0, 3) in pares
+    assert (2, 3) in pares
+    assert len(pares) == 6
+
+
+def test_resumir_violaciones_y_evaluar_swap_incluyen_deltas():
+    asignaciones = crear_escenario()
+
+    resultado = evaluar_swap(asignaciones, 0, 3)
+
+    assert "resumen_original" in resultado
+    assert "resumen_nuevo" in resultado
+    assert "delta_total_violaciones" in resultado
+    assert "delta_hard" in resultado
+    assert "delta_soft" in resultado
