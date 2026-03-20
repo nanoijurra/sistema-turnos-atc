@@ -93,6 +93,35 @@ def resumir_violaciones_por_regla(resultados: list[RuleResult]) -> dict:
 
     return resumen
 
+def calcular_impacto(evaluacion: dict) -> int:
+    """
+    Calcula un score de impacto para ordenar swaps.
+    Penaliza hard y total; bonifica mejoras.
+    """
+    # menos hard = mejor
+    hard = evaluacion["resumen_nuevo"]["hard"]
+    total = evaluacion["resumen_nuevo"]["total"]
+
+    # deltas (negativos = mejora)
+    delta_hard = evaluacion["delta_hard"]
+    delta_total = evaluacion["delta_total_violaciones"]
+
+    impacto = 0
+
+    # prioridad fuerte: eliminar hard
+    impacto -= hard * 100
+
+    # luego total
+    impacto -= total * 10
+
+    # bonificar mejoras
+    impacto += (-delta_hard) * 50
+    impacto += (-delta_total) * 5
+
+    # score como ajuste fino
+    impacto += evaluacion["score_nuevo"]
+
+    return impacto
 
 def simular_swap(
     asignaciones: list,
@@ -228,14 +257,7 @@ def explorar_swaps(
     config_file: str = "config_equilibrado.json",
 ) -> list[dict]:
     """
-    Evalúa múltiples swaps y devuelve un ranking.
-
-    Orden de prioridad:
-    1. swaps válidos antes que inválidos
-    2. menor cantidad de hard después
-    3. menor cantidad total de violaciones después
-    4. mayor score nuevo
-    5. mayor delta_score
+    Evalúa múltiples swaps y devuelve un ranking basado en impacto.
     """
     evaluaciones = []
 
@@ -252,15 +274,16 @@ def explorar_swaps(
             "idx_b": idx_b,
         }
 
+        # 👇 NUEVO: calcular impacto
+        evaluacion["impacto"] = calcular_impacto(evaluacion)
+
         evaluaciones.append(evaluacion)
 
+    # 👇 NUEVO ORDENAMIENTO
     evaluaciones.sort(
         key=lambda e: (
             e["valido_nuevo"],
-            -e["resumen_nuevo"]["hard"],
-            -e["resumen_nuevo"]["total"],
-            e["score_nuevo"],
-            e["delta_score"],
+            e["impacto"],
         ),
         reverse=True,
     )

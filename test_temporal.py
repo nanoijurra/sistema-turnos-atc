@@ -25,6 +25,7 @@ for i, resultado in enumerate(ranking, start=1):
     print(f"\n#{i} Swap ({swap['idx_a']} <-> {swap['idx_b']})")
     print(f"  Válido nuevo         : {resultado['valido_nuevo']}")
     print(f"  Score nuevo          : {resultado['score_nuevo']}")
+    print(f"  Impacto              : {resultado['impacto']}")
     print(f"  Delta score          : {resultado['delta_score']}")
     print(f"  Hard antes           : {resultado['resumen_original']['hard']}")
     print(f"  Hard después         : {resultado['resumen_nuevo']['hard']}")
@@ -41,17 +42,32 @@ for i, resultado in enumerate(swaps_validos, start=1):
     swap = resultado["swap"]
 
     print(f"\n#{i} Swap válido ({swap['idx_a']} <-> {swap['idx_b']})")
-    print(f"  Hard después : {resultado['resumen_nuevo']['hard']}")
-    print(f"  Total después: {resultado['resumen_nuevo']['total']}")
-    print(f"  Delta hard   : {resultado['delta_hard']}")
-    print(f"  Delta total  : {resultado['delta_total_violaciones']}")
+    print(f"  Impacto       : {resultado['impacto']}")
+    print(f"  Hard después  : {resultado['resumen_nuevo']['hard']}")
+    print(f"  Total después : {resultado['resumen_nuevo']['total']}")
+    print(f"  Delta hard    : {resultado['delta_hard']}")
+    print(f"  Delta total   : {resultado['delta_total_violaciones']}")
 
 print("\nSwaps útiles:")
 for i, resultado in enumerate(swaps_utiles, start=1):
     swap = resultado["swap"]
 
     print(f"\n#{i} Swap útil ({swap['idx_a']} <-> {swap['idx_b']})")
-    print(f"  Hard después : {resultado['resumen_nuevo']['hard']}")
-    print(f"  Total después: {resultado['resumen_nuevo']['total']}")
-    print(f"  Delta hard   : {resultado['delta_hard']}")
-    print(f"  Delta total  : {resultado['delta_total_violaciones']}")
+    print(f"  Impacto       : {resultado['impacto']}")
+    print(f"  Hard después  : {resultado['resumen_nuevo']['hard']}")
+    print(f"  Total después : {resultado['resumen_nuevo']['total']}")
+    print(f"  Delta hard    : {resultado['delta_hard']}")
+    print(f"  Delta total   : {resultado['delta_total_violaciones']}")
+    print("  Impacto por regla:")
+
+    for regla, datos_antes in resultado["resumen_por_regla_original"].items():
+        datos_despues = resultado["resumen_por_regla_nuevo"].get(
+            regla,
+            {"total": 0, "hard": 0, "soft": 0},
+        )
+
+        print(
+            f"    - {regla}: "
+            f"hard {datos_antes['hard']} -> {datos_despues['hard']}, "
+            f"total {datos_antes['total']} -> {datos_despues['total']}"
+        )
