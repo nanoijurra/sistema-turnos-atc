@@ -9,14 +9,22 @@ from src.rule_types import RuleResult
 
 def mostrar_roster(asignaciones: list) -> None:
     """
-    Muestra el roster con índice, fecha, código y categoría de turno.
+    Muestra el roster con índice, controlador, fecha, código y categoría.
     """
     for idx, asignacion in enumerate(asignaciones):
+        nombre_controlador = (
+            asignacion.controlador.nombre
+            if asignacion.controlador is not None
+            else "SIN_CONTROLADOR"
+        )
+
         print(
-            f"[{idx}] {asignacion.fecha} | "
+            f"[{idx}] {nombre_controlador} | "
+            f"{asignacion.fecha} | "
             f"{asignacion.turno.codigo} | "
             f"{asignacion.turno.categoria}"
         )
+
 def generar_recomendacion_textual(evaluacion: dict) -> str:
     """
     Genera una explicación textual simple del impacto de un swap.
@@ -102,6 +110,47 @@ def buscar_indice_asignacion(
     if len(candidatos) > 1:
         raise ValueError(
             f"Búsqueda ambigua para fecha={fecha} y codigo_turno={codigo_turno}. "
+            f"Se encontraron múltiples asignaciones: {candidatos}"
+        )
+
+    return candidatos[0]
+
+def buscar_indice_asignacion_por_controlador(
+    asignaciones: list,
+    controlador_nombre: str,
+    fecha: date,
+    codigo_turno: str | None = None,
+) -> int:
+    """
+    Busca una asignación por controlador, fecha y opcionalmente código de turno.
+    """
+    candidatos = []
+
+    for idx, asignacion in enumerate(asignaciones):
+        if asignacion.controlador is None:
+            continue
+
+        if asignacion.controlador.nombre != controlador_nombre:
+            continue
+
+        if asignacion.fecha != fecha:
+            continue
+
+        if codigo_turno is not None and asignacion.turno.codigo != codigo_turno:
+            continue
+
+        candidatos.append(idx)
+
+    if not candidatos:
+        raise ValueError(
+            f"No se encontró asignación para controlador={controlador_nombre}, "
+            f"fecha={fecha}, codigo_turno={codigo_turno}."
+        )
+
+    if len(candidatos) > 1:
+        raise ValueError(
+            f"Búsqueda ambigua para controlador={controlador_nombre}, "
+            f"fecha={fecha}, codigo_turno={codigo_turno}. "
             f"Se encontraron múltiples asignaciones: {candidatos}"
         )
 
@@ -385,3 +434,36 @@ def filtrar_swaps_utiles(evaluaciones: list[dict]) -> list[dict]:
         e for e in evaluaciones
         if e["valido_nuevo"] and (e["delta_hard"] < 0 or e["delta_total_violaciones"] < 0)
     ]
+def simular_swap_entre_controladores(
+    asignaciones: list,
+    controlador_a: str,
+    fecha_a: date,
+    controlador_b: str,
+    fecha_b: date,
+    codigo_turno_a: str | None = None,
+    codigo_turno_b: str | None = None,
+    config_file: str = "config_equilibrado.json",
+) -> dict:
+    """
+    Simula un swap entre asignaciones pertenecientes a dos controladores distintos.
+    """
+    idx_a = buscar_indice_asignacion_por_controlador(
+        asignaciones=asignaciones,
+        controlador_nombre=controlador_a,
+        fecha=fecha_a,
+        codigo_turno=codigo_turno_a,
+    )
+
+    idx_b = buscar_indice_asignacion_por_controlador(
+        asignaciones=asignaciones,
+        controlador_nombre=controlador_b,
+        fecha=fecha_b,
+        codigo_turno=codigo_turno_b,
+    )
+
+    return evaluar_swap(
+        asignaciones=asignaciones,
+        idx_a=idx_a,
+        idx_b=idx_b,
+        config_file=config_file,
+    )
