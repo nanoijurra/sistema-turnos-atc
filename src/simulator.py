@@ -197,6 +197,29 @@ def resumir_violaciones_por_regla(resultados: list[RuleResult]) -> dict:
 
     return resumen
 
+def resumir_violaciones_por_controlador(
+    asignaciones: list,
+    config_file: str = "config_equilibrado.json",
+) -> dict:
+    """
+    Evalúa el roster separando por controlador y devuelve un resumen por controlador.
+    """
+    from src.engine import agrupar_por_controlador
+
+    grupos = agrupar_por_controlador(asignaciones)
+    resumen = {}
+
+    for nombre_controlador, asignaciones_ctrl in grupos.items():
+        resultados = validar_todo(asignaciones_ctrl, config_file)
+        resumen[nombre_controlador] = {
+            "valido": es_roster_valido(resultados),
+            "score": calcular_score(resultados),
+            "violaciones": resumir_violaciones(resultados),
+            "por_regla": resumir_violaciones_por_regla(resultados),
+        }
+
+    return resumen
+
 def calcular_impacto(evaluacion: dict) -> int:
     """
     Calcula un score de impacto para ordenar swaps.
@@ -313,6 +336,10 @@ def evaluar_swap(
     score_original = calcular_score(resultados_original)
     resumen_original = resumir_violaciones(resultados_original)
     resumen_por_regla_original = resumir_violaciones_por_regla(resultados_original)
+    resumen_por_controlador_original = resumir_violaciones_por_controlador(
+        asignaciones,
+        config_file,
+    )
 
     resultado_swap = simular_swap(
         asignaciones,
@@ -325,6 +352,10 @@ def evaluar_swap(
     valido_nuevo = resultado_swap["valido"]
     resumen_nuevo = resumir_violaciones(resultado_swap["resultados"])
     resumen_por_regla_nuevo = resumir_violaciones_por_regla(resultado_swap["resultados"])
+    resumen_por_controlador_nuevo = resumir_violaciones_por_controlador(
+        resultado_swap["roster"],
+        config_file,
+    )
 
     delta_score = score_nuevo - score_original
     delta_total_violaciones = resumen_nuevo["total"] - resumen_original["total"]
@@ -336,10 +367,12 @@ def evaluar_swap(
         "score_original": score_original,
         "resumen_original": resumen_original,
         "resumen_por_regla_original": resumen_por_regla_original,
+        "resumen_por_controlador_original": resumen_por_controlador_original,
         "valido_nuevo": valido_nuevo,
         "score_nuevo": score_nuevo,
         "resumen_nuevo": resumen_nuevo,
         "resumen_por_regla_nuevo": resumen_por_regla_nuevo,
+        "resumen_por_controlador_nuevo": resumen_por_controlador_nuevo,
         "delta_score": delta_score,
         "delta_total_violaciones": delta_total_violaciones,
         "delta_hard": delta_hard,

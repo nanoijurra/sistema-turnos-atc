@@ -128,3 +128,14 @@ def test_explorar_swaps_incluye_impacto():
 
     for r in resultados:
         assert "impacto" in r
+        
+def test_evaluar_swap_incluye_resumen_por_controlador():
+    from src.scenarios.v3_swap_entre_controladores import crear_escenario
+
+    asignaciones = crear_escenario()
+    resultado = evaluar_swap(asignaciones, 2, 3)
+
+    assert "resumen_por_controlador_original" in resultado
+    assert "resumen_por_controlador_nuevo" in resultado
+    assert isinstance(resultado["resumen_por_controlador_original"], dict)
+    assert isinstance(resultado["resumen_por_controlador_nuevo"], dict)        
