@@ -5,6 +5,7 @@ from src.simulator import (
     generar_pares_swap,
     filtrar_swaps_validos,
     filtrar_swaps_utiles,
+    generar_recomendacion_textual,
 )
 
 asignaciones = crear_escenario()
@@ -71,3 +72,7 @@ for i, resultado in enumerate(swaps_utiles, start=1):
             f"hard {datos_antes['hard']} -> {datos_despues['hard']}, "
             f"total {datos_antes['total']} -> {datos_despues['total']}"
         )
+
+    print("  Recomendación textual:")
+    print(f"    {generar_recomendacion_textual(resultado)}")
+    

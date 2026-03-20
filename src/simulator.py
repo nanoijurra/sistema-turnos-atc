@@ -17,7 +17,62 @@ def mostrar_roster(asignaciones: list) -> None:
             f"{asignacion.turno.codigo} | "
             f"{asignacion.turno.categoria}"
         )
+def generar_recomendacion_textual(evaluacion: dict) -> str:
+    """
+    Genera una explicación textual simple del impacto de un swap.
+    """
+    swap = evaluacion["swap"]
+    idx_a = swap["idx_a"]
+    idx_b = swap["idx_b"]
 
+    partes = [f"Swap recomendado: {idx_a} ↔ {idx_b}."]
+
+    if evaluacion["valido_nuevo"]:
+        partes.append("El roster resultante queda válido.")
+    else:
+        partes.append("El roster resultante sigue siendo inválido.")
+
+    if evaluacion["delta_hard"] < 0:
+        partes.append(
+            f"Reduce violaciones hard en {abs(evaluacion['delta_hard'])}."
+        )
+    elif evaluacion["delta_hard"] > 0:
+        partes.append(
+            f"Aumenta violaciones hard en {evaluacion['delta_hard']}."
+        )
+
+    if evaluacion["delta_total_violaciones"] < 0:
+        partes.append(
+            f"Reduce violaciones totales en {abs(evaluacion['delta_total_violaciones'])}."
+        )
+    elif evaluacion["delta_total_violaciones"] > 0:
+        partes.append(
+            f"Aumenta violaciones totales en {evaluacion['delta_total_violaciones']}."
+        )
+
+    mejoras_por_regla = []
+
+    for regla, datos_antes in evaluacion["resumen_por_regla_original"].items():
+        datos_despues = evaluacion["resumen_por_regla_nuevo"].get(
+            regla,
+            {"total": 0, "hard": 0, "soft": 0},
+        )
+
+        if datos_despues["hard"] < datos_antes["hard"]:
+            mejoras_por_regla.append(
+                f"{regla} (hard {datos_antes['hard']} → {datos_despues['hard']})"
+            )
+        elif datos_despues["total"] < datos_antes["total"]:
+            mejoras_por_regla.append(
+                f"{regla} (total {datos_antes['total']} → {datos_despues['total']})"
+            )
+
+    if mejoras_por_regla:
+        partes.append("Mejora detectada en: " + ", ".join(mejoras_por_regla) + ".")
+
+    partes.append(f"Impacto calculado: {evaluacion['impacto']}.")
+
+    return " ".join(partes)
 
 def buscar_indice_asignacion(
     asignaciones: list,

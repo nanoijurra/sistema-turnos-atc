@@ -119,3 +119,12 @@ def test_evaluar_swap_incluye_resumen_por_regla():
     assert "resumen_por_regla_nuevo" in resultado
     assert isinstance(resultado["resumen_por_regla_original"], dict)
     assert isinstance(resultado["resumen_por_regla_nuevo"], dict)
+
+def test_explorar_swaps_incluye_impacto():
+    asignaciones = crear_escenario()
+
+    pares = [(0, 3), (1, 3)]
+    resultados = explorar_swaps(asignaciones, pares)
+
+    for r in resultados:
+        assert "impacto" in r
