@@ -74,6 +74,24 @@ def resumir_violaciones(resultados: list[RuleResult]) -> dict:
         "hard": hard,
         "soft": soft,
     }
+def resumir_violaciones_por_regla(resultados: list[RuleResult]) -> dict:
+    """
+    Resume violaciones por regla, separando total, hard y soft.
+    """
+    resumen = {}
+
+    for resultado in resultados:
+        total = len(resultado.violaciones)
+        hard = sum(1 for v in resultado.violaciones if v.severidad == "hard")
+        soft = sum(1 for v in resultado.violaciones if v.severidad == "soft")
+
+        resumen[resultado.regla] = {
+            "total": total,
+            "hard": hard,
+            "soft": soft,
+        }
+
+    return resumen
 
 
 def simular_swap(
@@ -161,6 +179,7 @@ def evaluar_swap(
     valido_original = es_roster_valido(resultados_original)
     score_original = calcular_score(resultados_original)
     resumen_original = resumir_violaciones(resultados_original)
+    resumen_por_regla_original = resumir_violaciones_por_regla(resultados_original)
 
     resultado_swap = simular_swap(
         asignaciones,
@@ -172,6 +191,7 @@ def evaluar_swap(
     score_nuevo = resultado_swap["score"]
     valido_nuevo = resultado_swap["valido"]
     resumen_nuevo = resumir_violaciones(resultado_swap["resultados"])
+    resumen_por_regla_nuevo = resumir_violaciones_por_regla(resultado_swap["resultados"])
 
     delta_score = score_nuevo - score_original
     delta_total_violaciones = resumen_nuevo["total"] - resumen_original["total"]
@@ -182,9 +202,11 @@ def evaluar_swap(
         "valido_original": valido_original,
         "score_original": score_original,
         "resumen_original": resumen_original,
+        "resumen_por_regla_original": resumen_por_regla_original,
         "valido_nuevo": valido_nuevo,
         "score_nuevo": score_nuevo,
         "resumen_nuevo": resumen_nuevo,
+        "resumen_por_regla_nuevo": resumen_por_regla_nuevo,
         "delta_score": delta_score,
         "delta_total_violaciones": delta_total_violaciones,
         "delta_hard": delta_hard,
@@ -199,7 +221,6 @@ def evaluar_swap(
         ),
         "resultado_swap": resultado_swap,
     }
-
 
 def explorar_swaps(
     asignaciones: list,

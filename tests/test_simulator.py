@@ -109,3 +109,13 @@ def test_resumir_violaciones_y_evaluar_swap_incluyen_deltas():
     assert "delta_total_violaciones" in resultado
     assert "delta_hard" in resultado
     assert "delta_soft" in resultado
+
+def test_evaluar_swap_incluye_resumen_por_regla():
+    asignaciones = crear_escenario()
+
+    resultado = evaluar_swap(asignaciones, 0, 3)
+
+    assert "resumen_por_regla_original" in resultado
+    assert "resumen_por_regla_nuevo" in resultado
+    assert isinstance(resultado["resumen_por_regla_original"], dict)
+    assert isinstance(resultado["resumen_por_regla_nuevo"], dict)
