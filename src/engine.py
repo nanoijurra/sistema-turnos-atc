@@ -20,6 +20,31 @@ def cargar_config(nombre_config: str = "config_equilibrado.json") -> dict:
         return json.load(f)
 
 
+def agrupar_por_controlador(asignaciones: list) -> dict:
+    """
+    Agrupa asignaciones por controlador.
+    Si no hay controlador, usa SIN_CONTROLADOR para mantener compatibilidad.
+    """
+    grupos = {}
+
+    for asignacion in asignaciones:
+        nombre = (
+            asignacion.controlador.nombre
+            if asignacion.controlador is not None
+            else "SIN_CONTROLADOR"
+        )
+
+        if nombre not in grupos:
+            grupos[nombre] = []
+
+        grupos[nombre].append(asignacion)
+
+    for grupo in grupos.values():
+        grupo.sort(key=lambda a: a.fecha)
+
+    return grupos
+
+
 def validar_estructura_violacion(violacion: Violation, nombre_regla: str) -> None:
     if not isinstance(violacion, Violation):
         raise TypeError(
@@ -69,9 +94,25 @@ def validar_todo(asignaciones, config_file: str = "config_equilibrado.json") -> 
     config = cargar_config(config_file)
     resultados = []
 
+    grupos = agrupar_por_controlador(asignaciones)
+
     for regla_config in config["reglas"]:
-        resultado = ejecutar_regla(asignaciones, regla_config)
-        resultados.append(resultado)
+        nombre_regla = regla_config["nombre"]
+        prioridad = regla_config["prioridad"]
+
+        violaciones_totales = []
+
+        for _, asignaciones_ctrl in grupos.items():
+            resultado_ctrl = ejecutar_regla(asignaciones_ctrl, regla_config)
+            violaciones_totales.extend(resultado_ctrl.violaciones)
+
+        resultados.append(
+            RuleResult(
+                regla=nombre_regla,
+                prioridad=prioridad,
+                violaciones=violaciones_totales,
+            )
+        )
 
     resultados.sort(key=lambda r: r.prioridad)
     return resultados
