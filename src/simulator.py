@@ -203,3 +203,42 @@ def explorar_swaps(
     )
 
     return evaluaciones
+def generar_pares_swap(
+    asignaciones: list,
+    limite: int | None = None,
+) -> list[tuple[int, int]]:
+    """
+    Genera pares de índices posibles para swaps.
+
+    Si limite está definido, corta la cantidad de pares generados.
+    """
+
+    pares = []
+    n = len(asignaciones)
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            pares.append((i, j))
+
+            if limite is not None and len(pares) >= limite:
+                return pares
+
+    return pares
+def filtrar_swaps_validos(evaluaciones: list[dict]) -> list[dict]:
+    """
+    Devuelve solo los swaps cuyo resultado nuevo es válido.
+    """
+    return [e for e in evaluaciones if e["valido_nuevo"]]
+
+
+def filtrar_swaps_utiles(evaluaciones: list[dict]) -> list[dict]:
+    """
+    Devuelve swaps considerados útiles.
+
+    En esta etapa, útil = swap válido.
+    Más adelante puede refinarse para incluir:
+    - mejora de score
+    - reducción de violaciones
+    - eliminación de hard rules
+    """
+    return filtrar_swaps_validos(evaluaciones)
