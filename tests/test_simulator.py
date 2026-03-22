@@ -178,3 +178,24 @@ def test_evaluar_swap_incluye_clasificacion():
         "ACEPTABLE",
         "RECHAZABLE",
     }
+
+def test_escenario_beneficioso_devuelve_algun_swap_no_rechazable():
+    from src.scenarios.v4_swap_beneficioso import crear_escenario
+    from src.simulator import explorar_swaps_entre_controladores
+
+    asignaciones = crear_escenario()
+    ranking = explorar_swaps_entre_controladores(asignaciones)
+
+    assert len(ranking) > 0
+    assert any(r["clasificacion"] in {"BENEFICIOSO", "ACEPTABLE"} for r in ranking)
+
+
+def test_escenario_aceptable_devuelve_algun_swap_aceptable_o_beneficioso():
+    from src.scenarios.v5_swap_aceptable import crear_escenario
+    from src.simulator import explorar_swaps_entre_controladores
+
+    asignaciones = crear_escenario()
+    ranking = explorar_swaps_entre_controladores(asignaciones)
+
+    assert len(ranking) > 0
+    assert any(r["clasificacion"] in {"ACEPTABLE", "BENEFICIOSO"} for r in ranking)
