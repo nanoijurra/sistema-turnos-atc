@@ -6,9 +6,9 @@ from src.simulator import (
     generar_recomendacion_textual,
 )
 
-from src.scenarios.v3_controladores_mixto import crear_escenario as escenario_rechazable
+from src.scenarios.v3_controladores_mixto import crear_escenario as escenario_mixto
 from src.scenarios.v4_controladores_beneficioso import crear_escenario as escenario_beneficioso
-from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario as escenario_aceptable
+from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario as escenario_beneficioso_mutuo
 
 
 def ejecutar_demo(nombre: str, asignaciones: list) -> None:
@@ -63,6 +63,6 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
     print("\n")
 
 
-ejecutar_demo("RECHAZABLE", escenario_rechazable())
+ejecutar_demo("MIXTO", escenario_mixto())
 ejecutar_demo("BENEFICIOSO", escenario_beneficioso())
-ejecutar_demo("ACEPTABLE", escenario_aceptable())
+ejecutar_demo("BENEFICIOSO MUTUO", escenario_beneficioso_mutuo())
