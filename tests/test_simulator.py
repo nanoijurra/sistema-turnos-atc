@@ -130,7 +130,7 @@ def test_explorar_swaps_incluye_impacto():
         assert "impacto" in r
         
 def test_evaluar_swap_incluye_resumen_por_controlador():
-    from src.scenarios.v3_swap_entre_controladores import crear_escenario
+    from src.scenarios.v3_controladores_mixto import crear_escenario
 
     asignaciones = crear_escenario()
     resultado = evaluar_swap(asignaciones, 2, 3)
@@ -141,7 +141,7 @@ def test_evaluar_swap_incluye_resumen_por_controlador():
     assert isinstance(resultado["resumen_por_controlador_nuevo"], dict)
           
 def test_generar_pares_swap_entre_controladores_devuelve_pares():
-    from src.scenarios.v3_swap_entre_controladores import crear_escenario
+    from src.scenarios.v3_controladores_mixto import crear_escenario
     from src.simulator import generar_pares_swap_entre_controladores
 
     asignaciones = crear_escenario()
@@ -157,7 +157,7 @@ def test_generar_pares_swap_entre_controladores_devuelve_pares():
 
 
 def test_explorar_swaps_entre_controladores_devuelve_lista():
-    from src.scenarios.v3_swap_entre_controladores import crear_escenario
+    from src.scenarios.v3_controladores_mixto import crear_escenario
     from src.simulator import explorar_swaps_entre_controladores
 
     asignaciones = crear_escenario()
@@ -168,7 +168,7 @@ def test_explorar_swaps_entre_controladores_devuelve_lista():
     assert "clasificacion" in ranking[0]      
 
 def test_evaluar_swap_incluye_clasificacion():
-    from src.scenarios.v3_swap_entre_controladores import crear_escenario
+    from src.scenarios.v3_controladores_mixto import crear_escenario
 
     asignaciones = crear_escenario()
     resultado = evaluar_swap(asignaciones, 2, 3)
@@ -180,7 +180,7 @@ def test_evaluar_swap_incluye_clasificacion():
     }
 
 def test_escenario_beneficioso_devuelve_algun_swap_no_rechazable():
-    from src.scenarios.v4_swap_beneficioso import crear_escenario
+    from src.scenarios.v4_controladores_beneficioso import crear_escenario
     from src.simulator import explorar_swaps_entre_controladores
 
     asignaciones = crear_escenario()
@@ -191,7 +191,7 @@ def test_escenario_beneficioso_devuelve_algun_swap_no_rechazable():
 
 
 def test_escenario_aceptable_devuelve_algun_swap_aceptable_o_beneficioso():
-    from src.scenarios.v5_swap_aceptable import crear_escenario
+    from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
     from src.simulator import explorar_swaps_entre_controladores
 
     asignaciones = crear_escenario()

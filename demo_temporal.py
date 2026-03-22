@@ -6,9 +6,9 @@ from src.simulator import (
     generar_recomendacion_textual,
 )
 
-from src.scenarios.v3_swap_entre_controladores import crear_escenario as escenario_rechazable
-from src.scenarios.v4_swap_beneficioso import crear_escenario as escenario_beneficioso
-from src.scenarios.v5_swap_aceptable import crear_escenario as escenario_aceptable
+from src.scenarios.v3_controladores_mixto import crear_escenario as escenario_rechazable
+from src.scenarios.v4_controladores_beneficioso import crear_escenario as escenario_beneficioso
+from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario as escenario_aceptable
 
 
 def ejecutar_demo(nombre: str, asignaciones: list) -> None:

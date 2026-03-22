@@ -39,4 +39,4 @@ def crear_escenario() -> list[Asignacion]:
             turno=turno_c,
             controlador=controlador_b,
         ),
-    ]
+    ]   
