@@ -218,7 +218,6 @@ def clasificar_swap(evaluacion: dict) -> str:
 def calcular_impacto(evaluacion: dict) -> int:
     """
     Calcula un score de impacto para ordenar swaps.
-    Penaliza hard y total; bonifica mejoras.
     """
     hard = evaluacion["resumen_nuevo"]["hard"]
     total = evaluacion["resumen_nuevo"]["total"]
@@ -227,13 +226,10 @@ def calcular_impacto(evaluacion: dict) -> int:
     delta_total = evaluacion["delta_total_violaciones"]
 
     impacto = 0
-
     impacto -= hard * 100
     impacto -= total * 10
-
     impacto += (-delta_hard) * 50
     impacto += (-delta_total) * 5
-
     impacto += evaluacion["score_nuevo"]
 
     return impacto
@@ -437,6 +433,52 @@ def generar_pares_swap(
                 return pares
 
     return pares
+
+
+def generar_pares_swap_entre_controladores(
+    asignaciones: list,
+    limite: int | None = None,
+) -> list[tuple[int, int]]:
+    """
+    Genera pares de swap solamente entre asignaciones de controladores distintos.
+    """
+    pares = []
+    n = len(asignaciones)
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            ctrl_i = (
+                asignaciones[i].controlador.nombre
+                if asignaciones[i].controlador is not None
+                else None
+            )
+            ctrl_j = (
+                asignaciones[j].controlador.nombre
+                if asignaciones[j].controlador is not None
+                else None
+            )
+
+            if ctrl_i == ctrl_j:
+                continue
+
+            pares.append((i, j))
+
+            if limite is not None and len(pares) >= limite:
+                return pares
+
+    return pares
+
+
+def explorar_swaps_entre_controladores(
+    asignaciones: list,
+    limite: int | None = None,
+    config_file: str = "config_equilibrado.json",
+) -> list[dict]:
+    """
+    Explora automáticamente swaps entre controladores distintos y los rankea.
+    """
+    pares = generar_pares_swap_entre_controladores(asignaciones, limite=limite)
+    return explorar_swaps(asignaciones, pares, config_file=config_file)
 
 
 def filtrar_swaps_validos(evaluaciones: list[dict]) -> list[dict]:

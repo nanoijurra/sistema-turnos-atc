@@ -1,9 +1,9 @@
-from datetime import date
-
 from src.scenarios.v3_swap_entre_controladores import crear_escenario
 from src.simulator import (
     mostrar_roster,
-    simular_swap_entre_controladores,
+    explorar_swaps_entre_controladores,
+    filtrar_swaps_validos,
+    filtrar_swaps_utiles,
     generar_recomendacion_textual,
 )
 
@@ -13,47 +13,36 @@ print("Roster original:")
 mostrar_roster(asignaciones)
 print()
 
-resultado = simular_swap_entre_controladores(
-    asignaciones=asignaciones,
-    controlador_a="ATC_A",
-    fecha_a=date(2026, 3, 3),
-    controlador_b="ATC_B",
-    fecha_b=date(2026, 3, 4),
-)
+ranking = explorar_swaps_entre_controladores(asignaciones)
+swaps_validos = filtrar_swaps_validos(ranking)
+swaps_utiles = filtrar_swaps_utiles(ranking)
 
-print("Resultado del swap entre controladores:")
-print(f"  Válido nuevo : {resultado['valido_nuevo']}")
-print(f"  Score nuevo  : {resultado['score_nuevo']}")
-print(f"  Delta hard   : {resultado['delta_hard']}")
-print(f"  Delta total  : {resultado['delta_total_violaciones']}")
-print(f"  Clasificación: {resultado['clasificacion']}")
+print("Ranking automático de swaps entre controladores:")
+for i, resultado in enumerate(ranking, start=1):
+    swap = resultado["swap"]
 
-print("\nImpacto por controlador:")
-antes = resultado["resumen_por_controlador_original"]
-despues = resultado["resumen_por_controlador_nuevo"]
+    print(f"\n#{i} Swap ({swap['idx_a']} <-> {swap['idx_b']})")
+    print(f"  Válido nuevo : {resultado['valido_nuevo']}")
+    print(f"  Score nuevo  : {resultado['score_nuevo']}")
+    print(f"  Impacto      : {resultado['impacto']}")
+    print(f"  Delta hard   : {resultado['delta_hard']}")
+    print(f"  Delta total  : {resultado['delta_total_violaciones']}")
+    print(f"  Clasificación: {resultado['clasificacion']}")
 
-for controlador, datos_antes in antes.items():
-    datos_despues = despues.get(
-        controlador,
-        {
-            "valido": True,
-            "score": 100,
-            "violaciones": {"total": 0, "hard": 0, "soft": 0},
-            "por_regla": {},
-        },
-    )
+print("\nSwaps válidos:")
+for i, resultado in enumerate(swaps_validos, start=1):
+    swap = resultado["swap"]
 
-    print(f"\n{controlador}:")
-    print(f"  Válido : {datos_antes['valido']} -> {datos_despues['valido']}")
-    print(f"  Score  : {datos_antes['score']} -> {datos_despues['score']}")
-    print(
-        f"  Hard   : {datos_antes['violaciones']['hard']} -> "
-        f"{datos_despues['violaciones']['hard']}"
-    )
-    print(
-        f"  Total  : {datos_antes['violaciones']['total']} -> "
-        f"{datos_despues['violaciones']['total']}"
-    )
+    print(f"\n#{i} Swap válido ({swap['idx_a']} <-> {swap['idx_b']})")
+    print(f"  Impacto      : {resultado['impacto']}")
+    print(f"  Clasificación: {resultado['clasificacion']}")
 
-print("\nRecomendación textual:")
-print(generar_recomendacion_textual(resultado))
+print("\nSwaps útiles:")
+for i, resultado in enumerate(swaps_utiles, start=1):
+    swap = resultado["swap"]
+
+    print(f"\n#{i} Swap útil ({swap['idx_a']} <-> {swap['idx_b']})")
+    print(f"  Impacto      : {resultado['impacto']}")
+    print(f"  Clasificación: {resultado['clasificacion']}")
+    print("  Recomendación textual:")
+    print(f"    {generar_recomendacion_textual(resultado)}")
