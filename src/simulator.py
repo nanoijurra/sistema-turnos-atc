@@ -172,6 +172,11 @@ def resumir_violaciones_por_controlador(
 def clasificar_swap(evaluacion: dict) -> str:
     """
     Clasifica un swap según impacto global y por controlador.
+
+    Reglas:
+    - RECHAZABLE: si queda inválido o empeora a algún controlador
+    - BENEFICIOSO: si mejora algo real y no perjudica a nadie
+    - ACEPTABLE: si queda válido y no empeora a nadie, aunque no mejore mucho
     """
     if not evaluacion["valido_nuevo"]:
         return "RECHAZABLE"
@@ -208,9 +213,6 @@ def clasificar_swap(evaluacion: dict) -> str:
 
     if evaluacion["delta_hard"] < 0 or evaluacion["delta_total_violaciones"] < 0:
         return "BENEFICIOSO"
-
-    if evaluacion["igual"]:
-        return "NEUTRO"
 
     return "ACEPTABLE"
 

@@ -138,7 +138,8 @@ def test_evaluar_swap_incluye_resumen_por_controlador():
     assert "resumen_por_controlador_original" in resultado
     assert "resumen_por_controlador_nuevo" in resultado
     assert isinstance(resultado["resumen_por_controlador_original"], dict)
-    assert isinstance(resultado["resumen_por_controlador_nuevo"], dict)      
+    assert isinstance(resultado["resumen_por_controlador_nuevo"], dict)
+          
 def test_generar_pares_swap_entre_controladores_devuelve_pares():
     from src.scenarios.v3_swap_entre_controladores import crear_escenario
     from src.simulator import generar_pares_swap_entre_controladores
@@ -165,3 +166,15 @@ def test_explorar_swaps_entre_controladores_devuelve_lista():
     assert isinstance(ranking, list)
     assert len(ranking) > 0
     assert "clasificacion" in ranking[0]      
+
+def test_evaluar_swap_incluye_clasificacion():
+    from src.scenarios.v3_swap_entre_controladores import crear_escenario
+
+    asignaciones = crear_escenario()
+    resultado = evaluar_swap(asignaciones, 2, 3)
+
+    assert resultado["clasificacion"] in {
+        "BENEFICIOSO",
+        "ACEPTABLE",
+        "RECHAZABLE",
+    }
