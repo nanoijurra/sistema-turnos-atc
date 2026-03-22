@@ -25,69 +25,6 @@ def mostrar_roster(asignaciones: list) -> None:
             f"{asignacion.turno.categoria}"
         )
 
-def generar_recomendacion_textual(evaluacion: dict) -> str:
-    """
-    Genera una explicación textual incluyendo impacto por controlador.
-    """
-    swap = evaluacion["swap"]
-    idx_a = swap["idx_a"]
-    idx_b = swap["idx_b"]
-
-    partes = [f"Swap recomendado: {idx_a} ↔ {idx_b}."]
-
-    # estado global
-    if evaluacion["valido_nuevo"]:
-        partes.append("El roster resultante queda válido.")
-    else:
-        partes.append("El roster resultante sigue siendo inválido.")
-
-    # impacto global
-    if evaluacion["delta_hard"] < 0:
-        partes.append(f"Reduce violaciones hard en {abs(evaluacion['delta_hard'])}.")
-    elif evaluacion["delta_hard"] > 0:
-        partes.append(f"Aumenta violaciones hard en {evaluacion['delta_hard']}.")
-
-    if evaluacion["delta_total_violaciones"] < 0:
-        partes.append(
-            f"Reduce violaciones totales en {abs(evaluacion['delta_total_violaciones'])}."
-        )
-    elif evaluacion["delta_total_violaciones"] > 0:
-        partes.append(
-            f"Aumenta violaciones totales en {evaluacion['delta_total_violaciones']}."
-        )
-
-    # 🔥 impacto por controlador
-    antes = evaluacion.get("resumen_por_controlador_original", {})
-    despues = evaluacion.get("resumen_por_controlador_nuevo", {})
-
-    cambios_controladores = []
-
-    for ctrl, datos_antes in antes.items():
-        datos_despues = despues.get(ctrl)
-
-        if not datos_despues:
-            continue
-
-        delta_hard = datos_despues["violaciones"]["hard"] - datos_antes["violaciones"]["hard"]
-        delta_total = datos_despues["violaciones"]["total"] - datos_antes["violaciones"]["total"]
-        cambio_validez = datos_antes["valido"] != datos_despues["valido"]
-
-        if delta_hard < 0 or delta_total < 0 or (datos_antes["valido"] is False and datos_despues["valido"] is True):
-            cambios_controladores.append(
-                f"{ctrl} mejora (hard {datos_antes['violaciones']['hard']}→{datos_despues['violaciones']['hard']})"
-            )
-
-        elif delta_hard > 0 or delta_total > 0 or cambio_validez:
-            cambios_controladores.append(
-                f"{ctrl} empeora (hard {datos_antes['violaciones']['hard']}→{datos_despues['violaciones']['hard']})"
-            )
-
-    if cambios_controladores:
-        partes.append("Impacto por controlador: " + "; ".join(cambios_controladores) + ".")
-
-    partes.append(f"Impacto calculado: {evaluacion['impacto']}.")
-
-    return " ".join(partes)
 
 def buscar_indice_asignacion(
     asignaciones: list,
@@ -121,6 +58,7 @@ def buscar_indice_asignacion(
         )
 
     return candidatos[0]
+
 
 def buscar_indice_asignacion_por_controlador(
     asignaciones: list,
@@ -185,6 +123,8 @@ def resumir_violaciones(resultados: list[RuleResult]) -> dict:
         "hard": hard,
         "soft": soft,
     }
+
+
 def resumir_violaciones_por_regla(resultados: list[RuleResult]) -> dict:
     """
     Resume violaciones por regla, separando total, hard y soft.
@@ -203,6 +143,7 @@ def resumir_violaciones_por_regla(resultados: list[RuleResult]) -> dict:
         }
 
     return resumen
+
 
 def resumir_violaciones_por_controlador(
     asignaciones: list,
@@ -227,35 +168,76 @@ def resumir_violaciones_por_controlador(
 
     return resumen
 
+
+def clasificar_swap(evaluacion: dict) -> str:
+    """
+    Clasifica un swap según impacto global y por controlador.
+    """
+    if not evaluacion["valido_nuevo"]:
+        return "RECHAZABLE"
+
+    antes = evaluacion.get("resumen_por_controlador_original", {})
+    despues = evaluacion.get("resumen_por_controlador_nuevo", {})
+
+    algun_controlador_empeora = False
+
+    for ctrl, datos_antes in antes.items():
+        datos_despues = despues.get(ctrl)
+
+        if not datos_despues:
+            continue
+
+        delta_hard_ctrl = (
+            datos_despues["violaciones"]["hard"]
+            - datos_antes["violaciones"]["hard"]
+        )
+        delta_total_ctrl = (
+            datos_despues["violaciones"]["total"]
+            - datos_antes["violaciones"]["total"]
+        )
+
+        if (
+            delta_hard_ctrl > 0
+            or delta_total_ctrl > 0
+            or (datos_antes["valido"] and not datos_despues["valido"])
+        ):
+            algun_controlador_empeora = True
+
+    if algun_controlador_empeora:
+        return "RECHAZABLE"
+
+    if evaluacion["delta_hard"] < 0 or evaluacion["delta_total_violaciones"] < 0:
+        return "BENEFICIOSO"
+
+    if evaluacion["igual"]:
+        return "NEUTRO"
+
+    return "ACEPTABLE"
+
+
 def calcular_impacto(evaluacion: dict) -> int:
     """
     Calcula un score de impacto para ordenar swaps.
     Penaliza hard y total; bonifica mejoras.
     """
-    # menos hard = mejor
     hard = evaluacion["resumen_nuevo"]["hard"]
     total = evaluacion["resumen_nuevo"]["total"]
 
-    # deltas (negativos = mejora)
     delta_hard = evaluacion["delta_hard"]
     delta_total = evaluacion["delta_total_violaciones"]
 
     impacto = 0
 
-    # prioridad fuerte: eliminar hard
     impacto -= hard * 100
-
-    # luego total
     impacto -= total * 10
 
-    # bonificar mejoras
     impacto += (-delta_hard) * 50
     impacto += (-delta_total) * 5
 
-    # score como ajuste fino
     impacto += evaluacion["score_nuevo"]
 
     return impacto
+
 
 def simular_swap(
     asignaciones: list,
@@ -369,7 +351,18 @@ def evaluar_swap(
     delta_hard = resumen_nuevo["hard"] - resumen_original["hard"]
     delta_soft = resumen_nuevo["soft"] - resumen_original["soft"]
 
-    return {
+    igual = (
+        delta_score == 0
+        and delta_total_violaciones == 0
+        and delta_hard == 0
+        and delta_soft == 0
+    )
+
+    resultado = {
+        "swap": {
+            "idx_a": idx_a,
+            "idx_b": idx_b,
+        },
         "valido_original": valido_original,
         "score_original": score_original,
         "resumen_original": resumen_original,
@@ -386,14 +379,15 @@ def evaluar_swap(
         "delta_soft": delta_soft,
         "mejora": delta_score > 0 or delta_total_violaciones < 0 or delta_hard < 0,
         "empeora": delta_score < 0 or delta_total_violaciones > 0 or delta_hard > 0,
-        "igual": (
-            delta_score == 0
-            and delta_total_violaciones == 0
-            and delta_hard == 0
-            and delta_soft == 0
-        ),
+        "igual": igual,
         "resultado_swap": resultado_swap,
     }
+
+    resultado["clasificacion"] = clasificar_swap(resultado)
+    resultado["impacto"] = calcular_impacto(resultado)
+
+    return resultado
+
 
 def explorar_swaps(
     asignaciones: list,
@@ -412,18 +406,8 @@ def explorar_swaps(
             idx_b=idx_b,
             config_file=config_file,
         )
-
-        evaluacion["swap"] = {
-            "idx_a": idx_a,
-            "idx_b": idx_b,
-        }
-
-        # 👇 NUEVO: calcular impacto
-        evaluacion["impacto"] = calcular_impacto(evaluacion)
-
         evaluaciones.append(evaluacion)
 
-    # 👇 NUEVO ORDENAMIENTO
     evaluaciones.sort(
         key=lambda e: (
             e["valido_nuevo"],
@@ -441,8 +425,6 @@ def generar_pares_swap(
 ) -> list[tuple[int, int]]:
     """
     Genera pares de índices posibles para swaps.
-
-    Si limite está definido, corta la cantidad de pares generados.
     """
     pares = []
     n = len(asignaciones)
@@ -467,13 +449,85 @@ def filtrar_swaps_validos(evaluaciones: list[dict]) -> list[dict]:
 def filtrar_swaps_utiles(evaluaciones: list[dict]) -> list[dict]:
     """
     Devuelve swaps considerados útiles.
-
-    En esta etapa, útil = swap válido y que reduzca violaciones hard o totales.
     """
     return [
         e for e in evaluaciones
-        if e["valido_nuevo"] and (e["delta_hard"] < 0 or e["delta_total_violaciones"] < 0)
+        if e["clasificacion"] in {"BENEFICIOSO", "ACEPTABLE"}
     ]
+
+
+def generar_recomendacion_textual(evaluacion: dict) -> str:
+    """
+    Genera una explicación textual incluyendo impacto por controlador.
+    """
+    swap = evaluacion["swap"]
+    idx_a = swap["idx_a"]
+    idx_b = swap["idx_b"]
+
+    partes = [f"Swap recomendado: {idx_a} ↔ {idx_b}."]
+
+    if evaluacion["valido_nuevo"]:
+        partes.append("El roster resultante queda válido.")
+    else:
+        partes.append("El roster resultante sigue siendo inválido.")
+
+    if evaluacion["delta_hard"] < 0:
+        partes.append(f"Reduce violaciones hard en {abs(evaluacion['delta_hard'])}.")
+    elif evaluacion["delta_hard"] > 0:
+        partes.append(f"Aumenta violaciones hard en {evaluacion['delta_hard']}.")
+
+    if evaluacion["delta_total_violaciones"] < 0:
+        partes.append(
+            f"Reduce violaciones totales en {abs(evaluacion['delta_total_violaciones'])}."
+        )
+    elif evaluacion["delta_total_violaciones"] > 0:
+        partes.append(
+            f"Aumenta violaciones totales en {evaluacion['delta_total_violaciones']}."
+        )
+
+    antes = evaluacion.get("resumen_por_controlador_original", {})
+    despues = evaluacion.get("resumen_por_controlador_nuevo", {})
+
+    cambios_controladores = []
+
+    for ctrl, datos_antes in antes.items():
+        datos_despues = despues.get(ctrl)
+
+        if not datos_despues:
+            continue
+
+        delta_hard_ctrl = (
+            datos_despues["violaciones"]["hard"]
+            - datos_antes["violaciones"]["hard"]
+        )
+        delta_total_ctrl = (
+            datos_despues["violaciones"]["total"]
+            - datos_antes["violaciones"]["total"]
+        )
+        cambio_validez = datos_antes["valido"] != datos_despues["valido"]
+
+        if (
+            delta_hard_ctrl < 0
+            or delta_total_ctrl < 0
+            or (datos_antes["valido"] is False and datos_despues["valido"] is True)
+        ):
+            cambios_controladores.append(
+                f"{ctrl} mejora (hard {datos_antes['violaciones']['hard']}→{datos_despues['violaciones']['hard']})"
+            )
+        elif delta_hard_ctrl > 0 or delta_total_ctrl > 0 or cambio_validez:
+            cambios_controladores.append(
+                f"{ctrl} empeora (hard {datos_antes['violaciones']['hard']}→{datos_despues['violaciones']['hard']})"
+            )
+
+    if cambios_controladores:
+        partes.append("Impacto por controlador: " + "; ".join(cambios_controladores) + ".")
+
+    partes.append(f"Clasificación: {evaluacion['clasificacion']}.")
+    partes.append(f"Impacto calculado: {evaluacion.get('impacto', 0)}.")
+
+    return " ".join(partes)
+
+
 def simular_swap_entre_controladores(
     asignaciones: list,
     controlador_a: str,

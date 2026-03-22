@@ -26,6 +26,7 @@ print(f"  Válido nuevo : {resultado['valido_nuevo']}")
 print(f"  Score nuevo  : {resultado['score_nuevo']}")
 print(f"  Delta hard   : {resultado['delta_hard']}")
 print(f"  Delta total  : {resultado['delta_total_violaciones']}")
+print(f"  Clasificación: {resultado['clasificacion']}")
 
 print("\nImpacto por controlador:")
 antes = resultado["resumen_por_controlador_original"]
@@ -53,9 +54,6 @@ for controlador, datos_antes in antes.items():
         f"  Total  : {datos_antes['violaciones']['total']} -> "
         f"{datos_despues['violaciones']['total']}"
     )
-
-resultado["swap"] = {"idx_a": 2, "idx_b": 3}
-resultado["impacto"] = 0
 
 print("\nRecomendación textual:")
 print(generar_recomendacion_textual(resultado))
