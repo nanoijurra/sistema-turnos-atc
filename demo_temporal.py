@@ -7,6 +7,7 @@ from src.simulator import (
     crear_swap_request,
     evaluar_swap_request,
     resolver_swap_request,
+    aplicar_swap_request,
 )
 
 from src.scenarios.v3_controladores_mixto import crear_escenario as escenario_mixto
@@ -56,6 +57,14 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
     print(f"  Estado final : {request.estado}")
     print(f"  Fecha        : {request.fecha_resolucion}")
     print()
+
+    if request.estado == "ACEPTADO":
+        print("Aplicando SwapRequest al roster...")
+        roster_aplicado = aplicar_swap_request(asignaciones, request)
+
+        print("Roster actualizado:")
+        mostrar_roster(roster_aplicado)
+        print()
 
     # 🔹 Ranking
     ranking = explorar_swaps_entre_controladores(asignaciones)

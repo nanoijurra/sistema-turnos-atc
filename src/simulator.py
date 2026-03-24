@@ -680,6 +680,30 @@ def resolver_swap_request(
 
     return request
 
+def aplicar_swap_request(
+    asignaciones: list,
+    request: "SwapRequest",
+) -> list:
+    """
+    Aplica el swap al roster solamente si el request fue aceptado.
+    Devuelve un nuevo roster con el intercambio realizado.
+    """
+    if request.estado != "ACEPTADO":
+        raise ValueError("Solo se puede aplicar un SwapRequest con estado ACEPTADO.")
+
+    if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
+        raise IndexError("Los índices del SwapRequest están fuera de rango.")
+
+    nuevo_roster = deepcopy(asignaciones)
+
+    turno_a = nuevo_roster[request.idx_a].turno
+    turno_b = nuevo_roster[request.idx_b].turno
+
+    nuevo_roster[request.idx_a] = replace(nuevo_roster[request.idx_a], turno=turno_b)
+    nuevo_roster[request.idx_b] = replace(nuevo_roster[request.idx_b], turno=turno_a)
+
+    return nuevo_roster
+
 
 def crear_swap_request(
     asignaciones: list,
