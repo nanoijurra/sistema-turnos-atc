@@ -199,3 +199,14 @@ def test_escenario_aceptable_devuelve_algun_swap_aceptable_o_beneficioso():
 
     assert len(ranking) > 0
     assert any(r["clasificacion"] in {"ACEPTABLE", "BENEFICIOSO"} for r in ranking)
+
+def test_crear_swap_request_devuelve_objeto_valido():
+    from src.scenarios.v3_controladores_mixto import crear_escenario
+    from src.simulator import crear_swap_request
+
+    asignaciones = crear_escenario()
+
+    request = crear_swap_request(asignaciones, 0, 3)
+
+    assert request.controlador_a != request.controlador_b
+    assert request.estado == "PENDIENTE"

@@ -1,3 +1,4 @@
+from src.simulator import crear_swap_request
 from src.simulator import (
     mostrar_roster,
     explorar_swaps_entre_controladores,
@@ -18,6 +19,16 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
 
     print("Roster original:")
     mostrar_roster(asignaciones)
+    print("\nEjemplo de SwapRequest:")
+
+    request = crear_swap_request(asignaciones, 0, 3, motivo="Intercambio personal")
+
+    print(f"  ID           : {request.id}")
+    print(f"  Controlador A: {request.controlador_a}")
+    print(f"  Controlador B: {request.controlador_b}")
+    print(f"  Índices      : {request.idx_a} <-> {request.idx_b}")
+    print(f"  Estado       : {request.estado}")
+    print(f"  Motivo       : {request.motivo}")
     print()
 
     ranking = explorar_swaps_entre_controladores(asignaciones)

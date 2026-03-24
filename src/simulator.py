@@ -605,3 +605,30 @@ def simular_swap_entre_controladores(
         idx_b=idx_b,
         config_file=config_file,
     )
+import uuid
+from datetime import datetime
+from src.models import SwapRequest
+
+
+def crear_swap_request(
+    asignaciones: list,
+    idx_a: int,
+    idx_b: int,
+    motivo: str | None = None,
+) -> SwapRequest:
+    """
+    Crea una solicitud de swap entre dos controladores.
+    """
+    asignacion_a = asignaciones[idx_a]
+    asignacion_b = asignaciones[idx_b]
+
+    return SwapRequest(
+        id=str(uuid.uuid4()),
+        controlador_a=asignacion_a.controlador,
+        controlador_b=asignacion_b.controlador,
+        idx_a=idx_a,
+        idx_b=idx_b,
+        estado="PENDIENTE",
+        fecha_creacion=datetime.now(),
+        motivo=motivo,
+    )
