@@ -210,3 +210,14 @@ def test_crear_swap_request_devuelve_objeto_valido():
 
     assert request.controlador_a != request.controlador_b
     assert request.estado == "PENDIENTE"
+
+def test_evaluar_swap_request_devuelve_decision():
+    from src.scenarios.v4_controladores_beneficioso import crear_escenario
+    from src.simulator import crear_swap_request, evaluar_swap_request
+
+    asignaciones = crear_escenario()
+
+    request = crear_swap_request(asignaciones, 2, 3)
+    resultado = evaluar_swap_request(asignaciones, request)
+
+    assert resultado["decision"] in {"APROBABLE", "OBSERVAR", "RECHAZAR"}

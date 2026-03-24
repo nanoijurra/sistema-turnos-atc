@@ -1,10 +1,11 @@
-from src.simulator import crear_swap_request
 from src.simulator import (
     mostrar_roster,
     explorar_swaps_entre_controladores,
     filtrar_swaps_validos,
     filtrar_swaps_utiles,
     generar_recomendacion_textual,
+    crear_swap_request,
+    evaluar_swap_request,
 )
 
 from src.scenarios.v3_controladores_mixto import crear_escenario as escenario_mixto
@@ -19,8 +20,9 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
 
     print("Roster original:")
     mostrar_roster(asignaciones)
-    print("\nEjemplo de SwapRequest:")
+    print()
 
+    print("Ejemplo de SwapRequest:")
     request = crear_swap_request(asignaciones, 0, 3, motivo="Intercambio personal")
 
     print(f"  ID           : {request.id}")
@@ -29,6 +31,12 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
     print(f"  Índices      : {request.idx_a} <-> {request.idx_b}")
     print(f"  Estado       : {request.estado}")
     print(f"  Motivo       : {request.motivo}")
+
+    print("\nEvaluación del SwapRequest:")
+    resultado_request = evaluar_swap_request(asignaciones, request)
+
+    print(f"  Clasificación : {resultado_request['clasificacion']}")
+    print(f"  Decisión      : {resultado_request['decision']}")
     print()
 
     ranking = explorar_swaps_entre_controladores(asignaciones)

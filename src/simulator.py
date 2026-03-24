@@ -610,6 +610,47 @@ from datetime import datetime
 from src.models import SwapRequest
 
 
+def evaluar_swap_request(
+    asignaciones: list,
+    request: "SwapRequest",
+    config_file: str = "config_equilibrado.json",
+) -> dict:
+    """
+    Evalúa un SwapRequest y devuelve una decisión operativa.
+    """
+
+    evaluacion = evaluar_swap(
+        asignaciones=asignaciones,
+        idx_a=request.idx_a,
+        idx_b=request.idx_b,
+        config_file=config_file,
+    )
+
+    clasificacion = evaluacion["clasificacion"]
+
+    # 🔴 lógica de decisión (simple pero potente)
+    if clasificacion == "BENEFICIOSO":
+        decision = "APROBABLE"
+
+    elif clasificacion == "ACEPTABLE":
+        decision = "OBSERVAR"
+
+    else:
+        decision = "RECHAZAR"
+
+    return {
+        "request_id": request.id,
+        "controlador_a": request.controlador_a,
+        "controlador_b": request.controlador_b,
+        "clasificacion": clasificacion,
+        "decision": decision,
+        "evaluacion": evaluacion,
+    }
+import uuid
+from datetime import datetime
+from src.models import SwapRequest
+
+
 def crear_swap_request(
     asignaciones: list,
     idx_a: int,
