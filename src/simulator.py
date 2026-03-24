@@ -611,6 +611,7 @@ from src.models import SwapRequest
 
 
 def evaluar_swap_request(
+
     asignaciones: list,
     request: "SwapRequest",
     config_file: str = "config_equilibrado.json",
@@ -649,6 +650,35 @@ def evaluar_swap_request(
 import uuid
 from datetime import datetime
 from src.models import SwapRequest
+from datetime import datetime
+
+
+def resolver_swap_request(
+    request: "SwapRequest",
+    accion: str,
+) -> "SwapRequest":
+    """
+    Cambia el estado del SwapRequest según la acción.
+    """
+
+    if request.estado != "PENDIENTE":
+        raise ValueError("El request ya fue resuelto.")
+
+    if accion == "ACEPTAR":
+        request.estado = "ACEPTADO"
+
+    elif accion == "RECHAZAR":
+        request.estado = "RECHAZADO"
+
+    elif accion == "CANCELAR":
+        request.estado = "CANCELADO"
+
+    else:
+        raise ValueError(f"Acción inválida: {accion}")
+
+    request.fecha_resolucion = datetime.now()
+
+    return request
 
 
 def crear_swap_request(

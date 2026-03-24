@@ -6,6 +6,7 @@ from src.simulator import (
     generar_recomendacion_textual,
     crear_swap_request,
     evaluar_swap_request,
+    resolver_swap_request,
 )
 
 from src.scenarios.v3_controladores_mixto import crear_escenario as escenario_mixto
@@ -22,6 +23,7 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
     mostrar_roster(asignaciones)
     print()
 
+    # 🔹 Crear request
     print("Ejemplo de SwapRequest:")
     request = crear_swap_request(asignaciones, 0, 3, motivo="Intercambio personal")
 
@@ -32,13 +34,30 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
     print(f"  Estado       : {request.estado}")
     print(f"  Motivo       : {request.motivo}")
 
+    # 🔹 Evaluar request
     print("\nEvaluación del SwapRequest:")
     resultado_request = evaluar_swap_request(asignaciones, request)
 
     print(f"  Clasificación : {resultado_request['clasificacion']}")
     print(f"  Decisión      : {resultado_request['decision']}")
+
+    # 🔹 Resolver automáticamente
+    print("\nResolviendo SwapRequest automáticamente...")
+
+    if resultado_request["decision"] == "APROBABLE":
+        request = resolver_swap_request(request, "ACEPTAR")
+
+    elif resultado_request["decision"] == "RECHAZAR":
+        request = resolver_swap_request(request, "RECHAZAR")
+
+    else:
+        print("  (queda en observación, no se resuelve automáticamente)")
+
+    print(f"  Estado final : {request.estado}")
+    print(f"  Fecha        : {request.fecha_resolucion}")
     print()
 
+    # 🔹 Ranking
     ranking = explorar_swaps_entre_controladores(asignaciones)
     swaps_validos = filtrar_swaps_validos(ranking)
     swaps_utiles = filtrar_swaps_utiles(ranking)
@@ -82,6 +101,7 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
     print("\n")
 
 
+# 🔹 Ejecutar escenarios
 ejecutar_demo("MIXTO", escenario_mixto())
 ejecutar_demo("BENEFICIOSO", escenario_beneficioso())
 ejecutar_demo("BENEFICIOSO MUTUO", escenario_beneficioso_mutuo())

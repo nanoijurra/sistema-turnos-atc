@@ -221,3 +221,16 @@ def test_evaluar_swap_request_devuelve_decision():
     resultado = evaluar_swap_request(asignaciones, request)
 
     assert resultado["decision"] in {"APROBABLE", "OBSERVAR", "RECHAZAR"}
+
+def test_resolver_swap_request_cambia_estado():
+    from src.scenarios.v3_controladores_mixto import crear_escenario
+    from src.simulator import crear_swap_request, resolver_swap_request
+
+    asignaciones = crear_escenario()
+
+    request = crear_swap_request(asignaciones, 0, 3)
+
+    request = resolver_swap_request(request, "RECHAZAR")
+
+    assert request.estado == "RECHAZADO"
+    assert request.fecha_resolucion is not None
