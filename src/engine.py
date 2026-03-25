@@ -276,9 +276,27 @@ def aplicar_swap_request(
     if request.estado != "ACEPTADO":
         raise ValueError("Solo se puede aplicar un SwapRequest con estado ACEPTADO.")
 
+    # 🔒 Validación de coherencia contra el roster actual
     if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
-        raise IndexError("Los índices del SwapRequest están fuera de rango.")
+        raise IndexError("Los índices del SwapRequest no son válidos para el roster actual.")
 
+    asignacion_a = asignaciones[request.idx_a]
+    asignacion_b = asignaciones[request.idx_b]
+
+    if asignacion_a.controlador is None or asignacion_b.controlador is None:
+        raise ValueError("Las asignaciones no tienen controlador asociado.")
+
+    if asignacion_a.controlador.nombre != request.controlador_a:
+        raise ValueError(
+            f"Inconsistencia en controlador A al aplicar: request={request.controlador_a}, roster={asignacion_a.controlador.nombre}"
+        )
+
+    if asignacion_b.controlador.nombre != request.controlador_b:
+        raise ValueError(
+            f"Inconsistencia en controlador B al aplicar: request={request.controlador_b}, roster={asignacion_b.controlador.nombre}"
+        )
+
+    # 🔁 Aplicar swap
     nuevo_roster = deepcopy(asignaciones)
 
     turno_a = nuevo_roster[request.idx_a].turno
