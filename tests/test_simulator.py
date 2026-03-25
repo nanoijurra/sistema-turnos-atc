@@ -448,3 +448,37 @@ def test_aplicar_swap_request_falla_si_no_esta_aceptado():
 
     with pytest.raises(ValueError, match="estado ACEPTADO"):
         aplicar_swap_request(asignaciones, request)
+
+def test_aplicar_swap_request_falla_si_roster_cambio_entre_evaluacion_y_aplicacion():
+    import pytest
+    from copy import deepcopy
+    from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
+    from src.simulator import (
+        crear_swap_request,
+        evaluar_swap_request,
+        resolver_swap_request,
+        aplicar_swap_request,
+    )
+
+    asignaciones = crear_escenario()
+
+    # Crear y evaluar request
+    request = crear_swap_request(asignaciones, 0, 3)
+    resultado = evaluar_swap_request(asignaciones, request)
+
+    assert resultado["decision"] == "APROBABLE"
+
+    request = resolver_swap_request(request, "ACEPTAR")
+
+    # 🔥 Simular cambio en el roster (muy importante)
+    asignaciones_modificadas = deepcopy(asignaciones)
+    asignaciones_modificadas[0] = asignaciones_modificadas[0].__class__(
+        **{
+            **asignaciones_modificadas[0].__dict__,
+            "turno": asignaciones_modificadas[1].turno,
+        }
+    )
+
+    # Intentar aplicar sobre roster modificado → debe fallar
+    with pytest.raises(ValueError, match="roster cambió"):
+        aplicar_swap_request(asignaciones_modificadas, request)
