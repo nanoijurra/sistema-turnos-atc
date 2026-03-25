@@ -1,11 +1,17 @@
+from datetime import datetime
+
+import pytest
+
+from src.models import RosterVersion
 from src.roster_store import (
     guardar_roster,
     obtener_roster,
     obtener_roster_vigente,
+    listar_rosters_vigentes,
+    validar_unico_roster_vigente,
+    desactivar_roster_vigente_actual,
     limpiar_rosters,
 )
-from src.models import RosterVersion
-from datetime import datetime
 
 
 def setup_function():
@@ -52,3 +58,70 @@ def test_obtener_roster_vigente():
 
     assert vigente is not None
     assert vigente.id == "v2"
+
+
+def test_validar_unico_roster_vigente_falla_si_hay_dos():
+    r1 = RosterVersion(
+        id="v1",
+        version_number=1,
+        created_at=datetime.now(),
+        asignaciones=[],
+        vigente=True,
+    )
+
+    r2 = RosterVersion(
+        id="v2",
+        version_number=2,
+        created_at=datetime.now(),
+        asignaciones=[],
+        vigente=True,
+    )
+
+    guardar_roster(r1)
+    guardar_roster(r2)
+
+    with pytest.raises(ValueError, match="más de un roster vigente"):
+        validar_unico_roster_vigente()
+
+
+def test_obtener_roster_vigente_falla_si_hay_dos():
+    r1 = RosterVersion(
+        id="v1",
+        version_number=1,
+        created_at=datetime.now(),
+        asignaciones=[],
+        vigente=True,
+    )
+
+    r2 = RosterVersion(
+        id="v2",
+        version_number=2,
+        created_at=datetime.now(),
+        asignaciones=[],
+        vigente=True,
+    )
+
+    guardar_roster(r1)
+    guardar_roster(r2)
+
+    with pytest.raises(ValueError, match="más de un roster vigente"):
+        obtener_roster_vigente()
+
+
+def test_desactivar_roster_vigente_actual():
+    r1 = RosterVersion(
+        id="v1",
+        version_number=1,
+        created_at=datetime.now(),
+        asignaciones=[],
+        vigente=True,
+    )
+
+    guardar_roster(r1)
+
+    desactivado = desactivar_roster_vigente_actual()
+
+    assert desactivado is not None
+    assert desactivado.id == "v1"
+    assert desactivado.vigente is False
+    assert listar_rosters_vigentes() == []
