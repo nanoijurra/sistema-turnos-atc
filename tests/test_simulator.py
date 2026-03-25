@@ -224,12 +224,16 @@ def test_evaluar_swap_request_devuelve_decision():
 
 def test_resolver_swap_request_cambia_estado():
     from src.scenarios.v3_controladores_mixto import crear_escenario
-    from src.simulator import crear_swap_request, resolver_swap_request
+    from src.simulator import (
+        crear_swap_request,
+        evaluar_swap_request,
+        resolver_swap_request,
+    )
 
     asignaciones = crear_escenario()
 
     request = crear_swap_request(asignaciones, 0, 3)
-
+    evaluar_swap_request(asignaciones, request)
     request = resolver_swap_request(request, "RECHAZAR")
 
     assert request.estado == "RECHAZADO"
@@ -237,17 +241,25 @@ def test_resolver_swap_request_cambia_estado():
 
 def test_aplicar_swap_request_modifica_roster_si_esta_aceptado():
     from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
-    from src.simulator import crear_swap_request, resolver_swap_request, aplicar_swap_request
+    from src.simulator import (
+        crear_swap_request,
+        evaluar_swap_request,
+        resolver_swap_request,
+        aplicar_swap_request,
+    )
 
     asignaciones = crear_escenario()
 
     request = crear_swap_request(asignaciones, 0, 3)
+    resultado = evaluar_swap_request(asignaciones, request)
+
+    assert resultado["decision"] == "APROBABLE"
+
     request = resolver_swap_request(request, "ACEPTAR")
+    nuevo_roster = aplicar_swap_request(asignaciones, request)
 
-    roster_nuevo = aplicar_swap_request(asignaciones, request)
-
-    assert roster_nuevo[0].turno.codigo == asignaciones[3].turno.codigo
-    assert roster_nuevo[3].turno.codigo == asignaciones[0].turno.codigo
+    assert nuevo_roster[0].turno.codigo == "B"
+    assert nuevo_roster[3].turno.codigo == "C"
 def test_swap_request_registra_historial_completo_en_flujo_aceptado():
     from src.simulator import (
         crear_swap_request,

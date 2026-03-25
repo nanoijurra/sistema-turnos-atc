@@ -166,6 +166,11 @@ def evaluar_swap_request(
     Evalúa un SwapRequest usando una función de evaluación inyectada
     para evitar dependencia circular con simulator.py.
     """
+
+    # 🔒 Regla de dominio: no evaluar dos veces
+    if request.decision_sugerida is not None:
+        raise ValueError("El request ya fue evaluado.")
+
     evaluacion = evaluar_swap_fn(
         asignaciones=asignaciones,
         idx_a=request.idx_a,
@@ -207,6 +212,11 @@ def resolver_swap_request(
     """
     Cambia el estado del SwapRequest según la acción.
     """
+
+    # 🔒 No resolver si no fue evaluado
+    if request.decision_sugerida is None:
+        raise ValueError("No se puede resolver un request sin evaluarlo primero.")
+
     if request.estado != "PENDIENTE":
         raise ValueError("El request ya fue resuelto.")
 
@@ -238,6 +248,11 @@ def aplicar_swap_request(
     Aplica el swap al roster solamente si el request fue aceptado.
     Devuelve un nuevo roster con el intercambio realizado.
     """
+
+    # 🔒 Debe haber sido evaluado
+    if request.decision_sugerida is None:
+        raise ValueError("No se puede aplicar un request que no fue evaluado.")
+
     if request.estado != "ACEPTADO":
         raise ValueError("Solo se puede aplicar un SwapRequest con estado ACEPTADO.")
 
