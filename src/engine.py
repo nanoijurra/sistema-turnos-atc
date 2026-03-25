@@ -16,7 +16,17 @@ RULES_REGISTRY = {
     "validar_secuencia": validator.validar_secuencia,
     "validar_noches_consecutivas": validator.validar_noches_consecutivas,
 }
+def calcular_roster_hash(asignaciones: list) -> str:
+    """
+    Genera una firma simple del roster basada en controlador, fecha y turno.
+    """
+    partes = []
 
+    for a in asignaciones:
+        ctrl = a.controlador.nombre if a.controlador else "NONE"
+        partes.append(f"{ctrl}-{a.fecha}-{a.turno.codigo}")
+
+    return "|".join(partes)
 
 def cargar_config(nombre_config: str = "config_equilibrado.json") -> dict:
     base_dir = os.path.dirname(os.path.dirname(__file__))
@@ -170,6 +180,7 @@ def evaluar_swap_request(
     # 🔒 Regla de dominio: no evaluar dos veces
     if request.decision_sugerida is not None:
         raise ValueError("El request ya fue evaluado.")
+    
         # 🔒 Validación de coherencia contra el roster
 
     if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
@@ -208,6 +219,7 @@ def evaluar_swap_request(
         decision = "RECHAZAR"
 
     request.decision_sugerida = decision
+    request.roster_hash = calcular_roster_hash(asignaciones)
     guardar_request(request)
 
     registrar_evento_swap_request(
@@ -260,6 +272,7 @@ def resolver_swap_request(
     return request
 
 
+
 def aplicar_swap_request(
     asignaciones: list,
     request: SwapRequest,
@@ -268,7 +281,7 @@ def aplicar_swap_request(
     Aplica el swap al roster solamente si el request fue aceptado.
     Devuelve un nuevo roster con el intercambio realizado.
     """
-
+     
     # 🔒 Debe haber sido evaluado
     if request.decision_sugerida is None:
         raise ValueError("No se puede aplicar un request que no fue evaluado.")
@@ -295,7 +308,16 @@ def aplicar_swap_request(
         raise ValueError(
             f"Inconsistencia en controlador B al aplicar: request={request.controlador_b}, roster={asignacion_b.controlador.nombre}"
         )
+    
+    # 🔒 Validar que el roster no haya cambiado desde la evaluación
+    hash_actual = calcular_roster_hash(asignaciones)
 
+    if request.roster_hash is None:
+        raise ValueError("El request no tiene snapshot de roster (no fue evaluado correctamente).")
+
+    if request.roster_hash != hash_actual:
+        raise ValueError("El roster cambió desde la evaluación del request.")
+        
     nuevo_roster = deepcopy(asignaciones)
 
     turno_a = nuevo_roster[request.idx_a].turno

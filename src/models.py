@@ -120,6 +120,7 @@ class SwapRequest:
     fecha_resolucion: Optional[datetime] = None
     motivo: Optional[str] = None
     history: list[str] = field(default_factory=list)
+    roster_hash: str | None = None
 
     def add_history_entry(self, mensaje: str) -> None:
         self.history.append(mensaje)
