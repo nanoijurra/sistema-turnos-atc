@@ -6,8 +6,14 @@ from datetime import datetime
 from uuid import uuid4
 
 from src import validator
-from src.models import SwapRequest
+from src.models import SwapRequest, RosterVersion
 from src.request_store import guardar_request
+from src.roster_store import (
+    guardar_roster,
+    obtener_roster_vigente,
+    desactivar_roster_vigente_actual,
+    validar_unico_roster_vigente,
+)
 from src.rule_types import RuleResult, Violation
 
 
@@ -16,6 +22,8 @@ RULES_REGISTRY = {
     "validar_secuencia": validator.validar_secuencia,
     "validar_noches_consecutivas": validator.validar_noches_consecutivas,
 }
+
+
 def calcular_roster_hash(asignaciones: list) -> str:
     """
     Genera una firma simple del roster basada en controlador, fecha y turno.
@@ -27,6 +35,7 @@ def calcular_roster_hash(asignaciones: list) -> str:
         partes.append(f"{ctrl}-{a.fecha}-{a.turno.codigo}")
 
     return "|".join(partes)
+
 
 def cargar_config(nombre_config: str = "config_equilibrado.json") -> dict:
     base_dir = os.path.dirname(os.path.dirname(__file__))
@@ -140,6 +149,77 @@ def registrar_evento_swap_request(request: SwapRequest, mensaje: str) -> None:
     guardar_request(request)
 
 
+def crear_roster_version_inicial(
+    asignaciones: list,
+    regimen_horario: str = "6H",
+) -> RosterVersion:
+    """
+    Crea la primera versión del roster. Solo debe usarse cuando no hay una vigente.
+    """
+    vigente = obtener_roster_vigente()
+    if vigente is not None:
+        raise ValueError("Ya existe un roster vigente. No se puede crear otra versión inicial.")
+
+    roster = RosterVersion(
+        id=str(uuid4()),
+        version_number=1,
+        created_at=datetime.now(),
+        asignaciones=deepcopy(asignaciones),
+        vigente=True,
+        base_version_id=None,
+        regimen_horario=regimen_horario,
+    )
+
+    guardar_roster(roster)
+    validar_unico_roster_vigente()
+    return roster
+
+
+def crear_nueva_version_desde_roster_vigente(
+    asignaciones: list,
+    regimen_horario: str | None = None,
+) -> RosterVersion:
+    """
+    Crea una nueva versión a partir de la vigente, desactivando la anterior.
+    """
+    vigente = obtener_roster_vigente()
+    if vigente is None:
+        raise ValueError("No existe un roster vigente para versionar.")
+
+    nuevo_regimen = regimen_horario if regimen_horario is not None else vigente.regimen_horario
+
+    desactivar_roster_vigente_actual()
+
+    nueva = RosterVersion(
+        id=str(uuid4()),
+        version_number=vigente.version_number + 1,
+        created_at=datetime.now(),
+        asignaciones=deepcopy(asignaciones),
+        vigente=True,
+        base_version_id=vigente.id,
+        regimen_horario=nuevo_regimen,
+    )
+
+    guardar_roster(nueva)
+    validar_unico_roster_vigente()
+    return nueva
+
+
+def registrar_evento_roster_versionado(
+    request: SwapRequest,
+    roster_anterior: RosterVersion,
+    roster_nuevo: RosterVersion,
+) -> None:
+    registrar_evento_swap_request(
+        request,
+        (
+            f"Nueva versión de roster generada: "
+            f"anterior=v{roster_anterior.version_number} ({roster_anterior.id}), "
+            f"nueva=v{roster_nuevo.version_number} ({roster_nuevo.id})"
+        ),
+    )
+
+
 def crear_swap_request(
     controlador_a: str,
     controlador_b: str,
@@ -176,13 +256,10 @@ def evaluar_swap_request(
     Evalúa un SwapRequest usando una función de evaluación inyectada
     para evitar dependencia circular con simulator.py.
     """
-
-    # 🔒 Regla de dominio: no evaluar dos veces
     if request.decision_sugerida is not None:
         raise ValueError("El request ya fue evaluado.")
-    
-        # 🔒 Validación de coherencia contra el roster
 
+    # Validación de coherencia contra el roster
     if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
         raise IndexError("Los índices del SwapRequest no son válidos para el roster actual.")
 
@@ -244,8 +321,6 @@ def resolver_swap_request(
     """
     Cambia el estado del SwapRequest según la acción.
     """
-
-    # 🔒 No resolver si no fue evaluado
     if request.decision_sugerida is None:
         raise ValueError("No se puede resolver un request sin evaluarlo primero.")
 
@@ -272,7 +347,6 @@ def resolver_swap_request(
     return request
 
 
-
 def aplicar_swap_request(
     asignaciones: list,
     request: SwapRequest,
@@ -281,15 +355,12 @@ def aplicar_swap_request(
     Aplica el swap al roster solamente si el request fue aceptado.
     Devuelve un nuevo roster con el intercambio realizado.
     """
-     
-    # 🔒 Debe haber sido evaluado
     if request.decision_sugerida is None:
         raise ValueError("No se puede aplicar un request que no fue evaluado.")
 
     if request.estado != "ACEPTADO":
         raise ValueError("Solo se puede aplicar un SwapRequest con estado ACEPTADO.")
 
-    # 🔒 Validación de coherencia contra el roster actual
     if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
         raise IndexError("Los índices del SwapRequest no son válidos para el roster actual.")
 
@@ -308,8 +379,7 @@ def aplicar_swap_request(
         raise ValueError(
             f"Inconsistencia en controlador B al aplicar: request={request.controlador_b}, roster={asignacion_b.controlador.nombre}"
         )
-    
-    # 🔒 Validar que el roster no haya cambiado desde la evaluación
+
     hash_actual = calcular_roster_hash(asignaciones)
 
     if request.roster_hash is None:
@@ -317,7 +387,7 @@ def aplicar_swap_request(
 
     if request.roster_hash != hash_actual:
         raise ValueError("El roster cambió desde la evaluación del request.")
-        
+
     nuevo_roster = deepcopy(asignaciones)
 
     turno_a = nuevo_roster[request.idx_a].turno
