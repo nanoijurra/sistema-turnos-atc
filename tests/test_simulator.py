@@ -349,3 +349,57 @@ def test_swap_request_registra_historial_hasta_resolucion_rechazada():
     assert "Request resuelto" in request.history[2]
     assert "accion=RECHAZAR" in request.history[2]
     assert "estado=RECHAZADO" in request.history[2]
+    
+def test_evaluar_swap_request_falla_si_se_evalua_dos_veces():
+    import pytest
+    from src.scenarios.v3_controladores_mixto import crear_escenario
+    from src.simulator import crear_swap_request, evaluar_swap_request
+
+    asignaciones = crear_escenario()
+    request = crear_swap_request(asignaciones, 0, 3)
+
+    evaluar_swap_request(asignaciones, request)
+
+    with pytest.raises(ValueError, match="ya fue evaluado"):
+        evaluar_swap_request(asignaciones, request)
+
+
+def test_resolver_swap_request_falla_si_no_fue_evaluado():
+    import pytest
+    from src.scenarios.v3_controladores_mixto import crear_escenario
+    from src.simulator import crear_swap_request, resolver_swap_request
+
+    asignaciones = crear_escenario()
+    request = crear_swap_request(asignaciones, 0, 3)
+
+    with pytest.raises(ValueError, match="sin evaluarlo primero"):
+        resolver_swap_request(request, "RECHAZAR")
+
+
+def test_aplicar_swap_request_falla_si_no_fue_evaluado():
+    import pytest
+    from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
+    from src.simulator import crear_swap_request, aplicar_swap_request
+
+    asignaciones = crear_escenario()
+    request = crear_swap_request(asignaciones, 0, 3)
+
+    with pytest.raises(ValueError, match="no fue evaluado"):
+        aplicar_swap_request(asignaciones, request)
+
+
+def test_aplicar_swap_request_falla_si_no_esta_aceptado():
+    import pytest
+    from src.scenarios.v3_controladores_mixto import crear_escenario
+    from src.simulator import (
+        crear_swap_request,
+        evaluar_swap_request,
+        aplicar_swap_request,
+    )
+
+    asignaciones = crear_escenario()
+    request = crear_swap_request(asignaciones, 0, 3)
+    evaluar_swap_request(asignaciones, request)
+
+    with pytest.raises(ValueError, match="estado ACEPTADO"):
+        aplicar_swap_request(asignaciones, request)
