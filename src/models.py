@@ -1,7 +1,6 @@
-from dataclasses import dataclass
 from dataclasses import dataclass, field
 from datetime import date, time, datetime, timedelta
-from typing import List
+from typing import List, Optional
 
 
 @dataclass(frozen=True)
@@ -80,24 +79,20 @@ def crear_esquema_6h() -> ShiftScheme:
             Turno("D", time(18, 30), 6, "NOCHE", es_nocturno=True),
         ],
     )
-from datetime import datetime
-from typing import Optional
-from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
-class SwapRequest:
-    controller_a: str
-    controller_b: str
-    fecha_a: str
-    fecha_b: str
-    estado: str = "PENDIENTE"
-    decision_sugerida: Optional[str] = None
-    history: list[str] = field(default_factory=list)
-
-    def add_history_entry(self, mensaje: str) -> None:
-        self.history.append(mensaje)
+class RosterVersion:
+    """
+    Representa una versión completa del roster.
+    """
+    id: str
+    version_number: int
+    created_at: datetime
+    asignaciones: list
+    vigente: bool = True
+    base_version_id: Optional[str] = None
+    regimen_horario: str = "6H"
 
 
 @dataclass
@@ -106,16 +101,12 @@ class SwapRequest:
     Representa una solicitud de intercambio de turnos entre dos controladores.
     """
     id: str
-
     controlador_a: str
     controlador_b: str
-
     idx_a: int
     idx_b: int
-
     estado: str  # PENDIENTE / ACEPTADO / RECHAZADO / CANCELADO
     fecha_creacion: datetime
-
     decision_sugerida: Optional[str] = None
     fecha_resolucion: Optional[datetime] = None
     motivo: Optional[str] = None
