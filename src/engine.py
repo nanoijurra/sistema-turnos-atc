@@ -170,6 +170,26 @@ def evaluar_swap_request(
     # 🔒 Regla de dominio: no evaluar dos veces
     if request.decision_sugerida is not None:
         raise ValueError("El request ya fue evaluado.")
+        # 🔒 Validación de coherencia contra el roster
+
+    if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
+        raise IndexError("Los índices del SwapRequest no son válidos para el roster actual.")
+
+    asignacion_a = asignaciones[request.idx_a]
+    asignacion_b = asignaciones[request.idx_b]
+
+    if asignacion_a.controlador is None or asignacion_b.controlador is None:
+        raise ValueError("Las asignaciones no tienen controlador asociado.")
+
+    if asignacion_a.controlador.nombre != request.controlador_a:
+        raise ValueError(
+            f"Inconsistencia en controlador A: request={request.controlador_a}, roster={asignacion_a.controlador.nombre}"
+        )
+
+    if asignacion_b.controlador.nombre != request.controlador_b:
+        raise ValueError(
+            f"Inconsistencia en controlador B: request={request.controlador_b}, roster={asignacion_b.controlador.nombre}"
+        )
 
     evaluacion = evaluar_swap_fn(
         asignaciones=asignaciones,
