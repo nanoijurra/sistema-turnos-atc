@@ -62,7 +62,12 @@ def test_listar_requests_devuelve_requests_guardados():
 
 
 def test_request_actualizado_permanece_recuperable_desde_store():
+    from src.engine import crear_roster_version_inicial
+    from src.roster_store import limpiar_rosters
+
+    limpiar_rosters()
     asignaciones = escenario_beneficioso_mutuo()
+    crear_roster_version_inicial(asignaciones, regimen_horario="8H")
 
     request = crear_swap_request(
         asignaciones=asignaciones,
@@ -80,6 +85,7 @@ def test_request_actualizado_permanece_recuperable_desde_store():
     assert recuperado.decision_sugerida == "APROBABLE"
     assert recuperado.estado == "ACEPTADO"
     assert recuperado.fecha_resolucion is not None
+    assert recuperado.roster_version_id is not None
     assert len(recuperado.history) == 3
 
 

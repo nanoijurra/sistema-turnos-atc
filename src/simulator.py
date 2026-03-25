@@ -669,14 +669,14 @@ def resolver_swap_request(
     )
 
 
+from src.engine import aplicar_swap_request as aplicar_swap_request_core
+
+
 def aplicar_swap_request(
     asignaciones: list,
-    request: SwapRequest,
-) -> list:
-    return aplicar_swap_request_core(
-        asignaciones=asignaciones,
-        request=request,
-    )
+    request: "SwapRequest",
+):
+    return aplicar_swap_request_core(asignaciones, request)
 
 
 def mostrar_historial_swap_request(request: SwapRequest) -> str:

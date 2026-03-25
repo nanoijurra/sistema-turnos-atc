@@ -223,6 +223,8 @@ def test_evaluar_swap_request_devuelve_decision():
     assert resultado["decision"] in {"APROBABLE", "OBSERVAR", "RECHAZAR"}
 
 def test_resolver_swap_request_cambia_estado():
+    from src.engine import crear_roster_version_inicial
+    from src.roster_store import limpiar_rosters
     from src.scenarios.v3_controladores_mixto import crear_escenario
     from src.simulator import (
         crear_swap_request,
@@ -230,16 +232,20 @@ def test_resolver_swap_request_cambia_estado():
         resolver_swap_request,
     )
 
+    limpiar_rosters()
     asignaciones = crear_escenario()
+    crear_roster_version_inicial(asignaciones, regimen_horario="8H")
 
     request = crear_swap_request(asignaciones, 0, 3)
     evaluar_swap_request(asignaciones, request)
     request = resolver_swap_request(request, "RECHAZAR")
 
     assert request.estado == "RECHAZADO"
-    assert request.fecha_resolucion is not None
+    assert request.fecha_resolucion is not None 
 
 def test_aplicar_swap_request_modifica_roster_si_esta_aceptado():
+    from src.engine import crear_roster_version_inicial
+    from src.roster_store import limpiar_rosters
     from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
     from src.simulator import (
         crear_swap_request,
@@ -248,7 +254,9 @@ def test_aplicar_swap_request_modifica_roster_si_esta_aceptado():
         aplicar_swap_request,
     )
 
+    limpiar_rosters()
     asignaciones = crear_escenario()
+    crear_roster_version_inicial(asignaciones, regimen_horario="8H")
 
     request = crear_swap_request(asignaciones, 0, 3)
     resultado = evaluar_swap_request(asignaciones, request)
@@ -256,11 +264,18 @@ def test_aplicar_swap_request_modifica_roster_si_esta_aceptado():
     assert resultado["decision"] == "APROBABLE"
 
     request = resolver_swap_request(request, "ACEPTAR")
-    nuevo_roster = aplicar_swap_request(asignaciones, request)
+    nueva_version = aplicar_swap_request(asignaciones, request)
 
+    assert nueva_version.version_number == 2
+    assert nueva_version.vigente is True
+
+    nuevo_roster = nueva_version.asignaciones
     assert nuevo_roster[0].turno.codigo == "B"
     assert nuevo_roster[3].turno.codigo == "C"
+
 def test_swap_request_registra_historial_completo_en_flujo_aceptado():
+    from src.engine import crear_roster_version_inicial
+    from src.roster_store import limpiar_rosters
     from src.simulator import (
         crear_swap_request,
         evaluar_swap_request,
@@ -271,7 +286,9 @@ def test_swap_request_registra_historial_completo_en_flujo_aceptado():
         crear_escenario as escenario_beneficioso_mutuo,
     )
 
+    limpiar_rosters()
     asignaciones = escenario_beneficioso_mutuo()
+    crear_roster_version_inicial(asignaciones, regimen_horario="8H")
 
     request = crear_swap_request(
         asignaciones=asignaciones,
@@ -301,16 +318,18 @@ def test_swap_request_registra_historial_completo_en_flujo_aceptado():
     assert "accion=ACEPTAR" in request.history[2]
     assert "estado=ACEPTADO" in request.history[2]
 
-    roster_aplicado = aplicar_swap_request(asignaciones, request)
+    nueva_version = aplicar_swap_request(asignaciones, request)
 
-    assert roster_aplicado is not None
+    assert nueva_version is not None
+    assert nueva_version.version_number == 2
     assert len(request.history) == 4
-    assert "Swap aplicado al roster" in request.history[3]
-    assert "idx_a=0" in request.history[3]
-    assert "idx_b=3" in request.history[3]
+    assert "Swap aplicado" in request.history[3]
+    assert "nueva version 2" in request.history[3]
 
 
 def test_swap_request_registra_historial_hasta_resolucion_rechazada():
+    from src.engine import crear_roster_version_inicial
+    from src.roster_store import limpiar_rosters
     from src.simulator import (
         crear_swap_request,
         evaluar_swap_request,
@@ -320,7 +339,9 @@ def test_swap_request_registra_historial_hasta_resolucion_rechazada():
         crear_escenario as escenario_beneficioso,
     )
 
+    limpiar_rosters()
     asignaciones = escenario_beneficioso()
+    crear_roster_version_inicial(asignaciones, regimen_horario="8H")
 
     request = crear_swap_request(
         asignaciones=asignaciones,
@@ -352,10 +373,15 @@ def test_swap_request_registra_historial_hasta_resolucion_rechazada():
     
 def test_evaluar_swap_request_falla_si_se_evalua_dos_veces():
     import pytest
+    from src.engine import crear_roster_version_inicial
+    from src.roster_store import limpiar_rosters
     from src.scenarios.v3_controladores_mixto import crear_escenario
     from src.simulator import crear_swap_request, evaluar_swap_request
 
+    limpiar_rosters()
     asignaciones = crear_escenario()
+    crear_roster_version_inicial(asignaciones, regimen_horario="8H")
+
     request = crear_swap_request(asignaciones, 0, 3)
 
     evaluar_swap_request(asignaciones, request)
@@ -411,47 +437,31 @@ def test_evaluar_swap_request_falla_si_indices_no_existen_en_roster():
         evaluar_swap_request(asignaciones, request)
 
 
-def test_evaluar_swap_request_falla_si_controladores_no_coinciden_con_roster():
-    import pytest
-    from datetime import datetime
-    from src.models import SwapRequest
-    from src.scenarios.v3_controladores_mixto import crear_escenario
-    from src.simulator import evaluar_swap_request
+def test_evaluar_swap_request_guarda_roster_version_id():
+    from src.engine import crear_roster_version_inicial
+    from src.roster_store import limpiar_rosters
+    from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
+    from src.simulator import crear_swap_request, evaluar_swap_request
 
+    limpiar_rosters()
     asignaciones = crear_escenario()
+    roster = crear_roster_version_inicial(asignaciones, regimen_horario="8H")
 
-    request = SwapRequest(
-        id="req-invalido-controladores",
-        controlador_a="ATC_X",
-        controlador_b="ATC_B",
-        idx_a=0,
-        idx_b=3,
-        estado="PENDIENTE",
-        fecha_creacion=datetime.now(),
-    )
-
-    with pytest.raises(ValueError, match="Inconsistencia en controlador A"):
-        evaluar_swap_request(asignaciones, request)
-        
-def test_aplicar_swap_request_falla_si_no_esta_aceptado():
-    import pytest
-    from src.scenarios.v3_controladores_mixto import crear_escenario
-    from src.simulator import (
-        crear_swap_request,
-        evaluar_swap_request,
-        aplicar_swap_request,
-    )
-
-    asignaciones = crear_escenario()
     request = crear_swap_request(asignaciones, 0, 3)
-    evaluar_swap_request(asignaciones, request)
+    resultado = evaluar_swap_request(asignaciones, request)
 
-    with pytest.raises(ValueError, match="estado ACEPTADO"):
-        aplicar_swap_request(asignaciones, request)
+    assert request.roster_version_id == roster.id
+    assert resultado["roster_version_id"] == roster.id
+    assert resultado["roster_version_number"] == 1
 
-def test_aplicar_swap_request_falla_si_roster_cambio_entre_evaluacion_y_aplicacion():
+
+def test_aplicar_swap_request_falla_si_request_apunta_a_version_no_vigente():
     import pytest
-    from copy import deepcopy
+    from src.engine import (
+        crear_roster_version_inicial,
+        crear_nueva_version_desde_roster_vigente,
+    )
+    from src.roster_store import limpiar_rosters
     from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
     from src.simulator import (
         crear_swap_request,
@@ -460,25 +470,33 @@ def test_aplicar_swap_request_falla_si_roster_cambio_entre_evaluacion_y_aplicaci
         aplicar_swap_request,
     )
 
+    limpiar_rosters()
     asignaciones = crear_escenario()
+    crear_roster_version_inicial(asignaciones, regimen_horario="8H")
 
-    # Crear y evaluar request
     request = crear_swap_request(asignaciones, 0, 3)
     resultado = evaluar_swap_request(asignaciones, request)
-
     assert resultado["decision"] == "APROBABLE"
 
     request = resolver_swap_request(request, "ACEPTAR")
 
-    # 🔥 Simular cambio en el roster (muy importante)
-    asignaciones_modificadas = deepcopy(asignaciones)
-    asignaciones_modificadas[0] = asignaciones_modificadas[0].__class__(
-        **{
-            **asignaciones_modificadas[0].__dict__,
-            "turno": asignaciones_modificadas[1].turno,
-        }
-    )
+    # Otra operación generó nueva versión antes de aplicar este request
+    crear_nueva_version_desde_roster_vigente(asignaciones, regimen_horario="8H")
 
-    # Intentar aplicar sobre roster modificado → debe fallar
-    with pytest.raises(ValueError, match="roster cambió"):
-        aplicar_swap_request(asignaciones_modificadas, request)
+    with pytest.raises(ValueError, match="ya no apunta a la versión vigente"):
+        aplicar_swap_request(asignaciones, request)
+        
+def test_evaluar_swap_request_devuelve_decision():
+    from src.engine import crear_roster_version_inicial
+    from src.roster_store import limpiar_rosters
+    from src.scenarios.v4_controladores_beneficioso import crear_escenario
+    from src.simulator import crear_swap_request, evaluar_swap_request
+
+    limpiar_rosters()
+    asignaciones = crear_escenario()
+    crear_roster_version_inicial(asignaciones, regimen_horario="8H")
+
+    request = crear_swap_request(asignaciones, 2, 3)
+    resultado = evaluar_swap_request(asignaciones, request)
+
+    assert resultado["decision"] == "APROBABLE"

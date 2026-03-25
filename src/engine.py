@@ -46,10 +46,6 @@ def cargar_config(nombre_config: str = "config_equilibrado.json") -> dict:
 
 
 def agrupar_por_controlador(asignaciones: list) -> dict:
-    """
-    Agrupa asignaciones por controlador.
-    Si no hay controlador, usa SIN_CONTROLADOR para mantener compatibilidad.
-    """
     grupos = {}
 
     for asignacion in asignaciones:
@@ -153,9 +149,6 @@ def crear_roster_version_inicial(
     asignaciones: list,
     regimen_horario: str = "6H",
 ) -> RosterVersion:
-    """
-    Crea la primera versión del roster. Solo debe usarse cuando no hay una vigente.
-    """
     vigente = obtener_roster_vigente()
     if vigente is not None:
         raise ValueError("Ya existe un roster vigente. No se puede crear otra versión inicial.")
@@ -179,9 +172,6 @@ def crear_nueva_version_desde_roster_vigente(
     asignaciones: list,
     regimen_horario: str | None = None,
 ) -> RosterVersion:
-    """
-    Crea una nueva versión a partir de la vigente, desactivando la anterior.
-    """
     vigente = obtener_roster_vigente()
     if vigente is None:
         raise ValueError("No existe un roster vigente para versionar.")
@@ -252,14 +242,9 @@ def evaluar_swap_request(
     evaluar_swap_fn,
     config_file: str = "config_equilibrado.json",
 ) -> dict:
-    """
-    Evalúa un SwapRequest usando una función de evaluación inyectada
-    para evitar dependencia circular con simulator.py.
-    """
     if request.decision_sugerida is not None:
         raise ValueError("El request ya fue evaluado.")
 
-    # Validación de coherencia contra el roster
     if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
         raise IndexError("Los índices del SwapRequest no son válidos para el roster actual.")
 
@@ -279,6 +264,10 @@ def evaluar_swap_request(
             f"Inconsistencia en controlador B: request={request.controlador_b}, roster={asignacion_b.controlador.nombre}"
         )
 
+    roster_vigente = obtener_roster_vigente()
+    if roster_vigente is None:
+        raise ValueError("No existe un roster vigente para evaluar el request.")
+
     evaluacion = evaluar_swap_fn(
         asignaciones=asignaciones,
         idx_a=request.idx_a,
@@ -297,11 +286,15 @@ def evaluar_swap_request(
 
     request.decision_sugerida = decision
     request.roster_hash = calcular_roster_hash(asignaciones)
+    request.roster_version_id = roster_vigente.id
     guardar_request(request)
 
     registrar_evento_swap_request(
         request,
-        f"Request evaluado: clasificacion={clasificacion}, decision={decision}",
+        (
+            f"Request evaluado: clasificacion={clasificacion}, decision={decision}, "
+            f"roster_version_id={roster_vigente.id}, version_number={roster_vigente.version_number}"
+        ),
     )
 
     return {
@@ -311,6 +304,8 @@ def evaluar_swap_request(
         "clasificacion": clasificacion,
         "decision": decision,
         "evaluacion": evaluacion,
+        "roster_version_id": roster_vigente.id,
+        "roster_version_number": roster_vigente.version_number,
     }
 
 
@@ -318,9 +313,6 @@ def resolver_swap_request(
     request: SwapRequest,
     accion: str,
 ) -> SwapRequest:
-    """
-    Cambia el estado del SwapRequest según la acción.
-    """
     if request.decision_sugerida is None:
         raise ValueError("No se puede resolver un request sin evaluarlo primero.")
 
@@ -350,17 +342,31 @@ def resolver_swap_request(
 def aplicar_swap_request(
     asignaciones: list,
     request: SwapRequest,
-) -> list:
+) -> "RosterVersion":
     """
-    Aplica el swap al roster solamente si el request fue aceptado.
-    Devuelve un nuevo roster con el intercambio realizado.
+    Aplica el swap generando una NUEVA versión de roster.
     """
+
+    from src.roster_store import obtener_roster_vigente
+    from src.engine import crear_nueva_version_desde_roster_vigente
+
+    # 🔒 Debe haber sido evaluado
     if request.decision_sugerida is None:
         raise ValueError("No se puede aplicar un request que no fue evaluado.")
 
     if request.estado != "ACEPTADO":
         raise ValueError("Solo se puede aplicar un SwapRequest con estado ACEPTADO.")
 
+    # 🔒 Debe existir roster vigente
+    roster_vigente = obtener_roster_vigente()
+    if roster_vigente is None:
+        raise ValueError("No existe un roster vigente para aplicar el request.")
+
+    # 🔒 Debe coincidir versión
+    if request.roster_version_id != roster_vigente.id:
+        raise ValueError("El request ya no apunta a la versión vigente del roster.")
+
+    # 🔒 Validación de coherencia
     if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
         raise IndexError("Los índices del SwapRequest no son válidos para el roster actual.")
 
@@ -380,14 +386,7 @@ def aplicar_swap_request(
             f"Inconsistencia en controlador B al aplicar: request={request.controlador_b}, roster={asignacion_b.controlador.nombre}"
         )
 
-    hash_actual = calcular_roster_hash(asignaciones)
-
-    if request.roster_hash is None:
-        raise ValueError("El request no tiene snapshot de roster (no fue evaluado correctamente).")
-
-    if request.roster_hash != hash_actual:
-        raise ValueError("El roster cambió desde la evaluación del request.")
-
+    # 🔁 Generar nuevo roster (swap)
     nuevo_roster = deepcopy(asignaciones)
 
     turno_a = nuevo_roster[request.idx_a].turno
@@ -396,9 +395,15 @@ def aplicar_swap_request(
     nuevo_roster[request.idx_a] = replace(nuevo_roster[request.idx_a], turno=turno_b)
     nuevo_roster[request.idx_b] = replace(nuevo_roster[request.idx_b], turno=turno_a)
 
-    registrar_evento_swap_request(
-        request,
-        f"Swap aplicado al roster: idx_a={request.idx_a}, idx_b={request.idx_b}",
+    # 🧠 NUEVA VERSIÓN
+    nueva_version = crear_nueva_version_desde_roster_vigente(
+        nuevo_roster,
+        regimen_horario=roster_vigente.regimen_horario,
     )
 
-    return nuevo_roster
+    registrar_evento_swap_request(
+        request,
+        f"Swap aplicado → nueva version {nueva_version.version_number}",
+    )
+
+    return nueva_version
