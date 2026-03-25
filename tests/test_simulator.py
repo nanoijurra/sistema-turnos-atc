@@ -388,6 +388,51 @@ def test_aplicar_swap_request_falla_si_no_fue_evaluado():
         aplicar_swap_request(asignaciones, request)
 
 
+def test_evaluar_swap_request_falla_si_indices_no_existen_en_roster():
+    import pytest
+    from datetime import datetime
+    from src.models import SwapRequest
+    from src.scenarios.v3_controladores_mixto import crear_escenario
+    from src.simulator import evaluar_swap_request
+
+    asignaciones = crear_escenario()
+
+    request = SwapRequest(
+        id="req-invalido-indices",
+        controlador_a="ATC_A",
+        controlador_b="ATC_B",
+        idx_a=0,
+        idx_b=99,
+        estado="PENDIENTE",
+        fecha_creacion=datetime.now(),
+    )
+
+    with pytest.raises(IndexError, match="no son válidos para el roster actual"):
+        evaluar_swap_request(asignaciones, request)
+
+
+def test_evaluar_swap_request_falla_si_controladores_no_coinciden_con_roster():
+    import pytest
+    from datetime import datetime
+    from src.models import SwapRequest
+    from src.scenarios.v3_controladores_mixto import crear_escenario
+    from src.simulator import evaluar_swap_request
+
+    asignaciones = crear_escenario()
+
+    request = SwapRequest(
+        id="req-invalido-controladores",
+        controlador_a="ATC_X",
+        controlador_b="ATC_B",
+        idx_a=0,
+        idx_b=3,
+        estado="PENDIENTE",
+        fecha_creacion=datetime.now(),
+    )
+
+    with pytest.raises(ValueError, match="Inconsistencia en controlador A"):
+        evaluar_swap_request(asignaciones, request)
+        
 def test_aplicar_swap_request_falla_si_no_esta_aceptado():
     import pytest
     from src.scenarios.v3_controladores_mixto import crear_escenario
