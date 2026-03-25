@@ -105,7 +105,7 @@ class SwapRequest:
     controlador_b: str
     idx_a: int
     idx_b: int
-    estado: str  # PENDIENTE / ACEPTADO / RECHAZADO / CANCELADO
+    estado: str  # PENDIENTE / EVALUADO / ACEPTADO / RECHAZADO / APLICADO / CANCELADO
     fecha_creacion: datetime
     decision_sugerida: Optional[str] = None
     fecha_resolucion: Optional[datetime] = None
@@ -116,3 +116,21 @@ class SwapRequest:
 
     def add_history_entry(self, mensaje: str) -> None:
         self.history.append(mensaje)
+
+    def cancelar_por_obsolescencia(
+        self,
+        motivo: str = "request obsoleto por nueva version de roster vigente",
+    ) -> None:
+        if self.estado == "APLICADO":
+            raise ValueError("No se puede cancelar un request ya aplicado.")
+
+        if self.estado == "CANCELADO":
+            raise ValueError("No se puede cancelar dos veces el mismo request.")
+
+        if self.estado in ("ACEPTADO", "RECHAZADO"):
+            raise ValueError("No se puede cancelar un request ya resuelto.")
+
+        self.estado = "CANCELADO"
+        self.fecha_resolucion = self.fecha_resolucion or datetime.now()
+        self.motivo = motivo
+        self.add_history_entry(f"CANCELADO_AUTOMATICAMENTE: {motivo}")
