@@ -296,7 +296,6 @@ def aplicar_swap_request(
             f"Inconsistencia en controlador B al aplicar: request={request.controlador_b}, roster={asignacion_b.controlador.nombre}"
         )
 
-    # 🔁 Aplicar swap
     nuevo_roster = deepcopy(asignaciones)
 
     turno_a = nuevo_roster[request.idx_a].turno
