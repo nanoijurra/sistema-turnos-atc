@@ -82,6 +82,22 @@ def crear_esquema_6h() -> ShiftScheme:
     )
 from datetime import datetime
 from typing import Optional
+from dataclasses import dataclass, field
+from typing import Optional
+
+
+@dataclass
+class SwapRequest:
+    controller_a: str
+    controller_b: str
+    fecha_a: str
+    fecha_b: str
+    estado: str = "PENDIENTE"
+    decision_sugerida: Optional[str] = None
+    history: list[str] = field(default_factory=list)
+
+    def add_history_entry(self, mensaje: str) -> None:
+        self.history.append(mensaje)
 
 
 @dataclass
@@ -98,8 +114,12 @@ class SwapRequest:
     idx_b: int
 
     estado: str  # PENDIENTE / ACEPTADO / RECHAZADO / CANCELADO
-
     fecha_creacion: datetime
-    fecha_resolucion: Optional[datetime] = None
 
+    decision_sugerida: Optional[str] = None
+    fecha_resolucion: Optional[datetime] = None
     motivo: Optional[str] = None
+    history: list[str] = field(default_factory=list)
+
+    def add_history_entry(self, mensaje: str) -> None:
+        self.history.append(mensaje)

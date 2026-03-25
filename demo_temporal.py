@@ -8,6 +8,7 @@ from src.simulator import (
     evaluar_swap_request,
     resolver_swap_request,
     aplicar_swap_request,
+    mostrar_historial_swap_request,
 )
 
 from src.scenarios.v3_controladores_mixto import crear_escenario as escenario_mixto
@@ -24,38 +25,41 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
     mostrar_roster(asignaciones)
     print()
 
-    # 🔹 Crear request
     print("Ejemplo de SwapRequest:")
     request = crear_swap_request(asignaciones, 0, 3, motivo="Intercambio personal")
 
-    print(f"  ID           : {request.id}")
-    print(f"  Controlador A: {request.controlador_a}")
-    print(f"  Controlador B: {request.controlador_b}")
-    print(f"  Índices      : {request.idx_a} <-> {request.idx_b}")
-    print(f"  Estado       : {request.estado}")
-    print(f"  Motivo       : {request.motivo}")
+    print(f"  ID                : {request.id}")
+    print(f"  Controlador A     : {request.controlador_a}")
+    print(f"  Controlador B     : {request.controlador_b}")
+    print(f"  Índices           : {request.idx_a} <-> {request.idx_b}")
+    print(f"  Estado            : {request.estado}")
+    print(f"  Fecha creación    : {request.fecha_creacion}")
+    print(f"  Decisión sugerida : {request.decision_sugerida}")
+    print(f"  Motivo            : {request.motivo}")
+    print()
+    print(mostrar_historial_swap_request(request))
 
-    # 🔹 Evaluar request
     print("\nEvaluación del SwapRequest:")
     resultado_request = evaluar_swap_request(asignaciones, request)
 
-    print(f"  Clasificación : {resultado_request['clasificacion']}")
-    print(f"  Decisión      : {resultado_request['decision']}")
+    print(f"  Clasificación         : {resultado_request['clasificacion']}")
+    print(f"  Decisión calculada    : {resultado_request['decision']}")
+    print(f"  Decisión en request   : {request.decision_sugerida}")
 
-    # 🔹 Resolver automáticamente
     print("\nResolviendo SwapRequest automáticamente...")
 
     if resultado_request["decision"] == "APROBABLE":
         request = resolver_swap_request(request, "ACEPTAR")
-
     elif resultado_request["decision"] == "RECHAZAR":
         request = resolver_swap_request(request, "RECHAZAR")
-
     else:
         print("  (queda en observación, no se resuelve automáticamente)")
 
-    print(f"  Estado final : {request.estado}")
-    print(f"  Fecha        : {request.fecha_resolucion}")
+    print(f"  Estado final         : {request.estado}")
+    print(f"  Fecha resolución     : {request.fecha_resolucion}")
+    print(f"  Decisión sugerida    : {request.decision_sugerida}")
+    print()
+    print(mostrar_historial_swap_request(request))
     print()
 
     if request.estado == "ACEPTADO":
@@ -65,8 +69,9 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
         print("Roster actualizado:")
         mostrar_roster(roster_aplicado)
         print()
+        print(mostrar_historial_swap_request(request))
+        print()
 
-    # 🔹 Ranking
     ranking = explorar_swaps_entre_controladores(asignaciones)
     swaps_validos = filtrar_swaps_validos(ranking)
     swaps_utiles = filtrar_swaps_utiles(ranking)
@@ -110,7 +115,6 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
     print("\n")
 
 
-# 🔹 Ejecutar escenarios
 ejecutar_demo("MIXTO", escenario_mixto())
 ejecutar_demo("BENEFICIOSO", escenario_beneficioso())
 ejecutar_demo("BENEFICIOSO MUTUO", escenario_beneficioso_mutuo())

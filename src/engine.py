@@ -1,7 +1,13 @@
 import json
 import os
+from copy import deepcopy
+from dataclasses import replace
+from datetime import datetime
+from uuid import uuid4
 
 from src import validator
+from src.models import SwapRequest
+from src.request_store import guardar_request
 from src.rule_types import RuleResult, Violation
 
 
@@ -116,3 +122,139 @@ def validar_todo(asignaciones, config_file: str = "config_equilibrado.json") -> 
 
     resultados.sort(key=lambda r: r.prioridad)
     return resultados
+
+
+def registrar_evento_swap_request(request: SwapRequest, mensaje: str) -> None:
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    request.add_history_entry(f"[{timestamp}] {mensaje}")
+    guardar_request(request)
+
+
+def crear_swap_request(
+    controlador_a: str,
+    controlador_b: str,
+    idx_a: int,
+    idx_b: int,
+    motivo: str | None = None,
+) -> SwapRequest:
+    request = SwapRequest(
+        id=str(uuid4()),
+        controlador_a=controlador_a,
+        controlador_b=controlador_b,
+        idx_a=idx_a,
+        idx_b=idx_b,
+        estado="PENDIENTE",
+        fecha_creacion=datetime.now(),
+        motivo=motivo,
+    )
+
+    registrar_evento_swap_request(
+        request,
+        f"Request creado: {controlador_a}[{idx_a}] <-> {controlador_b}[{idx_b}]",
+    )
+
+    return request
+
+
+def evaluar_swap_request(
+    asignaciones: list,
+    request: SwapRequest,
+    evaluar_swap_fn,
+    config_file: str = "config_equilibrado.json",
+) -> dict:
+    """
+    Evalúa un SwapRequest usando una función de evaluación inyectada
+    para evitar dependencia circular con simulator.py.
+    """
+    evaluacion = evaluar_swap_fn(
+        asignaciones=asignaciones,
+        idx_a=request.idx_a,
+        idx_b=request.idx_b,
+        config_file=config_file,
+    )
+
+    clasificacion = evaluacion["clasificacion"]
+
+    if clasificacion == "BENEFICIOSO":
+        decision = "APROBABLE"
+    elif clasificacion == "ACEPTABLE":
+        decision = "OBSERVAR"
+    else:
+        decision = "RECHAZAR"
+
+    request.decision_sugerida = decision
+    guardar_request(request)
+
+    registrar_evento_swap_request(
+        request,
+        f"Request evaluado: clasificacion={clasificacion}, decision={decision}",
+    )
+
+    return {
+        "request_id": request.id,
+        "controlador_a": request.controlador_a,
+        "controlador_b": request.controlador_b,
+        "clasificacion": clasificacion,
+        "decision": decision,
+        "evaluacion": evaluacion,
+    }
+
+
+def resolver_swap_request(
+    request: SwapRequest,
+    accion: str,
+) -> SwapRequest:
+    """
+    Cambia el estado del SwapRequest según la acción.
+    """
+    if request.estado != "PENDIENTE":
+        raise ValueError("El request ya fue resuelto.")
+
+    if accion == "ACEPTAR":
+        request.estado = "ACEPTADO"
+    elif accion == "RECHAZAR":
+        request.estado = "RECHAZADO"
+    elif accion == "CANCELAR":
+        request.estado = "CANCELADO"
+    else:
+        raise ValueError(f"Acción inválida: {accion}")
+
+    request.fecha_resolucion = datetime.now()
+    guardar_request(request)
+
+    registrar_evento_swap_request(
+        request,
+        f"Request resuelto: accion={accion}, estado={request.estado}",
+    )
+
+    return request
+
+
+def aplicar_swap_request(
+    asignaciones: list,
+    request: SwapRequest,
+) -> list:
+    """
+    Aplica el swap al roster solamente si el request fue aceptado.
+    Devuelve un nuevo roster con el intercambio realizado.
+    """
+    if request.estado != "ACEPTADO":
+        raise ValueError("Solo se puede aplicar un SwapRequest con estado ACEPTADO.")
+
+    if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
+        raise IndexError("Los índices del SwapRequest están fuera de rango.")
+
+    nuevo_roster = deepcopy(asignaciones)
+
+    turno_a = nuevo_roster[request.idx_a].turno
+    turno_b = nuevo_roster[request.idx_b].turno
+
+    nuevo_roster[request.idx_a] = replace(nuevo_roster[request.idx_a], turno=turno_b)
+    nuevo_roster[request.idx_b] = replace(nuevo_roster[request.idx_b], turno=turno_a)
+
+    registrar_evento_swap_request(
+        request,
+        f"Swap aplicado al roster: idx_a={request.idx_a}, idx_b={request.idx_b}",
+    )
+
+    return nuevo_roster

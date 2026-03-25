@@ -1,10 +1,15 @@
-﻿from copy import deepcopy
-from dataclasses import replace
-from datetime import date
+﻿from datetime import date
 
-from src.engine import validar_todo
+from src.engine import (
+    validar_todo,
+    crear_swap_request as crear_swap_request_core,
+    evaluar_swap_request as evaluar_swap_request_core,
+    resolver_swap_request as resolver_swap_request_core,
+    aplicar_swap_request as aplicar_swap_request_core,
+)
 from src.scoring import es_roster_valido, calcular_score
 from src.rule_types import RuleResult
+from src.models import SwapRequest
 
 
 def mostrar_roster(asignaciones: list) -> None:
@@ -246,6 +251,9 @@ def simular_swap(
     """
     Simula un swap entre dos posiciones del roster usando índices.
     """
+    from copy import deepcopy
+    from dataclasses import replace
+
     if idx_a == idx_b:
         raise ValueError("idx_a e idx_b deben ser distintos.")
 
@@ -605,104 +613,6 @@ def simular_swap_entre_controladores(
         idx_b=idx_b,
         config_file=config_file,
     )
-import uuid
-from datetime import datetime
-from src.models import SwapRequest
-
-
-def evaluar_swap_request(
-
-    asignaciones: list,
-    request: "SwapRequest",
-    config_file: str = "config_equilibrado.json",
-) -> dict:
-    """
-    Evalúa un SwapRequest y devuelve una decisión operativa.
-    """
-
-    evaluacion = evaluar_swap(
-        asignaciones=asignaciones,
-        idx_a=request.idx_a,
-        idx_b=request.idx_b,
-        config_file=config_file,
-    )
-
-    clasificacion = evaluacion["clasificacion"]
-
-    # 🔴 lógica de decisión (simple pero potente)
-    if clasificacion == "BENEFICIOSO":
-        decision = "APROBABLE"
-
-    elif clasificacion == "ACEPTABLE":
-        decision = "OBSERVAR"
-
-    else:
-        decision = "RECHAZAR"
-
-    return {
-        "request_id": request.id,
-        "controlador_a": request.controlador_a,
-        "controlador_b": request.controlador_b,
-        "clasificacion": clasificacion,
-        "decision": decision,
-        "evaluacion": evaluacion,
-    }
-import uuid
-from datetime import datetime
-from src.models import SwapRequest
-from datetime import datetime
-
-
-def resolver_swap_request(
-    request: "SwapRequest",
-    accion: str,
-) -> "SwapRequest":
-    """
-    Cambia el estado del SwapRequest según la acción.
-    """
-
-    if request.estado != "PENDIENTE":
-        raise ValueError("El request ya fue resuelto.")
-
-    if accion == "ACEPTAR":
-        request.estado = "ACEPTADO"
-
-    elif accion == "RECHAZAR":
-        request.estado = "RECHAZADO"
-
-    elif accion == "CANCELAR":
-        request.estado = "CANCELADO"
-
-    else:
-        raise ValueError(f"Acción inválida: {accion}")
-
-    request.fecha_resolucion = datetime.now()
-
-    return request
-
-def aplicar_swap_request(
-    asignaciones: list,
-    request: "SwapRequest",
-) -> list:
-    """
-    Aplica el swap al roster solamente si el request fue aceptado.
-    Devuelve un nuevo roster con el intercambio realizado.
-    """
-    if request.estado != "ACEPTADO":
-        raise ValueError("Solo se puede aplicar un SwapRequest con estado ACEPTADO.")
-
-    if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
-        raise IndexError("Los índices del SwapRequest están fuera de rango.")
-
-    nuevo_roster = deepcopy(asignaciones)
-
-    turno_a = nuevo_roster[request.idx_a].turno
-    turno_b = nuevo_roster[request.idx_b].turno
-
-    nuevo_roster[request.idx_a] = replace(nuevo_roster[request.idx_a], turno=turno_b)
-    nuevo_roster[request.idx_b] = replace(nuevo_roster[request.idx_b], turno=turno_a)
-
-    return nuevo_roster
 
 
 def crear_swap_request(
@@ -712,18 +622,74 @@ def crear_swap_request(
     motivo: str | None = None,
 ) -> SwapRequest:
     """
-    Crea una solicitud de swap entre dos controladores.
+    Crea un SwapRequest a partir de índices del roster y delega
+    la creación de la entidad al engine.
     """
+    if not (0 <= idx_a < len(asignaciones)) or not (0 <= idx_b < len(asignaciones)):
+        raise IndexError("Índices fuera de rango para crear SwapRequest.")
+
     asignacion_a = asignaciones[idx_a]
     asignacion_b = asignaciones[idx_b]
 
-    return SwapRequest(
-        id=str(uuid.uuid4()),
-        controlador_a=asignacion_a.controlador,
-        controlador_b=asignacion_b.controlador,
+    if asignacion_a.controlador is None or asignacion_b.controlador is None:
+        raise ValueError("No se puede crear un SwapRequest sin controladores asignados.")
+
+    controlador_a = asignacion_a.controlador.nombre
+    controlador_b = asignacion_b.controlador.nombre
+
+    return crear_swap_request_core(
+        controlador_a=controlador_a,
+        controlador_b=controlador_b,
         idx_a=idx_a,
         idx_b=idx_b,
-        estado="PENDIENTE",
-        fecha_creacion=datetime.now(),
         motivo=motivo,
     )
+
+
+def evaluar_swap_request(
+    asignaciones: list,
+    request: SwapRequest,
+    config_file: str = "config_equilibrado.json",
+) -> dict:
+    return evaluar_swap_request_core(
+        asignaciones=asignaciones,
+        request=request,
+        evaluar_swap_fn=evaluar_swap,
+        config_file=config_file,
+    )
+
+
+def resolver_swap_request(
+    request: SwapRequest,
+    accion: str,
+) -> SwapRequest:
+    return resolver_swap_request_core(
+        request=request,
+        accion=accion,
+    )
+
+
+def aplicar_swap_request(
+    asignaciones: list,
+    request: SwapRequest,
+) -> list:
+    return aplicar_swap_request_core(
+        asignaciones=asignaciones,
+        request=request,
+    )
+
+
+def mostrar_historial_swap_request(request: SwapRequest) -> str:
+    """
+    Devuelve una representación textual del historial del SwapRequest.
+    """
+    lineas = ["Historial del SwapRequest:"]
+
+    if not request.history:
+        lineas.append("  - sin eventos registrados -")
+        return "\n".join(lineas)
+
+    for i, evento in enumerate(request.history, start=1):
+        lineas.append(f"  {i}. {evento}")
+
+    return "\n".join(lineas)

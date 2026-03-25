@@ -248,3 +248,92 @@ def test_aplicar_swap_request_modifica_roster_si_esta_aceptado():
 
     assert roster_nuevo[0].turno.codigo == asignaciones[3].turno.codigo
     assert roster_nuevo[3].turno.codigo == asignaciones[0].turno.codigo
+def test_swap_request_registra_historial_completo_en_flujo_aceptado():
+    from src.simulator import (
+        crear_swap_request,
+        evaluar_swap_request,
+        resolver_swap_request,
+        aplicar_swap_request,
+    )
+    from src.scenarios.v5_controladores_beneficioso_mutuo import (
+        crear_escenario as escenario_beneficioso_mutuo,
+    )
+
+    asignaciones = escenario_beneficioso_mutuo()
+
+    request = crear_swap_request(
+        asignaciones=asignaciones,
+        idx_a=0,
+        idx_b=3,
+        motivo="Intercambio personal",
+    )
+
+    assert len(request.history) == 1
+    assert "Request creado" in request.history[0]
+
+    resultado = evaluar_swap_request(asignaciones, request)
+
+    assert resultado["decision"] == "APROBABLE"
+    assert request.decision_sugerida == "APROBABLE"
+    assert len(request.history) == 2
+    assert "Request evaluado" in request.history[1]
+    assert "clasificacion=BENEFICIOSO" in request.history[1]
+    assert "decision=APROBABLE" in request.history[1]
+
+    request = resolver_swap_request(request, "ACEPTAR")
+
+    assert request.estado == "ACEPTADO"
+    assert request.fecha_resolucion is not None
+    assert len(request.history) == 3
+    assert "Request resuelto" in request.history[2]
+    assert "accion=ACEPTAR" in request.history[2]
+    assert "estado=ACEPTADO" in request.history[2]
+
+    roster_aplicado = aplicar_swap_request(asignaciones, request)
+
+    assert roster_aplicado is not None
+    assert len(request.history) == 4
+    assert "Swap aplicado al roster" in request.history[3]
+    assert "idx_a=0" in request.history[3]
+    assert "idx_b=3" in request.history[3]
+
+
+def test_swap_request_registra_historial_hasta_resolucion_rechazada():
+    from src.simulator import (
+        crear_swap_request,
+        evaluar_swap_request,
+        resolver_swap_request,
+    )
+    from src.scenarios.v4_controladores_beneficioso import (
+        crear_escenario as escenario_beneficioso,
+    )
+
+    asignaciones = escenario_beneficioso()
+
+    request = crear_swap_request(
+        asignaciones=asignaciones,
+        idx_a=0,
+        idx_b=3,
+        motivo="Intercambio personal",
+    )
+
+    assert len(request.history) == 1
+    assert "Request creado" in request.history[0]
+
+    resultado = evaluar_swap_request(asignaciones, request)
+
+    assert resultado["decision"] == "RECHAZAR"
+    assert request.decision_sugerida == "RECHAZAR"
+    assert len(request.history) == 2
+    assert "Request evaluado" in request.history[1]
+    assert "clasificacion=RECHAZABLE" in request.history[1]
+    assert "decision=RECHAZAR" in request.history[1]
+
+    request = resolver_swap_request(request, "RECHAZAR")
+
+    assert request.estado == "RECHAZADO"
+    assert request.fecha_resolucion is not None
+    assert len(request.history) == 3
+    assert "Request resuelto" in request.history[2]
+    assert "accion=RECHAZAR" in request.history[2]
+    assert "estado=RECHAZADO" in request.history[2]
