@@ -338,6 +338,28 @@ def resolver_swap_request(
 
     return request
 
+from src.request_store import listar_requests
+
+
+def cancelar_requests_obsoletos(roster_version_id_viejo: str) -> int:
+    """
+    Cancela automáticamente todos los SwapRequest que:
+    - estén en estado PENDIENTE o EVALUADO
+    - pertenezcan a una versión de roster que dejó de ser vigente
+    """
+    requests = listar_requests()
+    cancelados = 0
+
+    for req in requests:
+        if req.roster_version_id != roster_version_id_viejo:
+            continue
+
+        if req.estado in ("PENDIENTE", "EVALUADO"):
+            req.cancelar_por_obsolescencia()
+            cancelados += 1
+
+    return cancelados
+
 
 def aplicar_swap_request(
     asignaciones: list,
