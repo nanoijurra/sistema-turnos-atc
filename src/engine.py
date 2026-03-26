@@ -284,6 +284,7 @@ def evaluar_swap_request(
     else:
         decision = "RECHAZAR"
 
+    request.estado = "EVALUADO"
     request.decision_sugerida = decision
     request.roster_hash = calcular_roster_hash(asignaciones)
     request.roster_version_id = roster_vigente.id
@@ -316,8 +317,13 @@ def resolver_swap_request(
     if request.decision_sugerida is None:
         raise ValueError("No se puede resolver un request sin evaluarlo primero.")
 
-    if request.estado != "PENDIENTE":
+    if request.estado in ("ACEPTADO", "RECHAZADO", "CANCELADO", "APLICADO"):
         raise ValueError("El request ya fue resuelto.")
+
+    if request.estado != "EVALUADO":
+        raise ValueError(
+        f"Estado inválido para resolver request: {request.estado}. Se esperaba EVALUADO."
+    )
 
     if accion == "ACEPTAR":
         request.estado = "ACEPTADO"
@@ -369,7 +375,7 @@ def aplicar_swap_request(
     obsoletos de la versión anterior.
     """
     # 🔒 Debe haber sido evaluado
-    if request.decision_sugerida is None:
+    if request.decision_sugerida is None: 
         raise ValueError("No se puede aplicar un request que no fue evaluado.")
 
     if request.estado != "ACEPTADO":
