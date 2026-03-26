@@ -13,13 +13,30 @@ from src.simulator import (
 
 from src.scenarios.v3_controladores_mixto import crear_escenario as escenario_mixto
 from src.scenarios.v4_controladores_beneficioso import crear_escenario as escenario_beneficioso
-from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario as escenario_beneficioso_mutuo
+from src.scenarios.v5_controladores_beneficioso_mutuo import (
+    crear_escenario as escenario_beneficioso_mutuo,
+)
+from src.engine import crear_roster_version_inicial
+from src.request_store import limpiar_requests
+from src.roster_store import limpiar_rosters
 
 
 def ejecutar_demo(nombre: str, asignaciones: list) -> None:
+    limpiar_requests()
+    limpiar_rosters()
+
+    roster_inicial = crear_roster_version_inicial(asignaciones)
+
     print("=" * 80)
     print(f"ESCENARIO: {nombre}")
     print("=" * 80)
+
+    print(
+        f"Roster vigente inicial: "
+        f"v{roster_inicial.version_number} | id={roster_inicial.id} | "
+        f"régimen={roster_inicial.regimen_horario}"
+    )
+    print()
 
     print("Roster original:")
     mostrar_roster(asignaciones)
@@ -46,6 +63,11 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
     print(f"  Decisión calculada    : {resultado_request['decision']}")
     print(f"  Decisión en request   : {request.decision_sugerida}")
 
+    if "roster_version_id" in resultado_request:
+        print(f"  Roster version id     : {resultado_request['roster_version_id']}")
+    if "roster_version_number" in resultado_request:
+        print(f"  Roster version number : {resultado_request['roster_version_number']}")
+
     print("\nResolviendo SwapRequest automáticamente...")
 
     if resultado_request["decision"] == "APROBABLE":
@@ -66,8 +88,15 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
         print("Aplicando SwapRequest al roster...")
         roster_aplicado = aplicar_swap_request(asignaciones, request)
 
+        print(
+            f"Nueva versión vigente: "
+            f"v{roster_aplicado.version_number} | id={roster_aplicado.id} | "
+            f"base_version_id={roster_aplicado.base_version_id}"
+        )
+        print()
+
         print("Roster actualizado:")
-        mostrar_roster(roster_aplicado)
+        mostrar_roster(roster_aplicado.asignaciones)
         print()
         print(mostrar_historial_swap_request(request))
         print()
