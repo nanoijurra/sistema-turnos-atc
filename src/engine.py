@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from src import validator
 from src.models import SwapRequest, RosterVersion
-from src.request_store import guardar_request
+from src.request_store import guardar_request, listar_requests
 from src.roster_store import (
     guardar_roster,
     obtener_roster_vigente,
@@ -338,8 +338,6 @@ def resolver_swap_request(
 
     return request
 
-from src.request_store import listar_requests
-
 
 def cancelar_requests_obsoletos(roster_version_id_viejo: str) -> int:
     """
@@ -356,6 +354,7 @@ def cancelar_requests_obsoletos(roster_version_id_viejo: str) -> int:
 
         if req.estado in ("PENDIENTE", "EVALUADO"):
             req.cancelar_por_obsolescencia()
+            guardar_request(req)
             cancelados += 1
 
     return cancelados
@@ -364,14 +363,11 @@ def cancelar_requests_obsoletos(roster_version_id_viejo: str) -> int:
 def aplicar_swap_request(
     asignaciones: list,
     request: SwapRequest,
-) -> "RosterVersion":
+) -> RosterVersion:
     """
-    Aplica el swap generando una NUEVA versión de roster.
+    Aplica el swap generando una NUEVA versión de roster y cancela requests
+    obsoletos de la versión anterior.
     """
-
-    from src.roster_store import obtener_roster_vigente
-    from src.engine import crear_nueva_version_desde_roster_vigente
-
     # 🔒 Debe haber sido evaluado
     if request.decision_sugerida is None:
         raise ValueError("No se puede aplicar un request que no fue evaluado.")
@@ -408,6 +404,8 @@ def aplicar_swap_request(
             f"Inconsistencia en controlador B al aplicar: request={request.controlador_b}, roster={asignacion_b.controlador.nombre}"
         )
 
+    roster_version_id_viejo = roster_vigente.id
+
     # 🔁 Generar nuevo roster (swap)
     nuevo_roster = deepcopy(asignaciones)
 
@@ -422,6 +420,9 @@ def aplicar_swap_request(
         nuevo_roster,
         regimen_horario=roster_vigente.regimen_horario,
     )
+
+    # ❌ Cancelar requests obsoletos de la versión anterior
+    cancelar_requests_obsoletos(roster_version_id_viejo)
 
     registrar_evento_swap_request(
         request,
