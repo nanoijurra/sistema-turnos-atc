@@ -319,11 +319,7 @@ def resolver_swap_request(
 
     if request.estado in ("ACEPTADO", "RECHAZADO", "CANCELADO", "APLICADO"):
         raise ValueError("El request ya fue resuelto.")
-
-    if request.estado != "EVALUADO":
-        raise ValueError(
-        f"Estado inválido para resolver request: {request.estado}. Se esperaba EVALUADO."
-    )
+    
 
     if accion == "ACEPTAR":
         request.estado = "ACEPTADO"

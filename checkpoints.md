@@ -97,3 +97,72 @@ Este checkpoint representa el paso de:
 → sistema con versionado, trazabilidad y control de obsolescencia
 
 Es una base estable para seguir evolucionando el dominio sin romper consistencia.
+
+---
+
+## checkpoint-v2-evaluated-state-formalized
+Fecha: 2026-03-26
+
+### Estado general
+Se formaliza el estado `EVALUADO` dentro del ciclo de vida de `SwapRequest`.
+Tests en verde y demo operativa.
+
+### Qué quedó implementado
+
+#### 1. Estado EVALUADO explícito
+- `evaluar_swap_request(...)` ahora cambia `estado` de `PENDIENTE` a `EVALUADO`
+- El request ya no queda ambiguo después de la evaluación
+
+#### 2. Flujo de resolución alineado
+- `resolver_swap_request(...)` ahora exige estado `EVALUADO`
+- Requests ya terminales no pueden resolverse nuevamente
+- Se mejora la consistencia semántica del ciclo de vida
+
+#### 3. Flujo de aplicación alineado
+- `aplicar_swap_request(...)` exige estado `ACEPTADO`
+- Se elimina la lógica incorrecta que trataba `ACEPTADO` como estado no aplicable
+- El flujo queda:
+  - `PENDIENTE`
+  - `EVALUADO`
+  - `ACEPTADO / RECHAZADO / CANCELADO`
+  - aplicación sobre request aceptado
+
+#### 4. Tests y demo
+- 42 tests passing
+- La demo refleja correctamente:
+  - requests observados → `EVALUADO`
+  - requests rechazados → `RECHAZADO`
+  - requests aprobados → `ACEPTADO` y luego aplicados
+
+---
+
+### Decisiones de diseño importantes
+
+- `decision_sugerida` deja de ser la única señal de request evaluado
+- el estado del request pasa a expresar mejor el momento del flujo
+- resolver y aplicar quedan separados por contrato:
+  - resolver requiere `EVALUADO`
+  - aplicar requiere `ACEPTADO`
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- `APLICADO` todavía no se formaliza como estado explícito al final del flujo
+- no existe todavía una capa de notificación al usuario
+- persistencia sigue siendo en memoria
+
+---
+
+### Próximos pasos naturales
+
+1. Formalizar estado `APLICADO`
+2. Revisar si conviene separar mejor resolución manual vs automática
+3. Mejorar consulta/listado de requests por estado
+4. Evolucionar persistencia si el proyecto lo requiere
+
+---
+
+### Notas
+
+Este checkpoint consolida el ciclo de vida del `SwapRequest` como máquina de estados más explícita y coherente.
