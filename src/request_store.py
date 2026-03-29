@@ -31,3 +31,18 @@ def limpiar_requests() -> None:
     Limpia el store en memoria. Útil para tests.
     """
     _REQUESTS.clear()
+def listar_requests_por_estado(estado: str) -> list:
+    """
+    Devuelve todos los requests que están en el estado indicado.
+    """
+    return [r for r in listar_requests() if r.estado == estado]
+
+
+def listar_requests_por_roster_version(roster_version_id: str) -> list:
+    """
+    Devuelve todos los requests asociados a una versión de roster.
+    """
+    return [
+        r for r in listar_requests()
+        if r.roster_version_id == roster_version_id
+    ]

@@ -98,7 +98,7 @@ Este checkpoint representa el paso de:
 
 Es una base estable para seguir evolucionando el dominio sin romper consistencia.
 
----
+------------------------------------------------------------------------------------------------------------------------
 
 ## checkpoint-v2-evaluated-state-formalized
 Fecha: 2026-03-26
@@ -166,3 +166,74 @@ Tests en verde y demo operativa.
 ### Notas
 
 Este checkpoint consolida el ciclo de vida del `SwapRequest` como máquina de estados más explícita y coherente.
+
+----------------------------------------------------------------------------------------------------------------------------
+
+## checkpoint-v3-applied-state-formalized
+Fecha: 2026-03-28
+
+### Estado general
+Se formaliza el estado `APLICADO` en el ciclo de vida de `SwapRequest`.
+Tests en verde y demo operativa.
+
+### Qué quedó implementado
+
+#### 1. Estado APLICADO explícito
+- `aplicar_swap_request(...)` ahora marca el request como `APLICADO`
+- El request deja de quedar ambiguamente en `ACEPTADO` después de ejecutarse
+
+#### 2. Flujo del request más claro
+- `PENDIENTE` → request creado
+- `EVALUADO` → request evaluado
+- `ACEPTADO / RECHAZADO / CANCELADO` → request resuelto
+- `APLICADO` → request efectivamente ejecutado sobre el roster
+
+#### 3. Guardas de estado más estrictas
+- `resolver_swap_request(...)` exige estado `EVALUADO`
+- `aplicar_swap_request(...)` exige estado `ACEPTADO`
+- Se reduce la posibilidad de transiciones inconsistentes
+
+#### 4. Auditoría y trazabilidad
+- El historial refleja evaluación, resolución y aplicación
+- La aplicación sigue generando nueva versión de roster
+- Se mantiene el control de obsolescencia por `roster_version_id`
+
+#### 5. Validación general
+- 42 tests passing
+- Demo operativa sin regresiones funcionales
+
+---
+
+### Decisiones de diseño importantes
+
+- aceptación y aplicación quedan separadas como etapas distintas
+- el estado del request refleja mejor la realidad operacional
+- el sistema mantiene swap de turnos, no intercambio completo de asignaciones
+- el modelo sigue evolucionando hacia una máquina de estados más explícita
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- persistencia sigue siendo en memoria
+- la notificación al usuario todavía no existe como capa separada
+- `history` sigue siendo `list[str]`, simple pero suficiente por ahora
+
+---
+
+### Próximos pasos naturales
+
+1. Mejorar listados/consultas de requests por estado
+2. Revisar si conviene separar mejor resolución manual vs automática
+3. Evolucionar persistencia si el proyecto lo requiere
+4. Evaluar una capa CLI/API más explícita
+
+---
+
+### Notas
+
+Este checkpoint consolida la diferencia entre:
+- request aceptado
+- request efectivamente aplicado
+
+Eso mejora consistencia de dominio y auditabilidad.

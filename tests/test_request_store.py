@@ -106,3 +106,56 @@ def test_limpiar_requests_vacia_el_store():
 
     assert listar_requests() == []
     assert obtener_request(request.id) is None
+
+def test_listar_requests_por_estado_filtra_correctamente():
+    from src.request_store import (
+        guardar_request,
+        listar_requests_por_estado,
+        limpiar_requests,
+    )
+    from src.models import SwapRequest
+    from datetime import datetime
+
+    limpiar_requests()
+
+    r1 = SwapRequest(id="1", controlador_a="A", controlador_b="B", idx_a=0, idx_b=1,
+                     estado="PENDIENTE", fecha_creacion=datetime.now())
+    r2 = SwapRequest(id="2", controlador_a="A", controlador_b="B", idx_a=0, idx_b=1,
+                     estado="ACEPTADO", fecha_creacion=datetime.now())
+
+    guardar_request(r1)
+    guardar_request(r2)
+
+    pendientes = listar_requests_por_estado("PENDIENTE")
+
+    assert len(pendientes) == 1
+    assert pendientes[0].id == "1"
+
+    
+def test_listar_requests_por_roster_version_filtra_correctamente():
+    from src.request_store import (
+        guardar_request,
+        listar_requests_por_roster_version,
+        limpiar_requests,
+    )
+    from src.models import SwapRequest
+    from datetime import datetime
+
+    limpiar_requests()
+
+    r1 = SwapRequest(id="1", controlador_a="A", controlador_b="B", idx_a=0, idx_b=1,
+                     estado="PENDIENTE", fecha_creacion=datetime.now())
+    r1.roster_version_id = "v1"
+
+    r2 = SwapRequest(id="2", controlador_a="A", controlador_b="B", idx_a=0, idx_b=1,
+                     estado="PENDIENTE", fecha_creacion=datetime.now())
+    r2.roster_version_id = "v2"
+
+    guardar_request(r1)
+    guardar_request(r2)
+
+    v1_requests = listar_requests_por_roster_version("v1")
+
+    assert len(v1_requests) == 1
+    assert v1_requests[0].id == "1"
+
