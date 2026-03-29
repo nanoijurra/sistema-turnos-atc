@@ -25,9 +25,6 @@ RULES_REGISTRY = {
 
 
 def calcular_roster_hash(asignaciones: list) -> str:
-    """
-    Genera una firma simple del roster basada en controlador, fecha y turno.
-    """
     partes = []
 
     for a in asignaciones:
@@ -195,21 +192,6 @@ def crear_nueva_version_desde_roster_vigente(
     return nueva
 
 
-def registrar_evento_roster_versionado(
-    request: SwapRequest,
-    roster_anterior: RosterVersion,
-    roster_nuevo: RosterVersion,
-) -> None:
-    registrar_evento_swap_request(
-        request,
-        (
-            f"Nueva versión de roster generada: "
-            f"anterior=v{roster_anterior.version_number} ({roster_anterior.id}), "
-            f"nueva=v{roster_nuevo.version_number} ({roster_nuevo.id})"
-        ),
-    )
-
-
 def crear_swap_request(
     controlador_a: str,
     controlador_b: str,
@@ -310,16 +292,17 @@ def evaluar_swap_request(
     }
 
 
-def resolver_swap_request(
-    request: SwapRequest,
-    accion: str,
-) -> SwapRequest:
+def resolver_swap_request(request: SwapRequest, accion: str) -> SwapRequest:
     if request.decision_sugerida is None:
         raise ValueError("No se puede resolver un request sin evaluarlo primero.")
 
     if request.estado in ("ACEPTADO", "RECHAZADO", "CANCELADO", "APLICADO"):
         raise ValueError("El request ya fue resuelto.")
-    
+
+    if request.estado != "EVALUADO":
+        raise ValueError(
+            f"Estado inválido para resolver request: {request.estado}. Se esperaba EVALUADO."
+        )
 
     if accion == "ACEPTAR":
         request.estado = "ACEPTADO"
@@ -342,11 +325,6 @@ def resolver_swap_request(
 
 
 def cancelar_requests_obsoletos(roster_version_id_viejo: str) -> int:
-    """
-    Cancela automáticamente todos los SwapRequest que:
-    - estén en estado PENDIENTE o EVALUADO
-    - pertenezcan a una versión de roster que dejó de ser vigente
-    """
     requests = listar_requests()
     cancelados = 0
 
@@ -362,31 +340,20 @@ def cancelar_requests_obsoletos(roster_version_id_viejo: str) -> int:
     return cancelados
 
 
-def aplicar_swap_request(
-    asignaciones: list,
-    request: SwapRequest,
-) -> RosterVersion:
-    """
-    Aplica el swap generando una NUEVA versión de roster y cancela requests
-    obsoletos de la versión anterior.
-    """
-    # 🔒 Debe haber sido evaluado
-    if request.decision_sugerida is None: 
+def aplicar_swap_request(asignaciones: list, request: SwapRequest) -> RosterVersion:
+    if request.decision_sugerida is None:
         raise ValueError("No se puede aplicar un request que no fue evaluado.")
 
     if request.estado != "ACEPTADO":
         raise ValueError("Solo se puede aplicar un SwapRequest con estado ACEPTADO.")
 
-    # 🔒 Debe existir roster vigente
     roster_vigente = obtener_roster_vigente()
     if roster_vigente is None:
         raise ValueError("No existe un roster vigente para aplicar el request.")
 
-    # 🔒 Debe coincidir versión
     if request.roster_version_id != roster_vigente.id:
         raise ValueError("El request ya no apunta a la versión vigente del roster.")
 
-    # 🔒 Validación de coherencia
     if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
         raise IndexError("Los índices del SwapRequest no son válidos para el roster actual.")
 
@@ -408,23 +375,23 @@ def aplicar_swap_request(
 
     roster_version_id_viejo = roster_vigente.id
 
-    # 🔁 Generar nuevo roster (swap)
-    nuevo_roster = deepcopy(asignaciones)
+    nuevo = deepcopy(asignaciones)
 
-    turno_a = nuevo_roster[request.idx_a].turno
-    turno_b = nuevo_roster[request.idx_b].turno
+    turno_a = nuevo[request.idx_a].turno
+    turno_b = nuevo[request.idx_b].turno
 
-    nuevo_roster[request.idx_a] = replace(nuevo_roster[request.idx_a], turno=turno_b)
-    nuevo_roster[request.idx_b] = replace(nuevo_roster[request.idx_b], turno=turno_a)
+    nuevo[request.idx_a] = replace(nuevo[request.idx_a], turno=turno_b)
+    nuevo[request.idx_b] = replace(nuevo[request.idx_b], turno=turno_a)
 
-    # 🧠 NUEVA VERSIÓN
     nueva_version = crear_nueva_version_desde_roster_vigente(
-        nuevo_roster,
+        nuevo,
         regimen_horario=roster_vigente.regimen_horario,
     )
 
-    # ❌ Cancelar requests obsoletos de la versión anterior
     cancelar_requests_obsoletos(roster_version_id_viejo)
+
+    request.estado = "APLICADO"
+    guardar_request(request)
 
     registrar_evento_swap_request(
         request,
