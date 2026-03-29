@@ -131,7 +131,7 @@ def test_listar_requests_por_estado_filtra_correctamente():
     assert len(pendientes) == 1
     assert pendientes[0].id == "1"
 
-    
+
 def test_listar_requests_por_roster_version_filtra_correctamente():
     from src.request_store import (
         guardar_request,
@@ -159,3 +159,61 @@ def test_listar_requests_por_roster_version_filtra_correctamente():
     assert len(v1_requests) == 1
     assert v1_requests[0].id == "1"
 
+def test_listar_requests_activos_devuelve_pendientes_y_evaluados():
+    from datetime import datetime
+
+    from src.models import SwapRequest
+    from src.request_store import (
+        guardar_request,
+        listar_requests_activos,
+        limpiar_requests,
+    )
+
+    limpiar_requests()
+
+    r1 = SwapRequest(
+        id="1",
+        controlador_a="A",
+        controlador_b="B",
+        idx_a=0,
+        idx_b=1,
+        estado="PENDIENTE",
+        fecha_creacion=datetime.now(),
+    )
+    r2 = SwapRequest(
+        id="2",
+        controlador_a="A",
+        controlador_b="B",
+        idx_a=0,
+        idx_b=1,
+        estado="EVALUADO",
+        fecha_creacion=datetime.now(),
+    )
+    r3 = SwapRequest(
+        id="3",
+        controlador_a="A",
+        controlador_b="B",
+        idx_a=0,
+        idx_b=1,
+        estado="ACEPTADO",
+        fecha_creacion=datetime.now(),
+    )
+    r4 = SwapRequest(
+        id="4",
+        controlador_a="A",
+        controlador_b="B",
+        idx_a=0,
+        idx_b=1,
+        estado="CANCELADO",
+        fecha_creacion=datetime.now(),
+    )
+
+    guardar_request(r1)
+    guardar_request(r2)
+    guardar_request(r3)
+    guardar_request(r4)
+
+    activos = listar_requests_activos()
+    ids = {r.id for r in activos}
+
+    assert ids == {"1", "2"}

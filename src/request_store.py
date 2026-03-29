@@ -46,3 +46,11 @@ def listar_requests_por_roster_version(roster_version_id: str) -> list:
         r for r in listar_requests()
         if r.roster_version_id == roster_version_id
     ]
+def listar_requests_activos() -> list:
+    """
+    Devuelve los requests que todavía requieren acción o seguimiento.
+    """
+    return [
+        r for r in listar_requests()
+        if r.estado in ("PENDIENTE", "EVALUADO")
+    ]
