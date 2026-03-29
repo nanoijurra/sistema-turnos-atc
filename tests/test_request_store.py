@@ -217,3 +217,36 @@ def test_listar_requests_activos_devuelve_pendientes_y_evaluados():
     ids = {r.id for r in activos}
 
     assert ids == {"1", "2"}
+
+def test_resumen_requests_cuenta_correctamente():
+    from datetime import datetime
+
+    from src.models import SwapRequest
+    from src.request_store import (
+        guardar_request,
+        limpiar_requests,
+        resumen_requests,
+    )
+
+    limpiar_requests()
+
+    estados = ["PENDIENTE", "PENDIENTE", "EVALUADO", "ACEPTADO"]
+
+    for i, estado in enumerate(estados):
+        r = SwapRequest(
+            id=str(i),
+            controlador_a="A",
+            controlador_b="B",
+            idx_a=0,
+            idx_b=1,
+            estado=estado,
+            fecha_creacion=datetime.now(),
+        )
+        guardar_request(r)
+
+    resumen = resumen_requests()
+
+    assert resumen["PENDIENTE"] == 2
+    assert resumen["EVALUADO"] == 1
+    assert resumen["ACEPTADO"] == 1
+    assert resumen["TOTAL"] == 4

@@ -53,4 +53,18 @@ def listar_requests_activos() -> list:
     return [
         r for r in listar_requests()
         if r.estado in ("PENDIENTE", "EVALUADO")
-    ]
+    ]   
+
+def resumen_requests() -> dict:
+    """
+    Devuelve un resumen de cantidad de requests por estado.
+    """
+    resumen = {}
+    total = 0
+
+    for r in listar_requests():
+        resumen[r.estado] = resumen.get(r.estado, 0) + 1
+        total += 1
+
+    resumen["TOTAL"] = total
+    return resumen
