@@ -17,7 +17,7 @@ from src.scenarios.v5_controladores_beneficioso_mutuo import (
     crear_escenario as escenario_beneficioso_mutuo,
 )
 from src.engine import crear_roster_version_inicial
-from src.request_store import limpiar_requests
+from src.request_store import limpiar_requests, resumen_requests
 from src.roster_store import limpiar_rosters
 
 
@@ -140,6 +140,11 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
             print(f"  Clasificación: {resultado['clasificacion']}")
             print("  Recomendación textual:")
             print(f"    {generar_recomendacion_textual(resultado)}")
+
+    print("\nResumen de requests:")
+    resumen = resumen_requests()
+    for estado, cantidad in resumen.items():
+        print(f"  {estado:10} : {cantidad}")
 
     print("\n")
 
