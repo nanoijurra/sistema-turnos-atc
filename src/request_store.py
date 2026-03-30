@@ -1,64 +1,186 @@
+import json
+import os
+import sqlite3
+from datetime import datetime
+
 from src.models import SwapRequest
 
 
-_REQUESTS: dict[str, SwapRequest] = {}
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+DB_PATH = os.path.join(BASE_DIR, "data", "swaps_atc.db")
+
+
+def get_connection():
+    return sqlite3.connect(DB_PATH)
+
+def init_db() -> None:
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS swap_requests (
+        id TEXT PRIMARY KEY,
+        controlador_a TEXT,
+        controlador_b TEXT,
+        idx_a INTEGER,
+        idx_b INTEGER,
+        estado TEXT,
+        fecha_creacion TEXT,
+        fecha_resolucion TEXT,
+        decision_sugerida TEXT,
+        motivo TEXT,
+        history TEXT,
+        roster_hash TEXT,
+        roster_version_id TEXT
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+def serialize_request(request: SwapRequest) -> tuple:
+    return (
+        request.id,
+        request.controlador_a,
+        request.controlador_b,
+        request.idx_a,
+        request.idx_b,
+        request.estado,
+        request.fecha_creacion.isoformat() if request.fecha_creacion else None,
+        request.fecha_resolucion.isoformat() if request.fecha_resolucion else None,
+        request.decision_sugerida,
+        request.motivo,
+        json.dumps(request.history),
+        request.roster_hash,
+        request.roster_version_id,
+    )
+
+
+def deserialize_request(row) -> SwapRequest:
+    return SwapRequest(
+        id=row[0],
+        controlador_a=row[1],
+        controlador_b=row[2],
+        idx_a=row[3],
+        idx_b=row[4],
+        estado=row[5],
+        fecha_creacion=datetime.fromisoformat(row[6]) if row[6] else None,
+        fecha_resolucion=datetime.fromisoformat(row[7]) if row[7] else None,
+        decision_sugerida=row[8],
+        motivo=row[9],
+        history=json.loads(row[10]) if row[10] else [],
+        roster_hash=row[11],
+        roster_version_id=row[12],
+    )
+
+
+def init_db() -> None:
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS swap_requests (
+        id TEXT PRIMARY KEY,
+        controlador_a TEXT,
+        controlador_b TEXT,
+        idx_a INTEGER,
+        idx_b INTEGER,
+        estado TEXT,
+        fecha_creacion TEXT,
+        fecha_resolucion TEXT,
+        decision_sugerida TEXT,
+        motivo TEXT,
+        history TEXT,
+        roster_hash TEXT,
+        roster_version_id TEXT
+    )
+    """)
+
+    conn.commit()
+    conn.close()
 
 
 def guardar_request(request: SwapRequest) -> SwapRequest:
-    """
-    Guarda o actualiza un SwapRequest en memoria.
-    """
-    _REQUESTS[request.id] = request
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    INSERT OR REPLACE INTO swap_requests (
+        id,
+        controlador_a,
+        controlador_b,
+        idx_a,
+        idx_b,
+        estado,
+        fecha_creacion,
+        fecha_resolucion,
+        decision_sugerida,
+        motivo,
+        history,
+        roster_hash,
+        roster_version_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, serialize_request(request))
+
+    conn.commit()
+    conn.close()
     return request
 
 
 def obtener_request(request_id: str) -> SwapRequest | None:
-    """
-    Devuelve un SwapRequest por id, o None si no existe.
-    """
-    return _REQUESTS.get(request_id)
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM swap_requests WHERE id = ?", (request_id,))
+    row = cursor.fetchone()
+
+    conn.close()
+
+    return deserialize_request(row) if row else None
 
 
 def listar_requests() -> list[SwapRequest]:
-    """
-    Devuelve todos los SwapRequest almacenados en memoria.
-    """
-    return list(_REQUESTS.values())
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM swap_requests")
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return [deserialize_request(row) for row in rows]
 
 
 def limpiar_requests() -> None:
-    """
-    Limpia el store en memoria. Útil para tests.
-    """
-    _REQUESTS.clear()
-def listar_requests_por_estado(estado: str) -> list:
-    """
-    Devuelve todos los requests que están en el estado indicado.
-    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM swap_requests")
+
+    conn.commit()
+    conn.close()
+
+
+def listar_requests_por_estado(estado: str) -> list[SwapRequest]:
     return [r for r in listar_requests() if r.estado == estado]
 
 
-def listar_requests_por_roster_version(roster_version_id: str) -> list:
-    """
-    Devuelve todos los requests asociados a una versión de roster.
-    """
+def listar_requests_por_roster_version(roster_version_id: str) -> list[SwapRequest]:
     return [
         r for r in listar_requests()
         if r.roster_version_id == roster_version_id
     ]
-def listar_requests_activos() -> list:
-    """
-    Devuelve los requests que todavía requieren acción o seguimiento.
-    """
+
+
+def listar_requests_activos() -> list[SwapRequest]:
     return [
         r for r in listar_requests()
         if r.estado in ("PENDIENTE", "EVALUADO")
-    ]   
+    ]
+
 
 def resumen_requests() -> dict:
-    """
-    Devuelve un resumen de cantidad de requests por estado.
-    """
     resumen = {}
     total = 0
 
@@ -68,3 +190,5 @@ def resumen_requests() -> dict:
 
     resumen["TOTAL"] = total
     return resumen
+
+init_db()
