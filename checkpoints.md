@@ -237,3 +237,75 @@ Este checkpoint consolida la diferencia entre:
 - request efectivamente aplicado
 
 Eso mejora consistencia de dominio y auditabilidad.
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+## checkpoint-v4-request-store-sqlite
+Fecha: 2026-03-30
+
+### Estado general
+Se migra `request_store` desde almacenamiento en memoria a persistencia real con SQLite.
+Tests en verde y demo operativa.
+
+### Qué quedó implementado
+
+#### 1. Persistencia real de SwapRequest
+- `request_store.py` ahora usa SQLite
+- Los requests se almacenan en `data/swaps_atc.db`
+- La tabla `swap_requests` se inicializa automáticamente si no existe
+
+#### 2. Serialización / deserialización
+- `SwapRequest` se serializa a columnas SQLite
+- `history` se persiste como JSON
+- `datetime` se guarda en formato ISO y se reconstruye correctamente
+
+#### 3. Interfaz preservada
+- Se mantienen las funciones existentes:
+  - `guardar_request`
+  - `listar_requests`
+  - `limpiar_requests`
+  - `listar_requests_por_estado`
+  - `listar_requests_por_roster_version`
+  - `listar_requests_activos`
+  - `resumen_requests`
+- Engine y simulator no necesitaron cambios de contrato
+
+#### 4. Inicialización robusta
+- La base se conecta mediante ruta robusta con `os.path`
+- La tabla se crea automáticamente al importar el módulo (`init_db()`)
+
+#### 5. Validación general
+- 46 tests passing
+- Demo operativa sin regresiones funcionales
+
+---
+
+### Decisiones de diseño importantes
+
+- se eligió SQLite antes que API para consolidar persistencia primero
+- se mantuvo compatibilidad con la interfaz del store
+- la migración se hizo por sustitución interna, no por reescritura del sistema
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- solo `request_store` está persistido en SQLite
+- `roster_store` sigue en memoria
+- no hay todavía migraciones formales de esquema
+- la auditoría sigue apoyándose en `history` como `list[str]`
+
+---
+
+### Próximos pasos naturales
+
+1. Migrar `roster_store` a SQLite
+2. Persistir `RosterVersion` y sus asignaciones
+3. Evaluar consultas combinadas por request + versión
+4. Recién después exponer una API mínima
+
+---
+
+### Notas
+
+Este checkpoint convierte al sistema en una base persistente real, dejando atrás el almacenamiento efímero en memoria para `SwapRequest`.
