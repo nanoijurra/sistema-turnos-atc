@@ -141,6 +141,32 @@ def listar_rosters() -> list[RosterVersion]:
 
     return [deserialize_roster(row) for row in rows]
 
+def obtener_roster_por_version_number(version_number: int) -> RosterVersion | None:
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM roster_versions WHERE version_number = ?",
+        (version_number,),
+    )
+    row = cursor.fetchone()
+
+    conn.close()
+
+    return deserialize_roster(row) if row else None
+
+
+def listar_rosters_ordenados_por_version() -> list[RosterVersion]:
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM roster_versions ORDER BY version_number ASC")
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return [deserialize_roster(row) for row in rows]
+
 
 def listar_rosters_vigentes() -> list[RosterVersion]:
     conn = get_connection()

@@ -125,3 +125,79 @@ def test_desactivar_roster_vigente_actual():
     assert desactivado.id == "v1"
     assert desactivado.vigente is False
     assert listar_rosters_vigentes() == []
+    
+def test_obtener_roster_por_version_number():
+    from datetime import datetime
+    from src.models import RosterVersion
+    from src.roster_store import (
+        guardar_roster,
+        obtener_roster_por_version_number,
+        limpiar_rosters,
+    )
+
+    limpiar_rosters()
+
+    r1 = RosterVersion(
+        id="r1",
+        version_number=1,
+        created_at=datetime.now(),
+        asignaciones=[],
+        vigente=False,
+        base_version_id=None,
+        regimen_horario="6H",
+    )
+    r2 = RosterVersion(
+        id="r2",
+        version_number=2,
+        created_at=datetime.now(),
+        asignaciones=[],
+        vigente=True,
+        base_version_id="r1",
+        regimen_horario="6H",
+    )
+
+    guardar_roster(r1)
+    guardar_roster(r2)
+
+    encontrado = obtener_roster_por_version_number(2)
+
+    assert encontrado is not None
+    assert encontrado.id == "r2"
+    assert encontrado.version_number == 2
+
+def test_listar_rosters_ordenados_por_version():
+    from datetime import datetime
+    from src.models import RosterVersion
+    from src.roster_store import (
+        guardar_roster,
+        listar_rosters_ordenados_por_version,
+        limpiar_rosters,
+    )
+
+    limpiar_rosters()
+
+    r2 = RosterVersion(
+        id="r2",
+        version_number=2,
+        created_at=datetime.now(),
+        asignaciones=[],
+        vigente=True,
+        base_version_id="r1",
+        regimen_horario="6H",
+    )
+    r1 = RosterVersion(
+        id="r1",
+        version_number=1,
+        created_at=datetime.now(),
+        asignaciones=[],
+        vigente=False,
+        base_version_id=None,
+        regimen_horario="6H",
+    )
+
+    guardar_roster(r2)
+    guardar_roster(r1)
+
+    rosters = listar_rosters_ordenados_por_version()
+
+    assert [r.version_number for r in rosters] == [1, 2]
