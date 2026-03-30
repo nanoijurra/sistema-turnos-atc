@@ -279,3 +279,4 @@ def test_obtener_roster_padre():
 
     assert padre is not None
     assert padre.id == "r1"
+
