@@ -10,6 +10,7 @@ from src.engine import (
 from src.scoring import es_roster_valido, calcular_score
 from src.rule_types import RuleResult
 from src.models import SwapRequest
+from src.roster_diff import impacto_por_controlador
 
 
 def mostrar_roster(asignaciones: list) -> None:
@@ -326,6 +327,8 @@ def evaluar_swap(
     """
     Evalúa un swap comparando el estado antes y después.
     """
+    from src.models import RosterVersion
+
     resultados_original = validar_todo(asignaciones, config_file)
     valido_original = es_roster_valido(resultados_original)
     score_original = calcular_score(resultados_original)
@@ -364,6 +367,25 @@ def evaluar_swap(
         and delta_soft == 0
     )
 
+    roster_actual = RosterVersion(
+        id="ROSTER_ACTUAL",
+        version_number=0,
+        created_at=None,
+        asignaciones=asignaciones,
+        vigente=True,
+        base_version_id=None,
+        regimen_horario="",
+    )
+    roster_nuevo = RosterVersion(
+        id="ROSTER_NUEVO",
+        version_number=0,
+        created_at=None,
+        asignaciones=resultado_swap["roster"],
+        vigente=True,
+        base_version_id=None,
+        regimen_horario="",
+    )
+
     resultado = {
         "swap": {
             "idx_a": idx_a,
@@ -387,6 +409,7 @@ def evaluar_swap(
         "empeora": delta_score < 0 or delta_total_violaciones > 0 or delta_hard > 0,
         "igual": igual,
         "resultado_swap": resultado_swap,
+        "impacto_por_controlador": impacto_por_controlador(roster_actual, roster_nuevo),
     }
 
     resultado["clasificacion"] = clasificar_swap(resultado)
@@ -667,9 +690,6 @@ def resolver_swap_request(
         request=request,
         accion=accion,
     )
-
-
-from src.engine import aplicar_swap_request as aplicar_swap_request_core
 
 
 def aplicar_swap_request(

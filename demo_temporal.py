@@ -117,6 +117,11 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
         print(f"  Delta total  : {resultado['delta_total_violaciones']}")
         print(f"  Clasificación: {resultado['clasificacion']}")
 
+        if "impacto_por_controlador" in resultado and resultado["impacto_por_controlador"]:
+            print("  Impacto por controlador:")
+            for controlador, cambios in resultado["impacto_por_controlador"].items():
+                print(f"    {controlador}: {cambios}")
+
     print("\nSwaps válidos:")
     if not swaps_validos:
         print("  (ninguno)")

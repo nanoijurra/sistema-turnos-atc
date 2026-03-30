@@ -37,4 +37,4 @@ def test_impacto_por_controlador():
 
     impacto = impacto_por_controlador(v1, v2)
 
-    assert len(impacto) > 0
+    assert len(impacto) > 0 
