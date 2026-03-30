@@ -167,6 +167,27 @@ def listar_rosters_ordenados_por_version() -> list[RosterVersion]:
 
     return [deserialize_roster(row) for row in rows]
 
+def listar_rosters_hijos(base_version_id: str) -> list[RosterVersion]:
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM roster_versions WHERE base_version_id = ?",
+        (base_version_id,),
+    )
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return [deserialize_roster(row) for row in rows]
+
+
+def obtener_roster_padre(roster: RosterVersion) -> RosterVersion | None:
+    if not roster.base_version_id:
+        return None
+
+    return obtener_roster(roster.base_version_id)
+
 
 def listar_rosters_vigentes() -> list[RosterVersion]:
     conn = get_connection()
@@ -219,6 +240,26 @@ def limpiar_rosters() -> None:
 
     conn.commit()
     conn.close()
+
+def listar_rosters_hijos(base_version_id: str) -> list[RosterVersion]:
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT * FROM roster_versions WHERE base_version_id = ?",
+        (base_version_id,),
+    )
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return [deserialize_roster(row) for row in rows]
+
+def obtener_roster_padre(roster: RosterVersion) -> RosterVersion | None:
+    if not roster.base_version_id:
+        return None
+
+    return obtener_roster(roster.base_version_id)
 
 
 init_db()

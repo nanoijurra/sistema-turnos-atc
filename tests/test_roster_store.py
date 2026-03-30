@@ -201,3 +201,81 @@ def test_listar_rosters_ordenados_por_version():
     rosters = listar_rosters_ordenados_por_version()
 
     assert [r.version_number for r in rosters] == [1, 2]
+
+def test_listar_rosters_hijos():
+    from datetime import datetime
+    from src.models import RosterVersion
+    from src.roster_store import (
+        guardar_roster,
+        listar_rosters_hijos,
+        limpiar_rosters,
+    )
+
+    limpiar_rosters()
+
+    base = RosterVersion(
+        id="r1",
+        version_number=1,
+        created_at=datetime.now(),
+        asignaciones=[],
+        vigente=False,
+        base_version_id=None,
+        regimen_horario="6H",
+    )
+
+    hijo = RosterVersion(
+        id="r2",
+        version_number=2,
+        created_at=datetime.now(),
+        asignaciones=[],
+        vigente=True,
+        base_version_id="r1",
+        regimen_horario="6H",
+    )
+
+    guardar_roster(base)
+    guardar_roster(hijo)
+
+    hijos = listar_rosters_hijos("r1")
+
+    assert len(hijos) == 1
+    assert hijos[0].id == "r2"
+
+def test_obtener_roster_padre():
+    from datetime import datetime
+    from src.models import RosterVersion
+    from src.roster_store import (
+        guardar_roster,
+        obtener_roster_padre,
+        limpiar_rosters,
+    )
+
+    limpiar_rosters()
+
+    base = RosterVersion(
+        id="r1",
+        version_number=1,
+        created_at=datetime.now(),
+        asignaciones=[],
+        vigente=False,
+        base_version_id=None,
+        regimen_horario="6H",
+    )
+
+    hijo = RosterVersion(
+        id="r2",
+        version_number=2,
+        created_at=datetime.now(),
+        asignaciones=[],
+        vigente=True,
+        base_version_id="r1",
+        regimen_horario="6H",
+    )
+
+    guardar_roster(base)
+    guardar_roster(hijo)
+
+    padre = obtener_roster_padre(hijo)
+
+    assert padre is not None
+    assert padre.id == "r1"
