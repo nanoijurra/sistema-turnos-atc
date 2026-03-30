@@ -1,17 +1,8 @@
 import json
-import os
-import sqlite3
 from datetime import datetime, date, time
 
+from src.db import get_connection
 from src.models import RosterVersion, Asignacion, Turno, Controlador
-
-
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-DB_PATH = os.path.join(BASE_DIR, "data", "swaps_atc.db")
-
-
-def get_connection():
-    return sqlite3.connect(DB_PATH)
 
 
 def init_db() -> None:

@@ -309,3 +309,80 @@ Tests en verde y demo operativa.
 ### Notas
 
 Este checkpoint convierte al sistema en una base persistente real, dejando atrás el almacenamiento efímero en memoria para `SwapRequest`.
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+## checkpoint-v5-roster-store-sqlite
+Fecha: 2026-03-30
+
+### Estado general
+Se migra `roster_store` desde almacenamiento en memoria a persistencia real con SQLite.
+Tests en verde y demo operativa.
+
+### Qué quedó implementado
+
+#### 1. Persistencia real de RosterVersion
+- `roster_store.py` ahora usa SQLite
+- Los rosters se almacenan en `data/swaps_atc.db`
+- La tabla `roster_versions` se inicializa automáticamente si no existe
+
+#### 2. Persistencia de asignaciones
+- Las `asignaciones` asociadas a cada `RosterVersion` se serializan como JSON
+- Se reconstruyen correctamente `Asignacion`, `Turno` y `Controlador`
+
+#### 3. Interfaz preservada
+- Se mantienen las funciones existentes:
+  - `guardar_roster`
+  - `obtener_roster`
+  - `listar_rosters`
+  - `listar_rosters_vigentes`
+  - `validar_unico_roster_vigente`
+  - `obtener_roster_vigente`
+  - `desactivar_roster_vigente_actual`
+  - `limpiar_rosters`
+- Engine y simulator no necesitaron cambios de contrato
+
+#### 4. Persistencia completa del núcleo
+- `request_store` ya persistía en SQLite
+- Ahora también `roster_store` persiste en SQLite
+- El sistema deja atrás definitivamente el almacenamiento efímero en memoria para sus stores principales
+
+#### 5. Validación general
+- 46 tests passing
+- Demo operativa sin regresiones funcionales
+
+---
+
+### Decisiones de diseño importantes
+
+- se eligió persistir `asignaciones` como JSON en esta etapa para mantener baja complejidad
+- se mantuvo compatibilidad con la interfaz existente del store
+- la migración se hizo por sustitución interna, no por rediseño del engine
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- no existen migraciones formales de esquema
+- `history` sigue siendo `list[str]`
+- las asignaciones todavía no están normalizadas en tablas relacionales separadas
+
+---
+
+### Próximos pasos naturales
+
+1. Limpieza y consolidación de helpers SQLite comunes
+2. Agregar consultas operativas más ricas sobre rosters/versiones
+3. Evaluar normalización futura de asignaciones si el dominio lo necesita
+4. Recién después considerar una API mínima (FastAPI)
+
+---
+
+### Notas
+
+Este checkpoint consolida la persistencia SQLite del núcleo del sistema:
+- requests
+- rosters
+- versionado
+- trazabilidad
