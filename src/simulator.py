@@ -1,7 +1,7 @@
 ﻿from datetime import date
 
-from src.engine import (
-    validar_todo,
+from src.engine import validar_todo
+from src.swap_service import (
     crear_swap_request as crear_swap_request_core,
     evaluar_swap_request as evaluar_swap_request_core,
     resolver_swap_request as resolver_swap_request_core,
@@ -325,36 +325,53 @@ def evaluar_swap(
     config_file: str = "config_equilibrado.json",
 ) -> dict:
     """
-    Evalúa un swap comparando el estado antes y después.
+    Evalúa un swap comparando explícitamente el estado antes y después.
+
+    Contrato:
+    - simulator evalúa técnicamente el escenario
+    - calcula deltas
+    - clasifica técnicamente
+    - no toma decisión de negocio
     """
     from src.models import RosterVersion
 
-    resultados_original = validar_todo(asignaciones, config_file)
+    if idx_a == idx_b:
+        raise ValueError("idx_a e idx_b deben ser distintos.")
+
+    if not (0 <= idx_a < len(asignaciones)) or not (0 <= idx_b < len(asignaciones)):
+        raise IndexError("Índices fuera de rango.")
+
+    # Escenario antes
+    escenario_original = asignaciones
+    resultados_original = validar_todo(escenario_original, config_file)
     valido_original = es_roster_valido(resultados_original)
     score_original = calcular_score(resultados_original)
     resumen_original = resumir_violaciones(resultados_original)
     resumen_por_regla_original = resumir_violaciones_por_regla(resultados_original)
     resumen_por_controlador_original = resumir_violaciones_por_controlador(
-        asignaciones,
+        escenario_original,
         config_file,
     )
 
+    # Escenario después
     resultado_swap = simular_swap(
-        asignaciones,
-        idx_a,
-        idx_b,
-        config_file,
+        asignaciones=asignaciones,
+        idx_a=idx_a,
+        idx_b=idx_b,
+        config_file=config_file,
     )
-
-    score_nuevo = resultado_swap["score"]
-    valido_nuevo = resultado_swap["valido"]
-    resumen_nuevo = resumir_violaciones(resultado_swap["resultados"])
-    resumen_por_regla_nuevo = resumir_violaciones_por_regla(resultado_swap["resultados"])
+    escenario_nuevo = resultado_swap["roster"]
+    resultados_nuevo = resultado_swap["resultados"]
+    valido_nuevo = es_roster_valido(resultados_nuevo)
+    score_nuevo = calcular_score(resultados_nuevo)
+    resumen_nuevo = resumir_violaciones(resultados_nuevo)
+    resumen_por_regla_nuevo = resumir_violaciones_por_regla(resultados_nuevo)
     resumen_por_controlador_nuevo = resumir_violaciones_por_controlador(
-        resultado_swap["roster"],
+        escenario_nuevo,
         config_file,
     )
 
+    # Deltas
     delta_score = score_nuevo - score_original
     delta_total_violaciones = resumen_nuevo["total"] - resumen_original["total"]
     delta_hard = resumen_nuevo["hard"] - resumen_original["hard"]
@@ -371,7 +388,7 @@ def evaluar_swap(
         id="ROSTER_ACTUAL",
         version_number=0,
         created_at=None,
-        asignaciones=asignaciones,
+        asignaciones=escenario_original,
         vigente=True,
         base_version_id=None,
         regimen_horario="",
@@ -380,7 +397,7 @@ def evaluar_swap(
         id="ROSTER_NUEVO",
         version_number=0,
         created_at=None,
-        asignaciones=resultado_swap["roster"],
+        asignaciones=escenario_nuevo,
         vigente=True,
         base_version_id=None,
         regimen_horario="",
@@ -405,8 +422,18 @@ def evaluar_swap(
         "delta_total_violaciones": delta_total_violaciones,
         "delta_hard": delta_hard,
         "delta_soft": delta_soft,
-        "mejora": delta_score > 0 or delta_total_violaciones < 0 or delta_hard < 0,
-        "empeora": delta_score < 0 or delta_total_violaciones > 0 or delta_hard > 0,
+        "mejora": (
+            delta_score > 0
+            or delta_total_violaciones < 0
+            or delta_hard < 0
+            or delta_soft < 0
+        ),
+        "empeora": (
+            delta_score < 0
+            or delta_total_violaciones > 0
+            or delta_hard > 0
+            or delta_soft > 0
+        ),
         "igual": igual,
         "resultado_swap": resultado_swap,
         "impacto_por_controlador": impacto_por_controlador(roster_actual, roster_nuevo),

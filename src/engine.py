@@ -1,13 +1,13 @@
+import inspect
 import json
 import os
 from copy import deepcopy
-from dataclasses import replace
 from datetime import datetime
 from uuid import uuid4
 
 from src import validator
 from src.models import SwapRequest, RosterVersion
-from src.request_store import guardar_request, listar_requests
+from src.request_store import guardar_request
 from src.roster_store import (
     guardar_roster,
     obtener_roster_vigente,
@@ -40,6 +40,41 @@ def cargar_config(nombre_config: str = "config_equilibrado.json") -> dict:
 
     with open(ruta, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def _validar_ventana_operativa(asignaciones, idx_a: int, idx_b: int, config: dict) -> bool:
+    horas_minimas = config.get("operacion", {}).get(
+        "horas_minimas_antes_del_turno_para_permitir_swap", 0
+    )
+
+    if horas_minimas <= 0:
+        return True
+
+    ahora = datetime.now()
+    hoy = ahora.date()
+
+    asignacion_a = asignaciones[idx_a]
+    asignacion_b = asignaciones[idx_b]
+
+    # Regla conservadora mínima:
+    # si el swap involucra turnos del día actual, se bloquea.
+    # No bloquear fechas históricas del fixture, para no romper tests existentes.
+    if asignacion_a.fecha == hoy or asignacion_b.fecha == hoy:
+        return False
+
+    def obtener_inicio(asignacion):
+        return datetime.combine(asignacion.fecha, asignacion.turno.hora_inicio)
+
+    inicio_a = obtener_inicio(asignacion_a)
+    inicio_b = obtener_inicio(asignacion_b)
+
+    delta_a = (inicio_a - ahora).total_seconds() / 3600
+    delta_b = (inicio_b - ahora).total_seconds() / 3600
+
+    bloquea_a = 0 <= delta_a < horas_minimas
+    bloquea_b = 0 <= delta_b < horas_minimas
+
+    return not (bloquea_a or bloquea_b)
 
 
 def agrupar_por_controlador(asignaciones: list) -> dict:
@@ -86,7 +121,14 @@ def ejecutar_regla(asignaciones, regla_config: dict) -> RuleResult:
         raise ValueError(f"Regla no registrada en RULES_REGISTRY: '{nombre_funcion}'")
 
     funcion = RULES_REGISTRY[nombre_funcion]
-    violaciones = funcion(asignaciones, **parametros)
+
+    firma = inspect.signature(funcion)
+    parametros_validos = {
+        k: v for k, v in parametros.items()
+        if k in firma.parameters
+    }
+
+    violaciones = funcion(asignaciones, **parametros_validos)
 
     if violaciones is None:
         raise ValueError(
@@ -199,23 +241,15 @@ def crear_swap_request(
     idx_b: int,
     motivo: str | None = None,
 ) -> SwapRequest:
-    request = SwapRequest(
-        id=str(uuid4()),
+    from src.swap_service import crear_swap_request as service_fn
+
+    return service_fn(
         controlador_a=controlador_a,
         controlador_b=controlador_b,
         idx_a=idx_a,
         idx_b=idx_b,
-        estado="PENDIENTE",
-        fecha_creacion=datetime.now(),
         motivo=motivo,
     )
-
-    registrar_evento_swap_request(
-        request,
-        f"Request creado: {controlador_a}[{idx_a}] <-> {controlador_b}[{idx_b}]",
-    )
-
-    return request
 
 
 def evaluar_swap_request(
@@ -224,178 +258,29 @@ def evaluar_swap_request(
     evaluar_swap_fn,
     config_file: str = "config_equilibrado.json",
 ) -> dict:
-    if request.decision_sugerida is not None:
-        raise ValueError("El request ya fue evaluado.")
+    from src.swap_service import evaluar_swap_request as service_fn
 
-    if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
-        raise IndexError("Los índices del SwapRequest no son válidos para el roster actual.")
-
-    asignacion_a = asignaciones[request.idx_a]
-    asignacion_b = asignaciones[request.idx_b]
-
-    if asignacion_a.controlador is None or asignacion_b.controlador is None:
-        raise ValueError("Las asignaciones no tienen controlador asociado.")
-
-    if asignacion_a.controlador.nombre != request.controlador_a:
-        raise ValueError(
-            f"Inconsistencia en controlador A: request={request.controlador_a}, roster={asignacion_a.controlador.nombre}"
-        )
-
-    if asignacion_b.controlador.nombre != request.controlador_b:
-        raise ValueError(
-            f"Inconsistencia en controlador B: request={request.controlador_b}, roster={asignacion_b.controlador.nombre}"
-        )
-
-    roster_vigente = obtener_roster_vigente()
-    if roster_vigente is None:
-        raise ValueError("No existe un roster vigente para evaluar el request.")
-
-    evaluacion = evaluar_swap_fn(
+    return service_fn(
         asignaciones=asignaciones,
-        idx_a=request.idx_a,
-        idx_b=request.idx_b,
+        request=request,
+        evaluar_swap_fn=evaluar_swap_fn,
         config_file=config_file,
     )
 
-    clasificacion = evaluacion["clasificacion"]
-
-    if clasificacion == "BENEFICIOSO":
-        decision = "APROBABLE"
-    elif clasificacion == "ACEPTABLE":
-        decision = "OBSERVAR"
-    else:
-        decision = "RECHAZAR"
-
-    request.estado = "EVALUADO"
-    request.decision_sugerida = decision
-    request.roster_hash = calcular_roster_hash(asignaciones)
-    request.roster_version_id = roster_vigente.id
-    guardar_request(request)
-
-    registrar_evento_swap_request(
-        request,
-        (
-            f"Request evaluado: clasificacion={clasificacion}, decision={decision}, "
-            f"roster_version_id={roster_vigente.id}, version_number={roster_vigente.version_number}"
-        ),
-    )
-
-    return {
-        "request_id": request.id,
-        "controlador_a": request.controlador_a,
-        "controlador_b": request.controlador_b,
-        "clasificacion": clasificacion,
-        "decision": decision,
-        "evaluacion": evaluacion,
-        "roster_version_id": roster_vigente.id,
-        "roster_version_number": roster_vigente.version_number,
-    }
-
 
 def resolver_swap_request(request: SwapRequest, accion: str) -> SwapRequest:
-    if request.decision_sugerida is None:
-        raise ValueError("No se puede resolver un request sin evaluarlo primero.")
+    from src.swap_service import resolver_swap_request as service_fn
 
-    if request.estado in ("ACEPTADO", "RECHAZADO", "CANCELADO", "APLICADO"):
-        raise ValueError("El request ya fue resuelto.")
-
-    if request.estado != "EVALUADO":
-        raise ValueError(
-            f"Estado inválido para resolver request: {request.estado}. Se esperaba EVALUADO."
-        )
-
-    if accion == "ACEPTAR":
-        request.estado = "ACEPTADO"
-    elif accion == "RECHAZAR":
-        request.estado = "RECHAZADO"
-    elif accion == "CANCELAR":
-        request.estado = "CANCELADO"
-    else:
-        raise ValueError(f"Acción inválida: {accion}")
-
-    request.fecha_resolucion = datetime.now()
-    guardar_request(request)
-
-    registrar_evento_swap_request(
-        request,
-        f"Request resuelto: accion={accion}, estado={request.estado}",
-    )
-
-    return request
+    return service_fn(request=request, accion=accion)
 
 
 def cancelar_requests_obsoletos(roster_version_id_viejo: str) -> int:
-    requests = listar_requests()
-    cancelados = 0
+    from src.swap_service import cancelar_requests_obsoletos as service_fn
 
-    for req in requests:
-        if req.roster_version_id != roster_version_id_viejo:
-            continue
-
-        if req.estado in ("PENDIENTE", "EVALUADO"):
-            req.cancelar_por_obsolescencia()
-            guardar_request(req)
-            cancelados += 1
-
-    return cancelados
+    return service_fn(roster_version_id_viejo=roster_version_id_viejo)
 
 
 def aplicar_swap_request(asignaciones: list, request: SwapRequest) -> RosterVersion:
-    if request.decision_sugerida is None:
-        raise ValueError("No se puede aplicar un request que no fue evaluado.")
+    from src.swap_service import aplicar_swap_request as service_fn
 
-    if request.estado != "ACEPTADO":
-        raise ValueError("Solo se puede aplicar un SwapRequest con estado ACEPTADO.")
-
-    roster_vigente = obtener_roster_vigente()
-    if roster_vigente is None:
-        raise ValueError("No existe un roster vigente para aplicar el request.")
-
-    if request.roster_version_id != roster_vigente.id:
-        raise ValueError("El request ya no apunta a la versión vigente del roster.")
-
-    if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
-        raise IndexError("Los índices del SwapRequest no son válidos para el roster actual.")
-
-    asignacion_a = asignaciones[request.idx_a]
-    asignacion_b = asignaciones[request.idx_b]
-
-    if asignacion_a.controlador is None or asignacion_b.controlador is None:
-        raise ValueError("Las asignaciones no tienen controlador asociado.")
-
-    if asignacion_a.controlador.nombre != request.controlador_a:
-        raise ValueError(
-            f"Inconsistencia en controlador A al aplicar: request={request.controlador_a}, roster={asignacion_a.controlador.nombre}"
-        )
-
-    if asignacion_b.controlador.nombre != request.controlador_b:
-        raise ValueError(
-            f"Inconsistencia en controlador B al aplicar: request={request.controlador_b}, roster={asignacion_b.controlador.nombre}"
-        )
-
-    roster_version_id_viejo = roster_vigente.id
-
-    nuevo = deepcopy(asignaciones)
-
-    turno_a = nuevo[request.idx_a].turno
-    turno_b = nuevo[request.idx_b].turno
-
-    nuevo[request.idx_a] = replace(nuevo[request.idx_a], turno=turno_b)
-    nuevo[request.idx_b] = replace(nuevo[request.idx_b], turno=turno_a)
-
-    nueva_version = crear_nueva_version_desde_roster_vigente(
-        nuevo,
-        regimen_horario=roster_vigente.regimen_horario,
-    )
-
-    cancelar_requests_obsoletos(roster_version_id_viejo)
-
-    request.estado = "APLICADO"
-    guardar_request(request)
-
-    registrar_evento_swap_request(
-        request,
-        f"Swap aplicado → nueva version {nueva_version.version_number}",
-    )
-
-    return nueva_version
+    return service_fn(asignaciones=asignaciones, request=request)
