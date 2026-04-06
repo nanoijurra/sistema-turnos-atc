@@ -77,13 +77,13 @@ def test_request_actualizado_permanece_recuperable_desde_store():
     )
 
     evaluar_swap_request(asignaciones, request)
-    resolver_swap_request(request, "ACEPTAR")
+    resolver_swap_request(request, "APROBAR")
 
     recuperado = obtener_request(request.id)
 
     assert recuperado is not None
-    assert recuperado.decision_sugerida == "APROBABLE"
-    assert recuperado.estado == "ACEPTADO"
+    assert recuperado.decision_sugerida == "VIABLE"
+    assert recuperado.estado == "APROBADO"
     assert recuperado.fecha_resolucion is not None
     assert recuperado.roster_version_id is not None
     assert len(recuperado.history) == 3
@@ -121,7 +121,7 @@ def test_listar_requests_por_estado_filtra_correctamente():
     r1 = SwapRequest(id="1", controlador_a="A", controlador_b="B", idx_a=0, idx_b=1,
                      estado="PENDIENTE", fecha_creacion=datetime.now())
     r2 = SwapRequest(id="2", controlador_a="A", controlador_b="B", idx_a=0, idx_b=1,
-                     estado="ACEPTADO", fecha_creacion=datetime.now())
+                     estado="APROBADO", fecha_creacion=datetime.now())
 
     guardar_request(r1)
     guardar_request(r2)
@@ -195,7 +195,7 @@ def test_listar_requests_activos_devuelve_pendientes_y_evaluados():
         controlador_b="B",
         idx_a=0,
         idx_b=1,
-        estado="ACEPTADO",
+        estado="APROBADO",
         fecha_creacion=datetime.now(),
     )
     r4 = SwapRequest(
@@ -230,7 +230,7 @@ def test_resumen_requests_cuenta_correctamente():
 
     limpiar_requests()
 
-    estados = ["PENDIENTE", "PENDIENTE", "EVALUADO", "ACEPTADO"]
+    estados = ["PENDIENTE", "PENDIENTE", "EVALUADO", "APROBADO"]
 
     for i, estado in enumerate(estados):
         r = SwapRequest(
@@ -248,5 +248,5 @@ def test_resumen_requests_cuenta_correctamente():
 
     assert resumen["PENDIENTE"] == 2
     assert resumen["EVALUADO"] == 1
-    assert resumen["ACEPTADO"] == 1
+    assert resumen["APROBADO"] == 1
     assert resumen["TOTAL"] == 4

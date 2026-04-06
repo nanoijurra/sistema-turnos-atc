@@ -220,7 +220,7 @@ def test_evaluar_swap_request_devuelve_decision():
     request = crear_swap_request(asignaciones, 2, 3)
     resultado = evaluar_swap_request(asignaciones, request)
 
-    assert resultado["decision"] in {"APROBABLE", "OBSERVAR", "RECHAZAR"}
+    assert resultado["decision"] in {"VIABLE", "OBSERVAR", "RECHAZAR"}
 
 def test_resolver_swap_request_cambia_estado():
     from src.engine import crear_roster_version_inicial
@@ -243,7 +243,7 @@ def test_resolver_swap_request_cambia_estado():
     assert request.estado == "RECHAZADO"
     assert request.fecha_resolucion is not None 
 
-def test_aplicar_swap_request_modifica_roster_si_esta_aceptado():
+def test_aplicar_swap_request_modifica_roster_si_esta_aprobado():
     from src.engine import crear_roster_version_inicial
     from src.roster_store import limpiar_rosters
     from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
@@ -261,9 +261,9 @@ def test_aplicar_swap_request_modifica_roster_si_esta_aceptado():
     request = crear_swap_request(asignaciones, 0, 3)
     resultado = evaluar_swap_request(asignaciones, request)
 
-    assert resultado["decision"] == "APROBABLE"
+    assert resultado["decision"] == "VIABLE"
 
-    request = resolver_swap_request(request, "ACEPTAR")
+    request = resolver_swap_request(request, "APROBAR")
     nueva_version = aplicar_swap_request(asignaciones, request)
 
     assert nueva_version.version_number == 2
@@ -273,7 +273,7 @@ def test_aplicar_swap_request_modifica_roster_si_esta_aceptado():
     assert nuevo_roster[0].turno.codigo == "B"
     assert nuevo_roster[3].turno.codigo == "C"
 
-def test_swap_request_registra_historial_completo_en_flujo_aceptado():
+def test_swap_request_registra_historial_completo_en_flujo_aprobado():
     from src.engine import crear_roster_version_inicial
     from src.roster_store import limpiar_rosters
     from src.simulator import (
@@ -302,21 +302,21 @@ def test_swap_request_registra_historial_completo_en_flujo_aceptado():
 
     resultado = evaluar_swap_request(asignaciones, request)
 
-    assert resultado["decision"] == "APROBABLE"
-    assert request.decision_sugerida == "APROBABLE"
+    assert resultado["decision"] == "VIABLE"
+    assert request.decision_sugerida == "VIABLE"
     assert len(request.history) == 2
     assert "Request evaluado" in request.history[1]
     assert "clasificacion=BENEFICIOSO" in request.history[1]
-    assert "decision=APROBABLE" in request.history[1]
+    assert "decision=VIABLE" in request.history[1]
 
-    request = resolver_swap_request(request, "ACEPTAR")
+    request = resolver_swap_request(request, "APROBAR")
 
-    assert request.estado == "ACEPTADO"
+    assert request.estado == "APROBADO"
     assert request.fecha_resolucion is not None
     assert len(request.history) == 3
     assert "Request resuelto" in request.history[2]
-    assert "accion=ACEPTAR" in request.history[2]
-    assert "estado=ACEPTADO" in request.history[2]
+    assert "accion=APROBAR" in request.history[2]
+    assert "estado=APROBADO" in request.history[2]
 
     nueva_version = aplicar_swap_request(asignaciones, request)
 
@@ -476,9 +476,9 @@ def test_aplicar_swap_request_falla_si_request_apunta_a_version_no_vigente():
 
     request = crear_swap_request(asignaciones, 0, 3)
     resultado = evaluar_swap_request(asignaciones, request)
-    assert resultado["decision"] == "APROBABLE"
+    assert resultado["decision"] == "VIABLE"
 
-    request = resolver_swap_request(request, "ACEPTAR")
+    request = resolver_swap_request(request, "APROBAR")
 
     # Otra operación generó nueva versión antes de aplicar este request
     crear_nueva_version_desde_roster_vigente(asignaciones, regimen_horario="8H")
@@ -499,4 +499,4 @@ def test_evaluar_swap_request_devuelve_decision():
     request = crear_swap_request(asignaciones, 2, 3)
     resultado = evaluar_swap_request(asignaciones, request)
 
-    assert resultado["decision"] == "APROBABLE"
+    assert resultado["decision"] == "VIABLE"

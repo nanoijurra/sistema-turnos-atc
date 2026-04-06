@@ -1,16 +1,68 @@
-﻿from datetime import date
+﻿from copy import deepcopy
+from dataclasses import replace
+from datetime import date
 
 from src.engine import validar_todo
+from src.models import RosterVersion, SwapRequest
+from src.roster_diff import impacto_por_controlador
+from src.rule_types import RuleResult
+from src.scoring import calcular_score, es_roster_valido
 from src.swap_service import (
+    aplicar_swap_request as aplicar_swap_request_core,
     crear_swap_request as crear_swap_request_core,
     evaluar_swap_request as evaluar_swap_request_core,
     resolver_swap_request as resolver_swap_request_core,
-    aplicar_swap_request as aplicar_swap_request_core,
 )
-from src.scoring import es_roster_valido, calcular_score
-from src.rule_types import RuleResult
-from src.models import SwapRequest
-from src.roster_diff import impacto_por_controlador
+
+
+def _validar_indices_swap(asignaciones: list, idx_a: int, idx_b: int) -> None:
+    if idx_a == idx_b:
+        raise ValueError("idx_a e idx_b deben ser distintos.")
+
+    if not (0 <= idx_a < len(asignaciones)) or not (0 <= idx_b < len(asignaciones)):
+        raise IndexError("Índices fuera de rango.")
+
+
+def _construir_roster_con_swap(
+    asignaciones: list,
+    idx_a: int,
+    idx_b: int,
+) -> list:
+    _validar_indices_swap(asignaciones, idx_a, idx_b)
+
+    nuevo_roster = deepcopy(asignaciones)
+
+    turno_a = nuevo_roster[idx_a].turno
+    turno_b = nuevo_roster[idx_b].turno
+
+    nuevo_roster[idx_a] = replace(nuevo_roster[idx_a], turno=turno_b)
+    nuevo_roster[idx_b] = replace(nuevo_roster[idx_b], turno=turno_a)
+
+    return nuevo_roster
+
+
+def _evaluar_escenario(
+    asignaciones: list,
+    config_file: str = "config_equilibrado.json",
+) -> dict:
+    resultados: list[RuleResult] = validar_todo(asignaciones, config_file)
+    valido = es_roster_valido(resultados)
+    score = calcular_score(resultados)
+    resumen = resumir_violaciones(resultados)
+    resumen_por_regla = resumir_violaciones_por_regla(resultados)
+    resumen_por_controlador = resumir_violaciones_por_controlador(
+        asignaciones,
+        config_file,
+    )
+
+    return {
+        "resultados": resultados,
+        "valido": valido,
+        "score": score,
+        "resumen": resumen,
+        "resumen_por_regla": resumen_por_regla,
+        "resumen_por_controlador": resumen_por_controlador,
+    }
 
 
 def mostrar_roster(asignaciones: list) -> None:
@@ -180,9 +232,9 @@ def clasificar_swap(evaluacion: dict) -> str:
     Clasifica un swap según impacto global y por controlador.
 
     Reglas:
-    - RECHAZABLE: si queda inválido o empeora a algún controlador
+    - RECHAZABLE: si queda invalido o empeora a algún controlador
     - BENEFICIOSO: si mejora algo real y no perjudica a nadie
-    - ACEPTABLE: si queda válido y no empeora a nadie, aunque no mejore mucho
+    - ACEPTABLE: si queda valido y no empeora a nadie, aunque no mejore mucho
     """
     if not evaluacion["valido_nuevo"]:
         return "RECHAZABLE"
@@ -250,35 +302,17 @@ def simular_swap(
     config_file: str = "config_equilibrado.json",
 ) -> dict:
     """
-    Simula un swap entre dos posiciones del roster usando índices.
+    Construye el escenario hipotético con swap aplicado y devuelve
+    el roster resultante junto con su evaluación técnica básica.
     """
-    from copy import deepcopy
-    from dataclasses import replace
-
-    if idx_a == idx_b:
-        raise ValueError("idx_a e idx_b deben ser distintos.")
-
-    if not (0 <= idx_a < len(asignaciones)) or not (0 <= idx_b < len(asignaciones)):
-        raise IndexError("Índices fuera de rango.")
-
-    nuevo_roster = deepcopy(asignaciones)
-
-    turno_a = nuevo_roster[idx_a].turno
-    turno_b = nuevo_roster[idx_b].turno
-
-    nuevo_roster[idx_a] = replace(nuevo_roster[idx_a], turno=turno_b)
-    nuevo_roster[idx_b] = replace(nuevo_roster[idx_b], turno=turno_a)
-
-    resultados: list[RuleResult] = validar_todo(nuevo_roster, config_file)
-
-    valido = es_roster_valido(resultados)
-    score = calcular_score(resultados)
+    nuevo_roster = _construir_roster_con_swap(asignaciones, idx_a, idx_b)
+    evaluacion_nuevo = _evaluar_escenario(nuevo_roster, config_file)
 
     return {
         "roster": nuevo_roster,
-        "resultados": resultados,
-        "valido": valido,
-        "score": score,
+        "resultados": evaluacion_nuevo["resultados"],
+        "valido": evaluacion_nuevo["valido"],
+        "score": evaluacion_nuevo["score"],
         "swap": {
             "idx_a": idx_a,
             "idx_b": idx_b,
@@ -333,27 +367,11 @@ def evaluar_swap(
     - clasifica técnicamente
     - no toma decisión de negocio
     """
-    from src.models import RosterVersion
+    _validar_indices_swap(asignaciones, idx_a, idx_b)
 
-    if idx_a == idx_b:
-        raise ValueError("idx_a e idx_b deben ser distintos.")
-
-    if not (0 <= idx_a < len(asignaciones)) or not (0 <= idx_b < len(asignaciones)):
-        raise IndexError("Índices fuera de rango.")
-
-    # Escenario antes
     escenario_original = asignaciones
-    resultados_original = validar_todo(escenario_original, config_file)
-    valido_original = es_roster_valido(resultados_original)
-    score_original = calcular_score(resultados_original)
-    resumen_original = resumir_violaciones(resultados_original)
-    resumen_por_regla_original = resumir_violaciones_por_regla(resultados_original)
-    resumen_por_controlador_original = resumir_violaciones_por_controlador(
-        escenario_original,
-        config_file,
-    )
+    evaluacion_original = _evaluar_escenario(escenario_original, config_file)
 
-    # Escenario después
     resultado_swap = simular_swap(
         asignaciones=asignaciones,
         idx_a=idx_a,
@@ -361,21 +379,18 @@ def evaluar_swap(
         config_file=config_file,
     )
     escenario_nuevo = resultado_swap["roster"]
-    resultados_nuevo = resultado_swap["resultados"]
-    valido_nuevo = es_roster_valido(resultados_nuevo)
-    score_nuevo = calcular_score(resultados_nuevo)
-    resumen_nuevo = resumir_violaciones(resultados_nuevo)
-    resumen_por_regla_nuevo = resumir_violaciones_por_regla(resultados_nuevo)
-    resumen_por_controlador_nuevo = resumir_violaciones_por_controlador(
-        escenario_nuevo,
-        config_file,
-    )
+    evaluacion_nueva = _evaluar_escenario(escenario_nuevo, config_file)
 
-    # Deltas
-    delta_score = score_nuevo - score_original
-    delta_total_violaciones = resumen_nuevo["total"] - resumen_original["total"]
-    delta_hard = resumen_nuevo["hard"] - resumen_original["hard"]
-    delta_soft = resumen_nuevo["soft"] - resumen_original["soft"]
+    delta_score = evaluacion_nueva["score"] - evaluacion_original["score"]
+    delta_total_violaciones = (
+        evaluacion_nueva["resumen"]["total"] - evaluacion_original["resumen"]["total"]
+    )
+    delta_hard = (
+        evaluacion_nueva["resumen"]["hard"] - evaluacion_original["resumen"]["hard"]
+    )
+    delta_soft = (
+        evaluacion_nueva["resumen"]["soft"] - evaluacion_original["resumen"]["soft"]
+    )
 
     igual = (
         delta_score == 0
@@ -408,16 +423,18 @@ def evaluar_swap(
             "idx_a": idx_a,
             "idx_b": idx_b,
         },
-        "valido_original": valido_original,
-        "score_original": score_original,
-        "resumen_original": resumen_original,
-        "resumen_por_regla_original": resumen_por_regla_original,
-        "resumen_por_controlador_original": resumen_por_controlador_original,
-        "valido_nuevo": valido_nuevo,
-        "score_nuevo": score_nuevo,
-        "resumen_nuevo": resumen_nuevo,
-        "resumen_por_regla_nuevo": resumen_por_regla_nuevo,
-        "resumen_por_controlador_nuevo": resumen_por_controlador_nuevo,
+        "valido_original": evaluacion_original["valido"],
+        "score_original": evaluacion_original["score"],
+        "resumen_original": evaluacion_original["resumen"],
+        "resumen_por_regla_original": evaluacion_original["resumen_por_regla"],
+        "resumen_por_controlador_original": evaluacion_original[
+            "resumen_por_controlador"
+        ],
+        "valido_nuevo": evaluacion_nueva["valido"],
+        "score_nuevo": evaluacion_nueva["score"],
+        "resumen_nuevo": evaluacion_nueva["resumen"],
+        "resumen_por_regla_nuevo": evaluacion_nueva["resumen_por_regla"],
+        "resumen_por_controlador_nuevo": evaluacion_nueva["resumen_por_controlador"],
         "delta_score": delta_score,
         "delta_total_violaciones": delta_total_violaciones,
         "delta_hard": delta_hard,
@@ -543,7 +560,7 @@ def explorar_swaps_entre_controladores(
 
 def filtrar_swaps_validos(evaluaciones: list[dict]) -> list[dict]:
     """
-    Devuelve solo los swaps cuyo resultado nuevo es válido.
+    Devuelve solo los swaps cuyo resultado nuevo es valido.
     """
     return [e for e in evaluaciones if e["valido_nuevo"]]
 
@@ -569,9 +586,9 @@ def generar_recomendacion_textual(evaluacion: dict) -> str:
     partes = [f"Swap recomendado: {idx_a} ↔ {idx_b}."]
 
     if evaluacion["valido_nuevo"]:
-        partes.append("El roster resultante queda válido.")
+        partes.append("El roster resultante queda valido.")
     else:
-        partes.append("El roster resultante sigue siendo inválido.")
+        partes.append("El roster resultante sigue siendo invalido.")
 
     if evaluacion["delta_hard"] < 0:
         partes.append(f"Reduce violaciones hard en {abs(evaluacion['delta_hard'])}.")
@@ -622,7 +639,9 @@ def generar_recomendacion_textual(evaluacion: dict) -> str:
             )
 
     if cambios_controladores:
-        partes.append("Impacto por controlador: " + "; ".join(cambios_controladores) + ".")
+        partes.append(
+            "Impacto por controlador: " + "; ".join(cambios_controladores) + "."
+        )
 
     partes.append(f"Clasificación: {evaluacion['clasificacion']}.")
     partes.append(f"Impacto calculado: {evaluacion.get('impacto', 0)}.")
@@ -673,7 +692,7 @@ def crear_swap_request(
 ) -> SwapRequest:
     """
     Crea un SwapRequest a partir de índices del roster y delega
-    la creación de la entidad al engine.
+    la creación de la entidad a swap_service.
     """
     if not (0 <= idx_a < len(asignaciones)) or not (0 <= idx_b < len(asignaciones)):
         raise IndexError("Índices fuera de rango para crear SwapRequest.")
@@ -721,7 +740,7 @@ def resolver_swap_request(
 
 def aplicar_swap_request(
     asignaciones: list,
-    request: "SwapRequest",
+    request: SwapRequest,
 ):
     return aplicar_swap_request_core(asignaciones, request)
 
