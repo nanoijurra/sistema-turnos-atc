@@ -4,13 +4,22 @@
       "nombre": "Descanso mínimo",
       "funcion": "validar_descanso_minimo",
       "prioridad": 1,
-      "parametros": { "horas_minimas": 10 }
+      "parametros": { "min_horas": 12 }
+    },
+    {
+      "nombre": "Secuencia",
+      "funcion": "validar_secuencia",
+      "prioridad": 2,
+      "parametros": {}
     },
     {
       "nombre": "Noches consecutivas",
       "funcion": "validar_noches_consecutivas",
-      "prioridad": 2,
+      "prioridad": 3,
       "parametros": { "max_noches": 3 }
     }
-  ]
+  ],
+  "operacion": {
+    "horas_minimas_antes_del_turno_para_permitir_swap": 12
+  }
 }
