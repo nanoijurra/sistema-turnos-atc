@@ -386,3 +386,94 @@ Este checkpoint consolida la persistencia SQLite del núcleo del sistema:
 - rosters
 - versionado
 - trazabilidad
+
+## checkpoint-v6-taxonomia-alineada
+Fecha: 2026-04-05
+
+### Estado general
+Se alinea la implementación con la taxonomía arquitectónica consolidada.
+Tests en verde y flujo consistente.
+
+### Qué quedó implementado
+
+#### 1. Separación semántica estabilizada
+Queda consolidada la separación entre:
+
+- clasificación técnica
+- decisión operativa
+- estado del workflow
+
+Taxonomía vigente:
+
+- clasificación:
+  - `BENEFICIOSO`
+  - `ACEPTABLE`
+  - `RECHAZABLE`
+
+- decisión:
+  - `VIABLE`
+  - `OBSERVAR`
+  - `RECHAZAR`
+
+- estado:
+  - `PENDIENTE`
+  - `EVALUADO`
+  - `APROBADO`
+  - `RECHAZADO`
+  - `CANCELADO`
+  - `APLICADO`
+
+#### 2. swap_service alineado a decisión y workflow
+- `evaluar_swap_request(...)` traduce clasificación técnica a decisión operativa usando:
+  - `BENEFICIOSO` → `VIABLE`
+  - `ACEPTABLE` → `OBSERVAR`
+  - `RECHAZABLE` → `RECHAZAR`
+
+- `resolver_swap_request(...)` usa estado `APROBADO` como estado de aprobación formal
+- `aplicar_swap_request(...)` exige `APROBADO` y mantiene la regla:
+  - aplicar no reevalúa
+
+#### 3. simulator mantenido dentro de contrato
+- `simulator` conserva responsabilidad de evaluación técnica
+- no se introdujo decisión operativa dentro de simulator
+- se preservó la frontera:
+  - simulator clasifica
+  - swap_service decide
+
+#### 4. Consistencia global
+- tests ajustados a la taxonomía nueva
+- mensajes, assertions y flujo alineados con el vocabulario vigente
+- desaparecen los términos anteriores que generaban ambigüedad:
+  - `APROBABLE`
+  - `ACEPTADO`
+
+### Decisiones de diseño importantes
+
+- la clasificación técnica no expresa decisión
+- la decisión operativa no expresa estado
+- el estado refleja únicamente el ciclo de vida del request
+- la aprobación formal del request se representa con `APROBADO`
+- la viabilidad operativa se expresa con `VIABLE`
+
+### Limitaciones actuales (conscientes)
+
+- `simulator.py` todavía expone wrappers operativos que delegan en `swap_service`
+- persisten mezclas menores dentro de `simulator.py` entre evaluación, utilidades y presentación
+- la semántica exacta del objeto swap debe seguir vigilada para evitar ambigüedad entre asignación y turno
+
+### Próximos pasos naturales
+
+1. revisar frontera pública de `simulator.py`
+2. limpiar mezcla interna no contractual en simulator
+3. seguir endureciendo consistencia entre workflow, stores y auditoría
+4. continuar consolidación documental de contratos e invariantes
+
+### Notas
+
+Este checkpoint consolida la taxonomía central del sistema y reduce una ambigüedad crítica entre:
+
+- clasificación técnica
+- decisión operativa
+- estado del request
+
+A partir de este punto, la implementación queda alineada con la arquitectura semántica definida.
