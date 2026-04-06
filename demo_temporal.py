@@ -70,12 +70,14 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
 
     print("\nResolviendo SwapRequest automáticamente...")
 
-    if resultado_request["decision"] == "APROBABLE":
-        request = resolver_swap_request(request, "ACEPTAR")
+    if resultado_request["decision"] == "VIABLE":
+        request = resolver_swap_request(request, "APROBAR")
     elif resultado_request["decision"] == "RECHAZAR":
         request = resolver_swap_request(request, "RECHAZAR")
     else:
-        print("  (queda en observación, no se resuelve automáticamente)")
+        request = resolver_swap_request(request, "CANCELAR")
+        
+        print("  (decision OBSERVAR: se cancela automaticamente en demo)")
 
     print(f"  Estado final         : {request.estado}")
     print(f"  Fecha resolución     : {request.fecha_resolucion}")

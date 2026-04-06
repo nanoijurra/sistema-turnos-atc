@@ -5,7 +5,6 @@ from src.db import get_connection
 from src.models import SwapRequest
 
 
-
 def init_db() -> None:
     conn = get_connection()
     cursor = conn.cursor()
@@ -44,7 +43,7 @@ def serialize_request(request: SwapRequest) -> tuple:
         request.fecha_resolucion.isoformat() if request.fecha_resolucion else None,
         request.decision_sugerida,
         request.motivo,
-        json.dumps(request.history),
+        json.dumps(request.history or []),
         request.roster_hash,
         request.roster_version_id,
     )
@@ -64,7 +63,7 @@ def deserialize_request(row) -> SwapRequest:
         motivo=row[9],
         history=json.loads(row[10]) if row[10] else [],
         roster_hash=row[11],
-        roster_version_id=row[12],
+        roster_version_id=row[12],  # 🔴 asegurado
     )
 
 
@@ -157,5 +156,6 @@ def resumen_requests() -> dict:
 
     resumen["TOTAL"] = total
     return resumen
+
 
 init_db()

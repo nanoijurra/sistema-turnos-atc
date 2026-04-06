@@ -15,7 +15,7 @@ def main():
             print(f"   - {v.codigo}: {v.mensaje}")
 
     print()
-    print(f"Roster válido: {es_roster_valido(resultados)}")
+    print(f"Roster valido: {es_roster_valido(resultados)}")
     print(f"Score: {calcular_score(resultados)}")
 
 
