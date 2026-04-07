@@ -4,11 +4,12 @@ from src.simulator import (
     filtrar_swaps_validos,
     filtrar_swaps_utiles,
     generar_recomendacion_textual,
-    crear_swap_request,
-    evaluar_swap_request,
     mostrar_historial_swap_request,
+    evaluar_swap,
 )
 from src.swap_service import (
+    crear_swap_request,
+    evaluar_swap_request,
     resolver_swap_request,
     aplicar_swap_request,
 )
@@ -45,7 +46,16 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
     print()
 
     print("Ejemplo de SwapRequest:")
-    request = crear_swap_request(asignaciones, 0, 3, motivo="Intercambio personal")
+    asignacion_a = asignaciones[0]
+    asignacion_b = asignaciones[3]
+
+    request = crear_swap_request(
+        controlador_a=asignacion_a.controlador.nombre,
+        controlador_b=asignacion_b.controlador.nombre,
+        idx_a=0,
+        idx_b=3,
+        motivo="Intercambio personal",
+    )
 
     print(f"  ID                : {request.id}")
     print(f"  Controlador A     : {request.controlador_a}")
@@ -59,7 +69,11 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
     print(mostrar_historial_swap_request(request))
 
     print("\nEvaluación del SwapRequest:")
-    resultado_request = evaluar_swap_request(asignaciones, request)
+    resultado_request = evaluar_swap_request(
+        asignaciones=asignaciones,
+        request=request,
+        evaluar_swap_fn=evaluar_swap,
+    )
 
     print(f"  Clasificación         : {resultado_request['clasificacion']}")
     print(f"  Decisión calculada    : {resultado_request['decision']}")
@@ -78,7 +92,6 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
         request = resolver_swap_request(request, "RECHAZAR")
     else:
         request = resolver_swap_request(request, "CANCELAR")
-        
         print("  (decision OBSERVAR: se cancela automaticamente en demo)")
 
     print(f"  Estado final         : {request.estado}")
@@ -88,7 +101,7 @@ def ejecutar_demo(nombre: str, asignaciones: list) -> None:
     print(mostrar_historial_swap_request(request))
     print()
 
-    if request.estado == "ACEPTADO":
+    if request.estado == "APROBADO":
         print("Aplicando SwapRequest al roster...")
         roster_aplicado = aplicar_swap_request(asignaciones, request)
 
