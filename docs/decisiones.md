@@ -30,7 +30,7 @@ Reducir acoplamiento y facilitar escalabilidad.
 
 ### Decision 2 - Engine sin logica de negocio
 
-El engine no toma decisiones operativas (VIABLE / RECHAZAR).
+El engine no toma decisiones operativas (VIABLE / OBSERVAR / RECHAZAR).
 
 ### Motivo
 
@@ -374,7 +374,7 @@ Se distinguen explícitamente tres conceptos:
 
 ### Regla
 
-Un SwapRequest es habilitado dentro del flujo si y solo si su `roster_version_id` coincide con la versión vigente.
+Un SwapRequest es evaluable y aplicable dentro del flujo si y solo si su `roster_version_id` coincide con la versión vigente.
 
 ### Consecuencia
 
@@ -442,10 +442,6 @@ La frontera pública objetivo de `simulator` se limita a capacidades técnicas d
 - aplicación de requests
 - presentación textual de resultados
 - workflow operativo
-
-### Aclaracion
-
-La exposición de funciones operativas desde `simulator` se considera compatibilidad transitoria y no forma parte de la arquitectura objetivo del módulo.
 
 ### Motivo
 
@@ -553,3 +549,25 @@ Regla:
 
 Motivo:
 Blindar la separación entre evaluación técnica y ciclo de vida operativo del request.
+
+### Decision 29 Frontera publica de simulator
+
+Decisión:
+Se restringe la superficie publica de `simulator` a capacidades tecnicas exclusivamente.
+
+Regla:
+`simulator` no debe exponer funciones operativas del ciclo de vida de `SwapRequest`, aun cuando deleguen en `swap_service`.
+
+Prohibido exponer:
+- crear request
+- evaluar request
+- resolver request
+- aplicar request
+- gestion de estado
+- workflow
+
+Consecuencia:
+`swap_service` es la unica puerta publica valida para operaciones de request y workflow.
+
+Motivo:
+Eliminar ambiguedad de uso y alinear la API publica con la arquitectura definida en la Decision 28.

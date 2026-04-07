@@ -22,7 +22,7 @@ clear# Semantic guard
 
 Definir el propósito, alcance y modo de uso del subsistema `semantic_guard`.
 
-Este subsistema protege la coherencia semántica del sistema de swaps ATC mediante validaciones automáticas sobre documentación y evolución de conceptos críticos.
+Este subsistema protege la coherencia semántica del sistema de swaps ATC mediante verificaciones automáticas sobre documentación y evolución de conceptos críticos.
 
 ---
 
@@ -31,7 +31,7 @@ Este subsistema protege la coherencia semántica del sistema de swaps ATC median
 Este documento define:
 
 - qué es `semantic_guard`
-- qué validaciones realiza
+- qué controles realiza
 - cómo se ejecuta
 - qué alcance tiene hoy
 - cómo debe evolucionar
@@ -75,7 +75,7 @@ Opera como capa de protección sobre:
 
 ### 4.1 Semantic lint
 
-Valida el estado actual del proyecto.
+Verifica el estado actual del proyecto.
 
 Responde a la pregunta:
 
@@ -89,9 +89,10 @@ Detecta, por ejemplo:
 
 #### Comando
 
-```bash
+bash
 python -m src.semantic_guard.lint_runner
-4.2 Semantic diff
+
+### 4.2  Semantic diff
 
 Compara dos versiones de un documento para detectar drift semántico.
 
@@ -106,7 +107,8 @@ reaparición de términos prohibidos
 cambios peligrosos en vocabulario rector
 Comando
 python -m src.semantic_guard.diff_runner
-5. Estructura actual
+
+## 5. Estructura actual
 
 La estructura actual del subsistema es:
 
@@ -118,9 +120,11 @@ src/
     ├── extractor.py
     ├── diff_rules.py
     └── diff_runner.py
-6. Reglas activas
 
-Las reglas activas deben ser:
+
+## 6. Reglas activas
+
+### Las reglas activas deben ser:
 
 pocas
 explícitas
@@ -143,21 +147,59 @@ Incluyen, entre otras:
 detección de pérdida de taxonomías críticas
 detección de reaparición de términos legados
 vigilancia de vocabulario estructural del sistema
-7. Uso operativo
-7.1 Uso minimo recomendado
+
+### Regla de preservacion de taxonomia oficial
+
+semantic_guard debe vigilar explicitamente la preservacion de la taxonomia oficial del sistema.
+
+Incluye:
+
+- clasificacion tecnica:
+  - BENEFICIOSO
+  - ACEPTABLE
+  - RECHAZABLE
+
+- decision operativa:
+  - VIABLE
+  - OBSERVAR
+  - RECHAZAR
+
+- estados del workflow:
+  - PENDIENTE
+  - EVALUADO
+  - APROBADO
+  - RECHAZADO
+  - CANCELADO
+  - APLICADO
+
+Regla:
+
+- no deben aparecer sinonimos o variantes para estos conceptos
+- no deben mezclarse entre si los planos tecnico, operativo y de workflow
+- no deben reintroducirse terminos eliminados como:
+  - APROBABLE
+  - ACEPTADO
+  - reaparicion de terminologia ambigua
+
+Motivo:
+
+Estas taxonomias constituyen el lenguaje ubicuo del sistema y su alteracion implica drift semantico critico.
+
+## 7. Uso operativo
+### 7.1 Uso minimo recomendado
 
 Antes de consolidar cambios en documentos rectores, ejecutar:
 
 python -m src.semantic_guard.lint_runner
 python -m src.semantic_guard.diff_runner
-7.2 Cuando usar semantic lint
+### 7.2 Cuando usar semantic lint
 
 Usar semantic lint cuando:
 
 se modifica documentación en docs/
 se ajusta semántica del sistema
 se reorganizan conceptos críticos
-se quiere validar el estado actual del corpus documental
+se quiere verificar el estado actual del corpus documental
 7.3 Cuando usar semantic diff
 
 Usar semantic diff cuando:
@@ -165,7 +207,8 @@ Usar semantic diff cuando:
 se reescribe un documento rector
 se compara una versión previa contra una nueva
 se revisa si un cambio introdujo drift conceptual
-8. Alcance documental actual
+
+## 8. Alcance documental actual
 
 Hoy semantic_guard vigila prioritariamente documentos semánticos en docs/.
 
@@ -184,7 +227,7 @@ Archivos de control de proceso o seguimiento operativo pueden excluirse explíci
 Ejemplo:
 
 estado_docs.md
-9. Criterios de extension
+## 9. Criterios de extension
 
 Toda nueva regla del sistema debe cumplir estas condiciones:
 
@@ -197,7 +240,7 @@ Regla de diseño
 
 semantic_guard no debe crecer por entusiasmo, sino por necesidad real.
 
-10. Restricciones
+## 10. Restricciones
 
 semantic_guard no debe:
 
@@ -214,7 +257,7 @@ proteger coherencia
 
 No diseñar el sistema principal.
 
-11. Evolucion futura
+## 11. Evolucion futura
 
 Posibles extensiones:
 

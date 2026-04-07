@@ -2,7 +2,7 @@ from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime
 from uuid import uuid4
-
+from src.simulator import evaluar_swap
 from src.models import SwapRequest, RosterVersion
 from src.request_store import guardar_request, listar_requests
 from src.roster_store import obtener_roster_vigente
@@ -92,7 +92,7 @@ def evaluar_swap_request(
         registrar_evento_swap_request(
             request,
             (
-                "Request evaluado: clasificacion=RECHAZABLE, decision=RECHAZAR, "
+                "Request evaluado sin evaluacion tecnica: decision=RECHAZAR, "
                 "motivo=SWAP_FUERA_DE_VENTANA_OPERATIVA, "
                 f"roster_version_id={roster_vigente.id}, version_number={roster_vigente.version_number}"
             ),
@@ -102,7 +102,7 @@ def evaluar_swap_request(
             "request_id": request.id,
             "controlador_a": request.controlador_a,
             "controlador_b": request.controlador_b,
-            "clasificacion": "RECHAZABLE",
+            "clasificacion": None,
             "decision": "RECHAZAR",
             "evaluacion": None,
             "motivo": "SWAP_FUERA_DE_VENTANA_OPERATIVA",

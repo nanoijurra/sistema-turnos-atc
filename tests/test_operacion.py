@@ -1,11 +1,10 @@
 from datetime import datetime
 from dataclasses import replace
-
-from src.engine import (
-    crear_roster_version_inicial,
+from src.engine import crear_roster_version_inicial
+from src.swap_service import (
     crear_swap_request,
     evaluar_swap_request,
-)
+    )
 from src.roster_store import limpiar_rosters
 from src.request_store import limpiar_requests
 from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
@@ -36,5 +35,5 @@ def test_swap_rechazado_por_ventana_operativa():
     )
 
     assert resultado["decision"] == "RECHAZAR"
-    assert resultado["clasificacion"] == "RECHAZABLE"
+    assert resultado["clasificacion"] is None
     assert resultado["motivo"] == "SWAP_FUERA_DE_VENTANA_OPERATIVA"

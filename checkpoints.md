@@ -477,3 +477,69 @@ Este checkpoint consolida la taxonomía central del sistema y reduce una ambigü
 - estado del request
 
 A partir de este punto, la implementación queda alineada con la arquitectura semántica definida.
+
+## checkpoint-v7-simulator-boundary-clean
+Fecha: 2026-04-07
+
+### Estado general
+Se elimina completamente la exposición de funciones operativas desde `simulator.py`.
+El sistema queda alineado con la frontera arquitectónica definida entre evaluación técnica y workflow operativo.
+
+### Qué quedó implementado
+
+#### 1. Frontera estricta simulator ↔ swap_service
+- `simulator` deja de exponer:
+  - crear_swap_request
+  - evaluar_swap_request
+  - resolver_swap_request
+  - aplicar_swap_request
+- `swap_service` se consolida como única puerta para el ciclo de vida del request
+
+#### 2. Separación de responsabilidades efectiva
+- `simulator`:
+  - evaluación técnica
+  - cálculo de deltas
+  - clasificación
+- `swap_service`:
+  - validación operativa
+  - decisión
+  - gestión de estado
+  - aplicación
+
+#### 3. Refactor de consumidores
+- tests actualizados para consumir `swap_service`
+- demo adaptada al flujo correcto
+- eliminación de accesos indirectos al workflow
+
+#### 4. Validación general
+- tests en verde
+- sin regresiones funcionales
+- contratos respetados
+
+---
+
+### Decisiones de diseño reforzadas
+
+- Decision 28: frontera simulator ↔ swap_service consolidada
+- Decision 29: simulator no expone funciones operativas (implementada completamente)
+
+---
+
+### Impacto
+
+- se elimina ambigüedad en uso del sistema
+- se evita bypass del flujo operativo
+- se mejora mantenibilidad y escalabilidad
+- se refuerza modelo mental del sistema
+
+---
+
+### Notas
+
+Este checkpoint marca el cierre de la separación efectiva entre:
+
+- evaluación técnica
+- decisión operativa
+- ejecución
+
+Convirtiendo al sistema en una arquitectura correctamente estratificada.

@@ -105,7 +105,7 @@ class SwapRequest:
     controlador_b: str
     idx_a: int
     idx_b: int
-    estado: str  # PENDIENTE / EVALUADO / ACEPTADO / RECHAZADO / APLICADO / CANCELADO
+    estado: str  # PENDIENTE / EVALUADO / APROBADO / RECHAZADO / APLICADO / CANCELADO
     fecha_creacion: datetime
     decision_sugerida: Optional[str] = None
     fecha_resolucion: Optional[datetime] = None
@@ -127,10 +127,10 @@ class SwapRequest:
         if self.estado == "CANCELADO":
             raise ValueError("No se puede cancelar dos veces el mismo request.")
 
-        if self.estado in ("ACEPTADO", "RECHAZADO"):
+        if self.estado in ("APROBADO", "RECHAZADO"):
             raise ValueError("No se puede cancelar un request ya resuelto.")
 
         self.estado = "CANCELADO"
         self.fecha_resolucion = self.fecha_resolucion or datetime.now()
         self.motivo = motivo
-        self.add_history_entry(f"CANCELADO_AUTOMATICAMENTE: {motivo}")
+        self.add_history_entry(f"REQUEST_CANCELADO_POR_OBSOLESCENCIA: {motivo}")

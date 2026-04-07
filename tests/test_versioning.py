@@ -3,8 +3,8 @@ from datetime import datetime
 from src.engine import (
     crear_roster_version_inicial,
     crear_nueva_version_desde_roster_vigente,
-    cancelar_requests_obsoletos,
-)
+    )
+from src.swap_service import cancelar_requests_obsoletos
 from src.request_store import (
     guardar_request,
     limpiar_requests,

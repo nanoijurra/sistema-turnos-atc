@@ -109,7 +109,7 @@ Todo request no terminal asociado a una versión que deja de ser vigente:
 
 ---
 
-### I-11 Request habilitado dentro del flujo solo en version vigente
+### I-11 Request evaluable y aplicable dentro del flujo solo en version vigente
 
 Un SwapRequest solo puede ser evaluado y aplicado si su `roster_version_id` coincide con la versión vigente.
 
@@ -177,9 +177,9 @@ Una regla hard nunca puede reinterpretarse como soft.
 
 ---
 
-### I-20 Soft no aprueba
+### I-20 Soft no determina decision operativa favorable
 
-Las reglas soft no pueden, por sí solas, habilitar aprobación.
+Las reglas soft no pueden, por sí solas, determinar una decisión operativa favorable.
 
 ---
 

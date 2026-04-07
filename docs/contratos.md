@@ -939,50 +939,56 @@ Responsable:
 Regla:
 El estado APROBADO representa la materialización en el workflow de una decisión operativa favorable.
 
-## 12. Contrato definitivo entre simulator y swap_service
+## 12. Contrato de frontera publica de simulator
 
-## Propósito
-Definir la frontera exacta entre evaluación técnica del swap y tratamiento operativo del request.
-
----
-
-## Responsabilidad de simulator
-`simulator` es responsable exclusivamente de la evaluación técnica de escenarios hipotéticos.
-
-Debe producir:
-- comparación técnica antes/después
-- clasificación técnica
-- deltas técnicos
-- impacto técnico estructurado
-
-No debe producir:
-- decisión operativa
-- estados del workflow
-- motivos operativos
-- aplicación del swap
-- resolución del request
+### Proposito
+Definir la superficie publica valida de `simulator` y evitar mezcla con responsabilidades operativas.
 
 ---
 
-## Responsabilidad de swap_service
-`swap_service` es responsable exclusivamente del tratamiento operativo del `SwapRequest`.
+### Frontera valida de simulator
 
-Debe:
-- validar condiciones estructurales y operativas
-- consumir evaluación técnica de `simulator`
-- producir decisión operativa
-- actualizar workflow, persistencia e historial
+`simulator` expone unicamente capacidades tecnicas.
 
-No debe:
-- recalcular clasificación técnica
-- redefinir la clasificación recibida
-- reemplazar evaluación técnica por lógica propia
+Puede exponer:
+- evaluacion tecnica de swaps
+- comparacion de escenarios
+- clasificacion tecnica
+- calculo de impacto
+- exploracion de alternativas
 
 ---
 
-## Regla de frontera
-La salida de `simulator` debe permanecer en el plano técnico.
+### Prohibicion de exposicion operativa
 
-La salida de `swap_service` debe permanecer en el plano operativo y de workflow.
+`simulator` no debe exponer funciones relacionadas con:
+- creacion de SwapRequest
+- evaluacion de SwapRequest
+- resolucion de SwapRequest
+- aplicacion de SwapRequest
+- gestion de estado
+- workflow operativo
 
-Ambos planos no deben colapsarse entre sí.
+---
+
+### Regla de delegacion
+
+La existencia de delegacion interna hacia `swap_service` no habilita la exposicion publica de funciones operativas desde `simulator`.
+
+---
+
+### Puerta operativa unica
+
+Todas las operaciones del ciclo de vida del request deben exponerse exclusivamente desde `swap_service`.
+
+---
+
+### Regla de consistencia
+
+La superficie publica del modulo debe reflejar exclusivamente sus responsabilidades.
+
+En consecuencia:
+- `simulator` publica evaluacion tecnica
+- `swap_service` publica operacion y workflow
+
+Ambas superficies no deben solaparse.

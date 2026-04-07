@@ -333,7 +333,7 @@ Versión sobre la cual puede ejecutarse un swap.
 
 ### Regla unificada
 
-Un request está habilitado dentro del flujo si su versión coincide con la versión vigente.
+Un request es evaluable y aplicable dentro del flujo si su versión coincide con la versión vigente.
 
 ### Obsolescencia
 

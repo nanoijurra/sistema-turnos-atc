@@ -7,11 +7,6 @@ from src.models import RosterVersion, SwapRequest
 from src.roster_diff import impacto_por_controlador
 from src.rule_types import RuleResult
 from src.scoring import calcular_score, es_roster_valido
-from src.swap_service import (
-    crear_swap_request as crear_swap_request_core,
-    evaluar_swap_request as evaluar_swap_request_core,
-)
-
 
 def _validar_indices_swap(asignaciones: list, idx_a: int, idx_b: int) -> None:
     if idx_a == idx_b:
@@ -678,50 +673,6 @@ def simular_swap_entre_controladores(
         asignaciones=asignaciones,
         idx_a=idx_a,
         idx_b=idx_b,
-        config_file=config_file,
-    )
-
-
-def crear_swap_request(
-    asignaciones: list,
-    idx_a: int,
-    idx_b: int,
-    motivo: str | None = None,
-) -> SwapRequest:
-    """
-    Crea un SwapRequest a partir de índices del roster y delega
-    la creación de la entidad a swap_service.
-    """
-    if not (0 <= idx_a < len(asignaciones)) or not (0 <= idx_b < len(asignaciones)):
-        raise IndexError("Índices fuera de rango para crear SwapRequest.")
-
-    asignacion_a = asignaciones[idx_a]
-    asignacion_b = asignaciones[idx_b]
-
-    if asignacion_a.controlador is None or asignacion_b.controlador is None:
-        raise ValueError("No se puede crear un SwapRequest sin controladores asignados.")
-
-    controlador_a = asignacion_a.controlador.nombre
-    controlador_b = asignacion_b.controlador.nombre
-
-    return crear_swap_request_core(
-        controlador_a=controlador_a,
-        controlador_b=controlador_b,
-        idx_a=idx_a,
-        idx_b=idx_b,
-        motivo=motivo,
-    )
-
-
-def evaluar_swap_request(
-    asignaciones: list,
-    request: SwapRequest,
-    config_file: str = "config_equilibrado.json",
-) -> dict:
-    return evaluar_swap_request_core(
-        asignaciones=asignaciones,
-        request=request,
-        evaluar_swap_fn=evaluar_swap,
         config_file=config_file,
     )
 
