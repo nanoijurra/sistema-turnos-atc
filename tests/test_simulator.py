@@ -9,7 +9,10 @@ from src.simulator import (
     explorar_swaps,
     generar_pares_swap,
 )
-
+from src.swap_service import (
+    resolver_swap_request,
+    aplicar_swap_request,
+)
 
 def test_simular_swap_devuelve_estructura_esperada():
     asignaciones = crear_escenario()
@@ -229,9 +232,11 @@ def test_resolver_swap_request_cambia_estado():
     from src.simulator import (
         crear_swap_request,
         evaluar_swap_request,
-        resolver_swap_request,
     )
-
+    from src.swap_service import (
+        resolver_swap_request,
+        aplicar_swap_request,
+)
     limpiar_rosters()
     asignaciones = crear_escenario()
     crear_roster_version_inicial(asignaciones, regimen_horario="8H")
@@ -250,10 +255,11 @@ def test_aplicar_swap_request_modifica_roster_si_esta_aprobado():
     from src.simulator import (
         crear_swap_request,
         evaluar_swap_request,
+         )
+    from src.swap_service import (
         resolver_swap_request,
         aplicar_swap_request,
-    )
-
+)
     limpiar_rosters()
     asignaciones = crear_escenario()
     crear_roster_version_inicial(asignaciones, regimen_horario="8H")
@@ -279,9 +285,12 @@ def test_swap_request_registra_historial_completo_en_flujo_aprobado():
     from src.simulator import (
         crear_swap_request,
         evaluar_swap_request,
+       
+    )
+    from src.swap_service import (
         resolver_swap_request,
         aplicar_swap_request,
-    )
+)
     from src.scenarios.v5_controladores_beneficioso_mutuo import (
         crear_escenario as escenario_beneficioso_mutuo,
     )
@@ -333,8 +342,8 @@ def test_swap_request_registra_historial_hasta_resolucion_rechazada():
     from src.simulator import (
         crear_swap_request,
         evaluar_swap_request,
-        resolver_swap_request,
     )
+    from src.swap_service import resolver_swap_request
     from src.scenarios.v4_controladores_beneficioso import (
         crear_escenario as escenario_beneficioso,
     )
@@ -393,7 +402,7 @@ def test_evaluar_swap_request_falla_si_se_evalua_dos_veces():
 def test_resolver_swap_request_falla_si_no_fue_evaluado():
     import pytest
     from src.scenarios.v3_controladores_mixto import crear_escenario
-    from src.simulator import crear_swap_request, resolver_swap_request
+    from src.simulator import crear_swap_request
 
     asignaciones = crear_escenario()
     request = crear_swap_request(asignaciones, 0, 3)
@@ -405,7 +414,7 @@ def test_resolver_swap_request_falla_si_no_fue_evaluado():
 def test_aplicar_swap_request_falla_si_no_fue_evaluado():
     import pytest
     from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
-    from src.simulator import crear_swap_request, aplicar_swap_request
+    from src.simulator import crear_swap_request
 
     asignaciones = crear_escenario()
     request = crear_swap_request(asignaciones, 0, 3)
@@ -466,10 +475,12 @@ def test_aplicar_swap_request_falla_si_request_apunta_a_version_no_vigente():
     from src.simulator import (
         crear_swap_request,
         evaluar_swap_request,
+        
+    )
+    from src.swap_service import (
         resolver_swap_request,
         aplicar_swap_request,
-    )
-
+)
     limpiar_rosters()
     asignaciones = crear_escenario()
     crear_roster_version_inicial(asignaciones, regimen_horario="8H")

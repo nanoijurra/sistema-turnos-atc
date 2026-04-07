@@ -6,9 +6,11 @@ from src.simulator import (
     generar_recomendacion_textual,
     crear_swap_request,
     evaluar_swap_request,
+    mostrar_historial_swap_request,
+)
+from src.swap_service import (
     resolver_swap_request,
     aplicar_swap_request,
-    mostrar_historial_swap_request,
 )
 
 from src.scenarios.v3_controladores_mixto import crear_escenario as escenario_mixto

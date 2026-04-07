@@ -7,12 +7,11 @@ from src.request_store import (
 from src.simulator import (
     crear_swap_request,
     evaluar_swap_request,
-    resolver_swap_request,
 )
+from src.swap_service import resolver_swap_request
 from src.scenarios.v5_controladores_beneficioso_mutuo import (
     crear_escenario as escenario_beneficioso_mutuo,
 )
-
 
 def setup_function():
     limpiar_requests()

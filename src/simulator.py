@@ -8,10 +8,8 @@ from src.roster_diff import impacto_por_controlador
 from src.rule_types import RuleResult
 from src.scoring import calcular_score, es_roster_valido
 from src.swap_service import (
-    aplicar_swap_request as aplicar_swap_request_core,
     crear_swap_request as crear_swap_request_core,
     evaluar_swap_request as evaluar_swap_request_core,
-    resolver_swap_request as resolver_swap_request_core,
 )
 
 
@@ -726,24 +724,6 @@ def evaluar_swap_request(
         evaluar_swap_fn=evaluar_swap,
         config_file=config_file,
     )
-
-
-def resolver_swap_request(
-    request: SwapRequest,
-    accion: str,
-) -> SwapRequest:
-    return resolver_swap_request_core(
-        request=request,
-        accion=accion,
-    )
-
-
-def aplicar_swap_request(
-    asignaciones: list,
-    request: SwapRequest,
-):
-    return aplicar_swap_request_core(asignaciones, request)
-
 
 def mostrar_historial_swap_request(request: SwapRequest) -> str:
     """
