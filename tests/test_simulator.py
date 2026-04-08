@@ -521,3 +521,71 @@ def test_evaluar_swap_request_devuelve_decision():
     resultado = evaluar_swap_request(asignaciones, request, evaluar_swap_fn=evaluar_swap)
 
     assert resultado["decision"] == "VIABLE"
+    
+def test_aplicar_swap_request_falla_si_se_intenta_aplicar_dos_veces():
+    import pytest
+    from src.engine import crear_roster_version_inicial
+    from src.roster_store import limpiar_rosters
+    from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
+    from src.swap_service import evaluar_swap_request
+
+    limpiar_rosters()
+    asignaciones = crear_escenario()
+    crear_roster_version_inicial(asignaciones, regimen_horario="8H")
+
+    request = _crear_request_desde_asignaciones(asignaciones, 0, 3)
+
+    evaluar_swap_request(
+        asignaciones,
+        request,
+        evaluar_swap_fn=evaluar_swap,
+    )
+    resolver_swap_request(request, "APROBAR")
+    aplicar_swap_request(asignaciones, request)
+
+    with pytest.raises(ValueError, match="ya fue aplicado"):
+        aplicar_swap_request(asignaciones, request)
+
+def test_evaluar_swap_request_falla_si_request_esta_cancelado():
+    import pytest
+    from src.engine import crear_roster_version_inicial
+    from src.roster_store import limpiar_rosters
+    from src.scenarios.v3_controladores_mixto import crear_escenario
+    from src.swap_service import evaluar_swap_request
+
+    limpiar_rosters()
+    asignaciones = crear_escenario()
+    crear_roster_version_inicial(asignaciones, regimen_horario="8H")
+
+    request = _crear_request_desde_asignaciones(asignaciones, 0, 3)
+    request.estado = "CANCELADO"
+
+    with pytest.raises(ValueError, match="Estado invalido para evaluar request"):
+        evaluar_swap_request(
+            asignaciones,
+            request,
+            evaluar_swap_fn=evaluar_swap,
+        )
+def test_resolver_swap_request_falla_si_request_ya_fue_aplicado():
+    import pytest
+    from src.engine import crear_roster_version_inicial
+    from src.roster_store import limpiar_rosters
+    from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
+    from src.swap_service import evaluar_swap_request
+
+    limpiar_rosters()
+    asignaciones = crear_escenario()
+    crear_roster_version_inicial(asignaciones, regimen_horario="8H")
+
+    request = _crear_request_desde_asignaciones(asignaciones, 0, 3)
+
+    evaluar_swap_request(
+        asignaciones,
+        request,
+        evaluar_swap_fn=evaluar_swap,
+    )
+    resolver_swap_request(request, "APROBAR")
+    aplicar_swap_request(asignaciones, request)
+
+    with pytest.raises(ValueError, match="ya fue resuelto"):
+        resolver_swap_request(request, "RECHAZAR")
