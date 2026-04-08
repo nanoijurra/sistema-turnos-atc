@@ -750,3 +750,61 @@ def obtener_top_swaps(
         })
 
     return resultado
+
+def generar_reporte_swaps(
+    asignaciones: list,
+    limite: int = 5,
+    incluir_aceptables: bool = True,
+    config_file: str = "config_equilibrado.json",
+) -> str:
+    """
+    Genera un reporte textual claro con los mejores swaps recomendados.
+    """
+
+    top_swaps = obtener_top_swaps(
+        asignaciones=asignaciones,
+        limite=limite,
+        incluir_aceptables=incluir_aceptables,
+        config_file=config_file,
+    )
+
+    if not top_swaps:
+        return "No se encontraron swaps recomendados."
+
+    lineas = []
+    lineas.append(f"TOP {len(top_swaps)} SWAPS RECOMENDADOS")
+    lineas.append("")
+
+    for i, swap_info in enumerate(top_swaps, start=1):
+        idx_a = swap_info["swap"]["idx_a"]
+        idx_b = swap_info["swap"]["idx_b"]
+
+        asignacion_a = asignaciones[idx_a]
+        asignacion_b = asignaciones[idx_b]
+
+        ctrl_a = asignacion_a.controlador.nombre if asignacion_a.controlador else "SIN_CTRL"
+        ctrl_b = asignacion_b.controlador.nombre if asignacion_b.controlador else "SIN_CTRL"
+
+        fecha_a = asignacion_a.fecha
+        fecha_b = asignacion_b.fecha
+
+        turno_a = asignacion_a.turno.codigo
+        turno_b = asignacion_b.turno.codigo
+
+        lineas.append(
+            f"{i}) {ctrl_a} ({fecha_a} - turno {turno_a}) ↔ {ctrl_b} ({fecha_b} - turno {turno_b})"
+        )
+
+        clasificacion = swap_info["clasificacion"]
+
+        if clasificacion == "BENEFICIOSO":
+            lineas.append("   ✔ Beneficioso")
+        elif clasificacion == "ACEPTABLE":
+            lineas.append("   ✔ Aceptable")
+        else:
+            lineas.append("   ✖ Rechazable")
+
+        lineas.append(f"   → {swap_info['recomendacion']}")
+        lineas.append("")
+
+    return "\n".join(lineas)
