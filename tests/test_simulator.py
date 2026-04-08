@@ -330,7 +330,7 @@ def test_swap_request_registra_historial_completo_en_flujo_aprobado():
     assert resultado["decision"] == "VIABLE"
     assert request.decision_sugerida == "VIABLE"
     assert len(request.history) == 2
-    assert "Request evaluado" in request.history[1]
+    assert "REQUEST_EVALUADO:" in request.history[1]
     assert "clasificacion=BENEFICIOSO" in request.history[1]
     assert "decision=VIABLE" in request.history[1]
 
@@ -339,7 +339,7 @@ def test_swap_request_registra_historial_completo_en_flujo_aprobado():
     assert request.estado == "APROBADO"
     assert request.fecha_resolucion is not None
     assert len(request.history) == 3
-    assert "Request resuelto" in request.history[2]
+    assert "REQUEST_RESUELTO:" in request.history[2]
     assert "accion=APROBAR" in request.history[2]
     assert "estado=APROBADO" in request.history[2]
 
@@ -381,7 +381,7 @@ def test_swap_request_registra_historial_hasta_resolucion_rechazada():
     assert "motivo" not in resultado
     assert request.decision_sugerida == "RECHAZAR"
     assert len(request.history) == 2
-    assert "Request evaluado" in request.history[1]
+    assert "REQUEST_EVALUADO:" in request.history[1]
     assert "decision=RECHAZAR" in request.history[1]
     assert "clasificacion=RECHAZABLE" in request.history[1]
 
@@ -390,7 +390,7 @@ def test_swap_request_registra_historial_hasta_resolucion_rechazada():
     assert request.estado == "RECHAZADO"
     assert request.fecha_resolucion is not None
     assert len(request.history) == 3
-    assert "Request resuelto" in request.history[2]
+    assert "REQUEST_RESUELTO:" in request.history[2]
     assert "accion=RECHAZAR" in request.history[2]
     assert "estado=RECHAZADO" in request.history[2]
 

@@ -52,8 +52,16 @@ def evaluar_swap_request(
     evaluar_swap_fn,
     config_file: str = "config_equilibrado.json",
 ) -> dict:
+    if evaluar_swap_fn is None:
+        raise ValueError("Se requiere una funcion de evaluacion tecnica para evaluar el request.")
+
     if request.decision_sugerida is not None:
         raise ValueError("El request ya fue evaluado.")
+
+    if request.estado != "PENDIENTE":
+        raise ValueError(
+            f"Estado invalido para evaluar request: {request.estado}. Se esperaba PENDIENTE."
+        )
 
     if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
         raise IndexError("Los índices del SwapRequest no son válidos para el roster actual.")
@@ -92,7 +100,7 @@ def evaluar_swap_request(
         registrar_evento_swap_request(
             request,
             (
-                "Request evaluado sin evaluacion tecnica: decision=RECHAZAR, "
+                "REQUEST_EVALUADO_SIN_TECNICA: decision=RECHAZAR, "
                 "motivo=SWAP_FUERA_DE_VENTANA_OPERATIVA, "
                 f"roster_version_id={roster_vigente.id}, version_number={roster_vigente.version_number}"
             ),
@@ -134,7 +142,7 @@ def evaluar_swap_request(
     registrar_evento_swap_request(
         request,
         (
-            f"Request evaluado: clasificacion={clasificacion}, decision={decision}, "
+            f"REQUEST_EVALUADO: clasificacion={clasificacion}, decision={decision}, "
             f"roster_version_id={roster_vigente.id}, version_number={roster_vigente.version_number}"
         ),
     )
@@ -152,6 +160,9 @@ def evaluar_swap_request(
 
 
 def resolver_swap_request(request: SwapRequest, accion: str) -> SwapRequest:
+    if accion not in ("APROBAR", "RECHAZAR", "CANCELAR"):
+        raise ValueError(f"Acción inválida: {accion}")
+
     if request.decision_sugerida is None:
         raise ValueError("No se puede resolver un request sin evaluarlo primero.")
 
@@ -167,17 +178,15 @@ def resolver_swap_request(request: SwapRequest, accion: str) -> SwapRequest:
         request.estado = "APROBADO"
     elif accion == "RECHAZAR":
         request.estado = "RECHAZADO"
-    elif accion == "CANCELAR":
-        request.estado = "CANCELADO"
     else:
-        raise ValueError(f"Acción inválida: {accion}")
+        request.estado = "CANCELADO"
 
     request.fecha_resolucion = datetime.now()
     guardar_request(request)
 
     registrar_evento_swap_request(
         request,
-        f"Request resuelto: accion={accion}, estado={request.estado}",
+        f"REQUEST_RESUELTO: accion={accion}, estado={request.estado}",
     )
 
     return request
@@ -202,6 +211,9 @@ def cancelar_requests_obsoletos(roster_version_id_viejo: str) -> int:
 def aplicar_swap_request(asignaciones: list, request: SwapRequest) -> RosterVersion:
     if request.decision_sugerida is None:
         raise ValueError("No se puede aplicar un request que no fue evaluado.")
+
+    if request.estado == "APLICADO":
+        raise ValueError("No se puede aplicar un request que ya fue aplicado.")
 
     if request.estado != "APROBADO":
         raise ValueError("Solo se puede aplicar un SwapRequest con estado APROBADO.")
@@ -250,6 +262,7 @@ def aplicar_swap_request(asignaciones: list, request: SwapRequest) -> RosterVers
     cancelar_requests_obsoletos(roster_version_id_viejo)
 
     request.estado = "APLICADO"
+    request.fecha_resolucion = request.fecha_resolucion or datetime.now()
     guardar_request(request)
 
     registrar_evento_swap_request(
