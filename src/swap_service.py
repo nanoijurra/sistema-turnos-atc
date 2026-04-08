@@ -3,6 +3,7 @@ from dataclasses import replace
 from datetime import datetime
 from uuid import uuid4
 
+from src.scoring import mapear_decision
 from src.models import SwapRequest, RosterVersion
 from src.request_store import guardar_request, listar_requests
 from src.roster_store import obtener_roster_vigente
@@ -155,12 +156,7 @@ def evaluar_swap_request(
 
     clasificacion = evaluacion["clasificacion"]
 
-    if clasificacion == "BENEFICIOSO":
-        decision = "VIABLE"
-    elif clasificacion == "ACEPTABLE":
-        decision = "OBSERVAR"
-    else:
-        decision = "RECHAZAR"
+    decision = mapear_decision(clasificacion)
 
     request.estado = "EVALUADO"
     request.decision_sugerida = decision

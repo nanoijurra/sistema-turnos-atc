@@ -543,3 +543,128 @@ Este checkpoint marca el cierre de la separación efectiva entre:
 - ejecución
 
 Convirtiendo al sistema en una arquitectura correctamente estratificada.
+
+---
+
+## checkpoint-v8-swap-service-hardened
+Fecha: 2026-04-07
+
+---
+
+### Estado general
+
+Se consolida el modulo `swap_service` como nucleo operativo del sistema, endureciendo invariantes, alineando la semantica de implementacion y completando la cobertura de tests sobre el workflow.
+
+---
+
+### Que quedo implementado
+
+#### 1. Hardening del workflow operativo
+
+- validaciones explicitas en cada transicion de estado
+- proteccion contra:
+  - doble evaluacion
+  - doble aplicacion
+  - resolucion en estados invalidos
+- control estricto de versionado:
+  - el request solo opera sobre el roster vigente
+
+---
+
+#### 2. Refactor interno controlado (sin impacto en arquitectura)
+
+- extraccion de validaciones duplicadas en helpers privados:
+  - validacion de indices
+  - validacion de controladores vs roster
+- mejora de legibilidad y mantenibilidad
+- eliminacion de duplicacion logica sin modificar contratos
+
+---
+
+#### 3. Alineacion semantica completa
+
+- eliminacion de residuos de nomenclatura:
+  - `ACEPTADO` → `APROBADO`
+- eliminacion de clasificacion tecnica ficticia en rechazos operativos
+- separacion clara entre:
+  - clasificacion tecnica
+  - decision operativa
+
+---
+
+#### 4. Normalizacion de eventos de historial
+
+Se unifica el formato de eventos:
+
+- `REQUEST_EVALUADO`
+- `REQUEST_EVALUADO_SIN_TECNICA`
+- `REQUEST_RESUELTO`
+- `REQUEST_CANCELADO_POR_OBSOLESCENCIA`
+- `SWAP_APLICADO`
+
+Esto mejora:
+
+- trazabilidad
+- debugging
+- consistencia semantica
+
+---
+
+#### 5. Testing reforzado
+
+- realineacion completa de tests a la API publica (`swap_service`)
+- incorporacion de tests de borde:
+  - doble evaluacion
+  - doble aplicacion
+  - evaluacion de request cancelado
+  - resolucion invalida
+- incorporacion de tests directos sobre `swap_service`
+- validacion explicita de mensajes de error
+
+---
+
+### Validacion general
+
+- suite completa en verde
+- sin regresiones
+- comportamiento deterministico validado
+- coherencia entre codigo, tests y documentacion
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Decision 30: swap_service como unica autoridad del workflow operativo
+- Decision 31: invariantes operativos explicitos y obligatorios
+- Decision 32: separacion estricta entre evaluacion tecnica y decision operativa (reforzada a nivel implementacion)
+
+---
+
+### Impacto
+
+- se refuerza la robustez del sistema
+- se reduce riesgo de estados inconsistentes
+- se mejora trazabilidad operativa
+- se elimina ambiguedad semantica
+- se prepara la base para evolucion sin deuda tecnica
+
+---
+
+### Notas
+
+Este checkpoint marca la consolidacion del flujo completo de un SwapRequest:
+
+- creacion
+- evaluacion
+- resolucion
+- aplicacion
+
+Con garantias explicitas de:
+
+- consistencia
+- control de estado
+- integridad operativa
+
+El sistema queda preparado para escalar en complejidad sin comprometer estabilidad.
+
+---

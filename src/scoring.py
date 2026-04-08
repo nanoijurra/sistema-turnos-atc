@@ -31,3 +31,10 @@ def calcular_score(
                 score -= violacion.penalizacion
 
     return max(score, 0)
+
+def mapear_decision(clasificacion: str) -> str:
+    if clasificacion == "BENEFICIOSO":
+        return "VIABLE"
+    if clasificacion == "ACEPTABLE":
+        return "OBSERVAR"
+    return "RECHAZAR"
