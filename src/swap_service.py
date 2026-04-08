@@ -2,7 +2,7 @@ from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime
 from uuid import uuid4
-from src.simulator import evaluar_swap
+
 from src.models import SwapRequest, RosterVersion
 from src.request_store import guardar_request, listar_requests
 from src.roster_store import obtener_roster_vigente
@@ -13,6 +13,45 @@ from src.engine import (
     registrar_evento_swap_request,
     crear_nueva_version_desde_roster_vigente,
 )
+
+
+def _validar_indices_request_en_roster(asignaciones: list, request: SwapRequest) -> None:
+    if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
+        raise IndexError("Los índices del SwapRequest no son válidos para el roster actual.")
+
+
+def _validar_controladores_request_vs_roster(asignaciones: list, request: SwapRequest, contexto: str = "") -> None:
+    asignacion_a = asignaciones[request.idx_a]
+    asignacion_b = asignaciones[request.idx_b]
+
+    if asignacion_a.controlador is None or asignacion_b.controlador is None:
+        raise ValueError("Las asignaciones no tienen controlador asociado.")
+
+    sufijo = f" {contexto}" if contexto else ""
+
+    if asignacion_a.controlador.nombre != request.controlador_a:
+        raise ValueError(
+            f"Inconsistencia en controlador A{sufijo}: request={request.controlador_a}, roster={asignacion_a.controlador.nombre}"
+        )
+
+    if asignacion_b.controlador.nombre != request.controlador_b:
+        raise ValueError(
+            f"Inconsistencia en controlador B{sufijo}: request={request.controlador_b}, roster={asignacion_b.controlador.nombre}"
+        )
+
+
+def _obtener_y_validar_roster_vigente_para_request(
+    request: SwapRequest,
+    accion: str,
+) -> RosterVersion:
+    roster_vigente = obtener_roster_vigente()
+    if roster_vigente is None:
+        raise ValueError(f"No existe un roster vigente para {accion} el request.")
+
+    if request.roster_version_id != roster_vigente.id:
+        raise ValueError("El request no corresponde a la versión vigente del roster.")
+
+    return roster_vigente
 
 
 def crear_swap_request(
@@ -63,24 +102,13 @@ def evaluar_swap_request(
             f"Estado invalido para evaluar request: {request.estado}. Se esperaba PENDIENTE."
         )
 
-    if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
-        raise IndexError("Los índices del SwapRequest no son válidos para el roster actual.")
+    _validar_indices_request_en_roster(asignaciones, request)
+    _validar_controladores_request_vs_roster(asignaciones, request)
 
-    asignacion_a = asignaciones[request.idx_a]
-    asignacion_b = asignaciones[request.idx_b]
-
-    if asignacion_a.controlador is None or asignacion_b.controlador is None:
-        raise ValueError("Las asignaciones no tienen controlador asociado.")
-
-    if asignacion_a.controlador.nombre != request.controlador_a:
-        raise ValueError(
-            f"Inconsistencia en controlador A: request={request.controlador_a}, roster={asignacion_a.controlador.nombre}"
-        )
-
-    if asignacion_b.controlador.nombre != request.controlador_b:
-        raise ValueError(
-            f"Inconsistencia en controlador B: request={request.controlador_b}, roster={asignacion_b.controlador.nombre}"
-        )
+    roster_vigente = _obtener_y_validar_roster_vigente_para_request(
+        request,
+        accion="evaluar",
+    )
 
     roster_vigente = obtener_roster_vigente()
     if roster_vigente is None:
@@ -225,24 +253,8 @@ def aplicar_swap_request(asignaciones: list, request: SwapRequest) -> RosterVers
     if request.roster_version_id != roster_vigente.id:
         raise ValueError("El request ya no apunta a la versión vigente del roster.")
 
-    if not (0 <= request.idx_a < len(asignaciones)) or not (0 <= request.idx_b < len(asignaciones)):
-        raise IndexError("Los índices del SwapRequest no son válidos para el roster actual.")
-
-    asignacion_a = asignaciones[request.idx_a]
-    asignacion_b = asignaciones[request.idx_b]
-
-    if asignacion_a.controlador is None or asignacion_b.controlador is None:
-        raise ValueError("Las asignaciones no tienen controlador asociado.")
-
-    if asignacion_a.controlador.nombre != request.controlador_a:
-        raise ValueError(
-            f"Inconsistencia en controlador A al aplicar: request={request.controlador_a}, roster={asignacion_a.controlador.nombre}"
-        )
-
-    if asignacion_b.controlador.nombre != request.controlador_b:
-        raise ValueError(
-            f"Inconsistencia en controlador B al aplicar: request={request.controlador_b}, roster={asignacion_b.controlador.nombre}"
-        )
+    _validar_indices_request_en_roster(asignaciones, request)
+    _validar_controladores_request_vs_roster(asignaciones, request, contexto="al aplicar")
 
     roster_version_id_viejo = roster_vigente.id
 
@@ -267,7 +279,7 @@ def aplicar_swap_request(asignaciones: list, request: SwapRequest) -> RosterVers
 
     registrar_evento_swap_request(
         request,
-        f"Swap aplicado → nueva version {nueva_version.version_number}",
+        f"SWAP_APLICADO: nueva_version={nueva_version.version_number}",
     )
 
     return nueva_version

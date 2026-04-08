@@ -348,8 +348,8 @@ def test_swap_request_registra_historial_completo_en_flujo_aprobado():
     assert nueva_version is not None
     assert nueva_version.version_number == 2
     assert len(request.history) == 4
-    assert "Swap aplicado" in request.history[3]
-    assert "nueva version 2" in request.history[3]
+    assert "SWAP_APLICADO:" in request.history[3]
+    assert "nueva_version=2" in request.history[3]
 
 
 def test_swap_request_registra_historial_hasta_resolucion_rechazada():
