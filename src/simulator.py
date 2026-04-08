@@ -455,13 +455,21 @@ def evaluar_swap(
     return resultado
 
 
+def _prioridad_clasificacion(clasificacion: str) -> int:
+    if clasificacion == "BENEFICIOSO":
+        return 2
+    if clasificacion == "ACEPTABLE":
+        return 1
+    return 0
+
+
 def explorar_swaps(
     asignaciones: list,
     pares: list[tuple[int, int]],
     config_file: str = "config_equilibrado.json",
 ) -> list[dict]:
     """
-    Evalúa múltiples swaps y devuelve un ranking basado en impacto.
+    Evalua multiples swaps y devuelve un ranking tecnico basado en clasificacion e impacto.
     """
     evaluaciones = []
 
@@ -476,8 +484,11 @@ def explorar_swaps(
 
     evaluaciones.sort(
         key=lambda e: (
-            e["valido_nuevo"],
-            e["impacto"],
+            _prioridad_clasificacion(e["clasificacion"]),
+            int(e["valido_nuevo"]),
+            -e["delta_hard"],
+            -e["delta_total_violaciones"],
+            e.get("impacto", 0),
         ),
         reverse=True,
     )
@@ -636,8 +647,16 @@ def generar_recomendacion_textual(evaluacion: dict) -> str:
             "Impacto por controlador: " + "; ".join(cambios_controladores) + "."
         )
 
-    partes.append(f"Clasificación: {evaluacion['clasificacion']}.")
-    partes.append(f"Impacto calculado: {evaluacion.get('impacto', 0)}.")
+    clasificacion = evaluacion["clasificacion"]
+
+    if clasificacion == "BENEFICIOSO":
+        partes.append("Este swap es beneficioso: mejora el estado general sin perjudicar a ningun controlador.")
+    elif clasificacion == "ACEPTABLE":
+        partes.append("Este swap es aceptable: no genera deterioro, aunque el beneficio es limitado.")
+    else:
+        partes.append("Este swap es rechazable: genera deterioro o no cumple condiciones operativas.")
+
+    partes.append(f"Impacto tecnico calculado: {evaluacion.get('impacto', 0)}.")
 
     return " ".join(partes)
 
@@ -690,3 +709,44 @@ def mostrar_historial_swap_request(request: SwapRequest) -> str:
         lineas.append(f"  {i}. {evento}")
 
     return "\n".join(lineas)
+
+def obtener_top_swaps(
+    asignaciones: list,
+    limite: int = 5,
+    incluir_aceptables: bool = True,
+    config_file: str = "config_equilibrado.json",
+) -> list[dict]:
+    """
+    Devuelve los mejores swaps rankeados, con recomendacion textual incluida.
+    """
+
+    evaluaciones = explorar_swaps_entre_controladores(
+        asignaciones,
+        config_file=config_file,
+    )
+
+    # filtrar segun criterio operativo
+    if incluir_aceptables:
+        evaluaciones = [
+            e for e in evaluaciones
+            if e["clasificacion"] in {"BENEFICIOSO", "ACEPTABLE"}
+        ]
+    else:
+        evaluaciones = [
+            e for e in evaluaciones
+            if e["clasificacion"] == "BENEFICIOSO"
+        ]
+
+    top = evaluaciones[:limite]
+
+    resultado = []
+
+    for e in top:
+        resultado.append({
+            "swap": e["swap"],
+            "clasificacion": e["clasificacion"],
+            "impacto": e.get("impacto", 0),
+            "recomendacion": generar_recomendacion_textual(e),
+        })
+
+    return resultado

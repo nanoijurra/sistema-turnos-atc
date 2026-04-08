@@ -668,3 +668,207 @@ Con garantias explicitas de:
 El sistema queda preparado para escalar en complejidad sin comprometer estabilidad.
 
 ---
+
+## checkpoint-v9-engine-scoring-baseline
+Fecha: 2026-04-07
+
+---
+
+### Estado general
+
+Se consolida el bloque de engine y scoring como base del criterio de decision del sistema.  
+La clasificacion de swaps y su traduccion a decisiones operativas quedan formalizadas, testeadas y alineadas con el dominio.
+
+---
+
+### Que quedo implementado
+
+#### 1. Scoring base estabilizado
+
+- separacion clara entre validacion hard y penalizaciones soft
+- funcion de score definida y acotada
+- el score no interviene aun en la decision directa, pero queda disponible como señal
+
+---
+
+#### 2. Clasificacion de swaps formalizada
+
+- implementacion explicita de `clasificar_swap`
+- reglas definidas:
+  - RECHAZABLE si invalida o empeora a algun controlador
+  - BENEFICIOSO si mejora sin perjudicar a nadie
+  - ACEPTABLE si no empeora y no mejora significativamente
+- criterio basado en:
+  - impacto global
+  - impacto por controlador
+
+---
+
+#### 3. Mapping decision operativo consolidado
+
+- extraccion de `mapear_decision` a `scoring.py`
+- eliminacion de logica hardcodeada en `swap_service`
+- relacion establecida:
+  - BENEFICIOSO → VIABLE
+  - ACEPTABLE → OBSERVAR
+  - RECHAZABLE → RECHAZAR
+
+---
+
+#### 4. Testing del motor de decision
+
+- tests unitarios para mapping de decision
+- tests unitarios para clasificacion de swaps
+- cobertura de casos clave:
+  - invalido nuevo
+  - empeora controlador
+  - mejora global
+  - no mejora ni empeora
+- test conceptual adicional:
+  - mejora global sin deterioro individual → BENEFICIOSO
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Decision 33: la clasificacion es responsabilidad del motor tecnico, no del workflow
+- Decision 34: la decision operativa es una transformacion de la clasificacion
+- Decision 35: el deterioro de cualquier controlador invalida el swap
+- Decision 36: la mejora global es suficiente si no hay perjuicio individual
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- el score no se utiliza aun para ranking ni priorizacion
+- no existe ponderacion diferencial entre controladores
+- la mejora se mide de forma agregada, no cualitativa
+- no hay umbrales ni sensibilidad configurable en clasificacion
+
+---
+
+### Proximos pasos naturales
+
+- implementacion de ranking de swaps basado en clasificacion y score
+- exposicion de resultados ordenados para consumo operativo
+- evaluacion futura de refinamiento del scoring
+
+---
+
+### Notas
+
+Este checkpoint marca el cierre del modelo de decision del sistema:
+
+- evaluacion tecnica
+- clasificacion
+- decision operativa
+
+El sistema ya no solo ejecuta swaps correctamente, sino que define de forma consistente cuales swaps son mejores.
+
+Queda preparado para evolucionar hacia funcionalidades orientadas a valor (ranking, sugerencias, optimizacion).
+
+---
+
+## checkpoint-v10-ranking-swaps
+Fecha: 2026-04-07
+
+---
+
+### Estado general
+
+Se incorpora la primera feature operativa real del sistema: ranking de swaps.
+El sistema ya no solo evalua y clasifica swaps correctamente, sino que puede ordenar candidatos y exponer los mejores resultados de forma util para consumo operativo.
+
+---
+
+### Que quedo implementado
+
+#### 1. Ranking tecnico de swaps
+
+- refuerzo del criterio de ordenamiento en `explorar_swaps`
+- priorizacion por clasificacion:
+  - BENEFICIOSO
+  - ACEPTABLE
+  - RECHAZABLE
+- desempate por:
+  - validez del roster resultante
+  - delta hard
+  - delta total de violaciones
+  - impacto tecnico
+
+---
+
+#### 2. Formalizacion del criterio de ranking
+
+- incorporacion de helper privado para prioridad de clasificacion
+- eliminacion de dependencia exclusiva del campo `impacto` como orden principal
+- alineacion del ranking con el criterio semantico ya consolidado en engine/scoring
+
+---
+
+#### 3. Mejora de recomendacion textual
+
+- la recomendacion deja de limitarse a informar clasificacion
+- ahora explica por que el swap es:
+  - beneficioso
+  - aceptable
+  - rechazable
+- mejora de utilidad para lectura operativa y debugging
+
+---
+
+#### 4. Feature `obtener_top_swaps`
+
+- incorporacion de funcion para devolver los mejores swaps recomendados
+- soporte para:
+  - limitar cantidad de resultados
+  - incluir o excluir swaps aceptables
+  - devolver recomendacion textual incluida
+- primer punto de salida operativa usable del sistema
+
+---
+
+#### 5. Testing del ranking
+
+- tests unitarios de ranking:
+  - BENEFICIOSO por encima de ACEPTABLE
+  - ACEPTABLE por encima de RECHAZABLE
+  - mejor delta por encima de peor delta dentro de misma clasificacion
+- test de `obtener_top_swaps` con limite de resultados
+- validacion completa en verde
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Decision 37: el ranking tecnico debe respetar la clasificacion antes que el impacto bruto
+- Decision 38: el ordenamiento de swaps pertenece a simulator como capa tecnica de exploracion
+- Decision 39: la exposicion de top swaps puede construirse sobre el ranking tecnico sin mezclar workflow operativo
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- el ranking no utiliza aun score combinado configurable
+- no existe priorizacion por controlador o criterio de equidad
+- no hay reporte operativo consolidado en formato final
+- `obtener_top_swaps` devuelve estructura tecnica, no una vista de producto terminada
+
+---
+
+### Proximos pasos naturales
+
+- generar reporte operativo de swaps recomendados
+- evaluar refinamiento del ranking con score combinado
+- explorar criterios futuros de priorizacion por controlador
+
+---
+
+### Notas
+
+Este checkpoint marca el pasaje desde una base de evaluacion y decision a una capacidad concreta de recomendacion.
+El sistema ya puede producir una lista ordenada de swaps utiles, explicando por que un candidato queda mejor posicionado que otro.
+
+Queda preparado para evolucionar hacia una capa de salida operativa mas cercana al uso real.
+
+---
