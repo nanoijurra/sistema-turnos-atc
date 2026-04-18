@@ -776,35 +776,65 @@ def generar_reporte_swaps(
     lineas.append("")
 
     for i, swap_info in enumerate(top_swaps, start=1):
-        idx_a = swap_info["swap"]["idx_a"]
-        idx_b = swap_info["swap"]["idx_b"]
+        swap = swap_info.get("swap", {})
+        idx_a = swap.get("idx_a")
+        idx_b = swap.get("idx_b")
+
+        if idx_a is None or idx_b is None:
+            lineas.append(f"{i}) Swap con datos incompletos.")
+            lineas.append("   ✖ No se pudo reconstruir el detalle del intercambio.")
+            lineas.append("")
+            continue
+
+        if not (0 <= idx_a < len(asignaciones)) or not (0 <= idx_b < len(asignaciones)):
+            lineas.append(f"{i}) Swap con indices fuera de rango.")
+            lineas.append("   ✖ No se pudo reconstruir el detalle del intercambio.")
+            lineas.append("")
+            continue
 
         asignacion_a = asignaciones[idx_a]
         asignacion_b = asignaciones[idx_b]
 
-        ctrl_a = asignacion_a.controlador.nombre if asignacion_a.controlador else "SIN_CTRL"
-        ctrl_b = asignacion_b.controlador.nombre if asignacion_b.controlador else "SIN_CTRL"
+        ctrl_a = (
+            asignacion_a.controlador.nombre
+            if getattr(asignacion_a, "controlador", None) is not None
+            else "SIN_CTRL"
+        )
+        ctrl_b = (
+            asignacion_b.controlador.nombre
+            if getattr(asignacion_b, "controlador", None) is not None
+            else "SIN_CTRL"
+        )
 
-        fecha_a = asignacion_a.fecha
-        fecha_b = asignacion_b.fecha
+        fecha_a = getattr(asignacion_a, "fecha", None) or "SIN_FECHA"
+        fecha_b = getattr(asignacion_b, "fecha", None) or "SIN_FECHA"
 
-        turno_a = asignacion_a.turno.codigo
-        turno_b = asignacion_b.turno.codigo
+        turno_a_obj = getattr(asignacion_a, "turno", None)
+        turno_b_obj = getattr(asignacion_b, "turno", None)
+
+        turno_a = getattr(turno_a_obj, "codigo", "SIN_TURNO")
+        turno_b = getattr(turno_b_obj, "codigo", "SIN_TURNO")
 
         lineas.append(
             f"{i}) {ctrl_a} ({fecha_a} - turno {turno_a}) ↔ {ctrl_b} ({fecha_b} - turno {turno_b})"
         )
 
-        clasificacion = swap_info["clasificacion"]
+        clasificacion = swap_info.get("clasificacion", "DESCONOCIDA")
 
         if clasificacion == "BENEFICIOSO":
             lineas.append("   ✔ Beneficioso")
         elif clasificacion == "ACEPTABLE":
             lineas.append("   ✔ Aceptable")
-        else:
+        elif clasificacion == "RECHAZABLE":
             lineas.append("   ✖ Rechazable")
+        else:
+            lineas.append(f"   ? Clasificacion desconocida: {clasificacion}")
 
-        lineas.append(f"   → {swap_info['recomendacion']}")
+        recomendacion = swap_info.get(
+            "recomendacion",
+            "Sin recomendacion textual disponible.",
+        )
+        lineas.append(f"   → {recomendacion}")
         lineas.append("")
 
     return "\n".join(lineas)

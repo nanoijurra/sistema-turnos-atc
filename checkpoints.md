@@ -872,3 +872,60 @@ El sistema ya puede producir una lista ordenada de swaps utiles, explicando por 
 Queda preparado para evolucionar hacia una capa de salida operativa mas cercana al uso real.
 
 ---
+
+## checkpoint-v11-reporte-operativo
+
+### Estado
+COMPLETADO
+
+---
+
+### Capacidades incorporadas
+
+- generacion de reporte operativo de swaps recomendados
+- exposicion de top swaps en formato legible para humano
+- integracion con ranking tecnico existente
+- inclusion de clasificacion y explicacion textual por swap
+
+---
+
+### Comportamiento del sistema
+
+- el sistema puede producir una lista ordenada de swaps recomendados
+- cada swap incluye:
+  - identificacion clara de controladores, fechas y turnos
+  - clasificacion (beneficioso / aceptable / rechazable)
+  - explicacion del impacto
+- salida lista para uso operativo directo (sin necesidad de interpretar estructuras internas)
+
+---
+
+### Validacion
+
+- tests de generacion de reporte en verde
+- integracion correcta con `obtener_top_swaps`
+- consistencia semantica mantenida con engine y ranking
+
+---
+
+### Impacto
+
+- el sistema pasa de evaluacion tecnica a salida operativa usable
+- se habilita uso real del sistema para analisis de swaps
+- mejora significativa en interpretabilidad y comunicacion de resultados
+
+---
+
+### Notas
+
+Este checkpoint marca la primera capacidad completa de recomendacion:
+
+- evaluar
+- clasificar
+- ordenar
+- explicar
+- presentar
+
+El sistema ya puede ser utilizado como herramienta de apoyo en la toma de decisiones operativas.
+
+---
