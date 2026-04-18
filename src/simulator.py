@@ -7,6 +7,7 @@ from src.models import RosterVersion, SwapRequest
 from src.roster_diff import impacto_por_controlador
 from src.rule_types import RuleResult
 from src.scoring import calcular_score, es_roster_valido
+from src.historical_prioritization import priorizar_por_equidad_historica
 
 def _validar_indices_swap(asignaciones: list, idx_a: int, idx_b: int) -> None:
     if idx_a == idx_b:
@@ -560,6 +561,44 @@ def explorar_swaps_entre_controladores(
     """
     pares = generar_pares_swap_entre_controladores(asignaciones, limite=limite)
     return explorar_swaps(asignaciones, pares, config_file=config_file)
+
+def explorar_swaps_con_priorizacion_historica(
+    asignaciones: list,
+    pares: list[tuple[int, int]],
+    historial_por_controlador: dict | None = None,
+    config_file: str = "config_equilibrado.json",
+) -> list[dict]:
+    """
+    Explora swaps con ranking tecnico base y ajuste soft por equidad historica.
+    """
+    evaluaciones = explorar_swaps(
+        asignaciones=asignaciones,
+        pares=pares,
+        config_file=config_file,
+    )
+
+    return priorizar_por_equidad_historica(
+        evaluaciones=evaluaciones,
+        historial_por_controlador=historial_por_controlador,
+    )
+
+def explorar_swaps_entre_controladores_con_priorizacion_historica(
+    asignaciones: list,
+    historial_por_controlador: dict | None = None,
+    limite: int | None = None,
+    config_file: str = "config_equilibrado.json",
+) -> list[dict]:
+    """
+    Explora swaps entre controladores distintos y aplica ajuste soft de equidad historica.
+    """
+    pares = generar_pares_swap_entre_controladores(asignaciones, limite=limite)
+
+    return explorar_swaps_con_priorizacion_historica(
+        asignaciones=asignaciones,
+        pares=pares,
+        historial_por_controlador=historial_por_controlador,
+        config_file=config_file,
+    )
 
 
 def filtrar_swaps_validos(evaluaciones: list[dict]) -> list[dict]:

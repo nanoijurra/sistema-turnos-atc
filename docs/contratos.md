@@ -992,3 +992,82 @@ En consecuencia:
 - `swap_service` publica operacion y workflow
 
 Ambas superficies no deben solaparse.
+
+### 13.Contrato de priorizacion historica de swaps
+
+#### Proposito
+
+Aplicar un criterio de equidad historica sobre un conjunto de swaps ya evaluados tecnicamente, ajustando su orden relativo sin modificar su significado tecnico.
+
+---
+
+#### Ubicacion
+
+Este modulo se ubica:
+
+- despues de `simulator`
+- antes del consumo del ranking por UI o flujo operativo
+
+No forma parte de:
+- engine
+- scoring
+- simulator
+- swap_service
+
+---
+
+#### Entrada
+
+- lista de evaluaciones tecnicas de swaps
+- informacion historica por controlador dentro de la ventana definida
+
+---
+
+#### Salida
+
+- misma lista de evaluaciones
+- orden ajustado por equidad historica
+
+Puede agregar:
+- score_equidad
+- metadata explicativa
+
+No puede modificar:
+- clasificacion
+- impacto
+- score tecnico
+- validez
+
+---
+
+#### Garantias
+
+- no altera evaluacion tecnica
+- no introduce decision operativa
+- no modifica workflow
+- comportamiento deterministico
+
+---
+
+#### Regla de actuacion
+
+Puede:
+- reordenar swaps validos o aceptables
+- desempatar swaps tecnicamente similares
+
+No puede:
+- promover swaps rechazables
+- redefinir clasificacion tecnica
+- eliminar swaps por criterio historico
+
+---
+
+#### Regla de peso
+
+La equidad historica es una señal soft subordinada a la calidad tecnica del swap.
+
+---
+
+#### Regla critica
+
+La equidad historica modifica prioridad, no significado.

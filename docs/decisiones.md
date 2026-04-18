@@ -22,7 +22,7 @@ El sistema se separa en capas claras:
 - simulator → exploración
 - (futuro) roster_service → versionado
 
-### Motivo
+#### Motivo
 
 Reducir acoplamiento y facilitar escalabilidad.
 
@@ -32,7 +32,7 @@ Reducir acoplamiento y facilitar escalabilidad.
 
 El engine no toma decisiones operativas (VIABLE / OBSERVAR / RECHAZAR).
 
-### Motivo
+#### Motivo
 
 Evitar que se convierta en una "god class".
 
@@ -571,3 +571,141 @@ Consecuencia:
 
 Motivo:
 Eliminar ambiguedad de uso y alinear la API publica con la arquitectura definida en la Decision 28.
+
+---
+
+### Decision 30 - Incorporacion de equidad historica como señal de priorizacion
+
+### Decision
+
+Se incorpora un criterio de equidad historica como señal soft de priorizacion en el sistema de swaps, sin afectar la evaluacion tecnica ni la decision operativa base.
+
+### Definicion
+
+La equidad historica representa el balance reciente de beneficios y perjuicios recibidos por cada controlador a partir de swaps aplicados.
+
+Un controlador se considera relativamente “castigado” cuando su saldo historico reciente es desfavorable respecto a otros.
+
+### Modelo adoptado
+
+#### Se adopta un modelo de ventana historica deslizante basada en:
+
+ultimos 3 rosters (recomendado)
+o equivalente temporal acotado
+
+#### Dentro de esa ventana se calcula:
+
+impacto neto por controlador
+mejoras vs deterioros recibidos
+
+### Naturaleza de la señal
+
+#### La equidad historica:
+
+es una señal soft
+no es restriccion hard
+no invalida swaps
+no redefine clasificacion tecnica
+no sustituye decision operativa
+
+### Ubicacion en la arquitectura
+
+#### La equidad historica:
+
+no pertenece a engine
+no pertenece a scoring tecnico base
+no modifica simulator en su contrato tecnico
+
+#### Se aplica como criterio adicional en:
+
+ranking de swaps
+priorizacion de alternativas
+desempate entre swaps tecnicamente equivalentes
+
+### Regla de integracion
+
+#### La equidad historica solo puede actuar sobre:
+
+ordenamiento entre swaps validos o aceptables
+priorizacion de swaps tecnicamente correctos
+
+#### No puede actuar sobre:
+
+validez tecnica
+clasificacion tecnica
+decision operativa base
+aplicacion del swap
+Modelo de datos conceptual
+
+### Se requiere una estructura historica minima basada en eventos de swaps aplicados:
+
+controlador involucrado
+impacto recibido (mejora / neutro / deterioro)
+referencia a roster_version
+timestamp
+
+Esta informacion permite calcular saldo historico dentro de la ventana definida.
+
+### Riesgos controlados
+memoria infinita → se limita por ventana
+sesgo acumulado → se acota a historia reciente
+injusticia inversa → peso bajo en ranking
+complejidad → modelo simple y auditable
+
+### Motivo
+
+#### Incorporar justicia operativa sin comprometer:
+
+consistencia tecnica
+separacion de capas
+contratos existentes
+
+Permitiendo mejorar la distribucion de beneficios en escenarios reales de uso ATC.
+
+### Decision 31 - Integracion de equidad historica fuera de simulator
+
+#### Decision
+
+La equidad historica se integra como una etapa de priorizacion posterior a la evaluacion tecnica de `simulator`.
+
+---
+
+#### Regla
+
+`simulator` mantiene su contrato tecnico y produce unicamente:
+
+- evaluacion tecnica
+- clasificacion tecnica
+- impacto tecnico
+- metricas comparativas
+
+La equidad historica no modifica esa salida.
+
+---
+
+#### Forma de integracion
+
+La equidad historica actua sobre:
+
+- ranking de alternativas
+- priorizacion entre swaps tecnicamente aceptables
+- desempate entre swaps equivalentes
+
+No actua sobre:
+
+- validez tecnica
+- clasificacion tecnica
+- decision operativa base
+- aplicacion del swap
+
+---
+
+#### Modelo adoptado
+
+Se utiliza un ajuste suave de ranking con peso bajo, subordinado siempre a la calidad tecnica del swap.
+
+---
+
+#### Motivo
+
+Incorporar equidad historica sin contaminar el contrato tecnico de `simulator` ni alterar la separacion de capas del sistema.
