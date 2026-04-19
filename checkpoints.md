@@ -1194,3 +1194,215 @@ Se mantiene la pureza técnica del sistema,
 pero se habilita una primera forma de distribución de beneficios en escenarios de alta escala.
 
 ---
+
+## checkpoint-v14-historical-store-sqlite
+Fecha: 2026-04-07
+
+---
+
+### Estado general
+
+Se incorpora persistencia SQLite para el historial minimo de equidad historica.
+
+El sistema deja de depender exclusivamente de estructuras en memoria para registrar beneficios recientes por controlador y pasa a contar con una base persistente desacoplada del motor tecnico.
+
+---
+
+### Que quedo implementado
+
+#### 1. Store historico dedicado
+
+- creacion de `historical_store.py`
+- responsabilidad exclusiva:
+  - inicializacion de tabla
+  - lectura de historial por controlador
+  - lectura multiple
+  - incremento de beneficios recientes
+
+---
+
+#### 2. Nueva tabla SQLite para equidad
+
+- tabla nueva para historial minimo por controlador
+- estructura implementada:
+  - `controlador`
+  - `beneficios_recientes`
+- modelo simple y estable
+- sin mezclar con `request_store` ni con `roster_store`
+
+---
+
+#### 3. Integracion con historical_tracking
+
+- `historical_tracking.py` pasa a actualizar:
+  - estructura en memoria
+  - persistencia SQLite
+- se mantiene compatibilidad con flujo anterior
+- no se modifica semantica tecnica del tracking
+
+---
+
+#### 4. Integracion con flujo operativo
+
+- `aplicar_swap_request` mantiene hook de tracking historico
+- al aplicar swaps:
+  - puede actualizar historial minimo persistente
+- no introduce:
+  - reevaluacion
+  - cambios en clasificacion
+  - cambios en decision operativa
+
+---
+
+#### 5. Testing
+
+- tests nuevos para `historical_store`
+- validacion de:
+  - lectura neutra si no existe controlador
+  - incremento persistente
+  - acumulacion de beneficios
+  - formato compatible para priorizacion
+- suite completa en verde
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Decision 34: persistencia historica en store separado
+- Decision 35: no mezclar historial de equidad con stores operativos existentes
+- Decision 36: tracking persistente minimo antes de introducir ventanas temporales
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- historial persistido aun reducido a `beneficios_recientes`
+- no hay ventana temporal real
+- no hay decaimiento
+- no hay lectura automatica aun desde priorizacion
+- no se persisten otras señales de carga o rezago
+
+---
+
+### Proximos pasos naturales
+
+- consumo automatico del historial persistido desde priorizacion
+- definicion de ventana temporal real
+- incorporacion de decaimiento temporal
+- ampliacion del modelo historico mas alla de beneficios simples
+
+---
+
+### Notas
+
+Este checkpoint marca el cierre de la primera capa persistente de equidad historica.
+
+El sistema ya puede almacenar memoria minima por controlador a lo largo del tiempo, preparando el terreno para que esa memoria sea utilizada automaticamente en el ranking de swaps.
+
+---
+
+## checkpoint-v15-equidad-automatica-desde-sqlite
+Fecha: 2026-04-07
+
+---
+
+### Estado general
+
+Se completa la integracion automatica de equidad historica en el sistema mediante persistencia SQLite.
+
+La priorizacion historica deja de depender de estructuras manuales en memoria y pasa a consumir historial persistido de forma transparente, manteniendo intacta la arquitectura y los contratos existentes.
+
+---
+
+### Que quedo implementado
+
+#### 1. Persistencia SQLite para equidad historica
+
+- creacion de `historical_store.py`
+- tabla nueva para historial minimo por controlador
+- operaciones implementadas:
+  - inicializacion
+  - lectura individual
+  - lectura multiple
+  - incremento de beneficios recientes
+
+---
+
+#### 2. Tracking historico persistente
+
+- integracion de escritura persistente en `historical_tracking.py`
+- cada beneficio detectado:
+  - actualiza estructura en memoria
+  - actualiza tambien almacenamiento SQLite
+- se mantiene compatibilidad con modelo previo
+
+---
+
+#### 3. Consumo automatico del historial
+
+- `historical_prioritization.py` ya no depende obligatoriamente de un dict manual
+- si no se provee historial:
+  - detecta controladores involucrados
+  - lee automaticamente historial persistido desde SQLite
+- si no hay datos:
+  - comportamiento neutro
+  - sin romper flujo
+
+---
+
+#### 4. Integracion real en flujo de priorizacion
+
+- la equidad historica pasa a ser usable en condiciones reales
+- el ranking puede incorporar memoria operativa sin armado manual externo
+- se mantiene:
+  - clasificacion tecnica
+  - score tecnico
+  - impacto tecnico
+  - decision operativa
+
+---
+
+#### 5. Testing
+
+- tests nuevos para store historico
+- tests de persistencia e incremento acumulado
+- test de consumo automatico desde SQLite en priorizacion
+- validacion completa en verde
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Decision 34: persistencia historica desacoplada del motor tecnico
+- Decision 35: lectura automatica del historial como comportamiento por defecto
+- Decision 36: equidad historica sigue siendo señal soft, nunca criterio dominante
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- historial aun simplificado a `beneficios_recientes`
+- no hay ventana temporal real
+- no hay decaimiento
+- no hay normalizacion por carga estructural
+- no se exponen aun señales de equidad en el reporte operativo
+
+---
+
+### Proximos pasos naturales
+
+- exponer equidad historica en reporte operativo
+- definir ventana temporal real (ej: ultimos 3 rosters)
+- incorporar decaimiento temporal
+- ampliar el modelo historico mas alla de beneficios simples
+
+---
+
+### Notas
+
+Este checkpoint marca el pasaje desde una equidad historica experimental a una equidad historica integrada al flujo real.
+
+El sistema ya no solo recuerda beneficios pasados:
+tambien los utiliza automaticamente para priorizar alternativas tecnicamente validas en escenarios de mayor escala.
+
+---

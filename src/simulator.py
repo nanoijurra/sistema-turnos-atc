@@ -695,7 +695,12 @@ def generar_recomendacion_textual(evaluacion: dict) -> str:
     else:
         partes.append("Este swap es rechazable: genera deterioro o no cumple condiciones operativas.")
 
-    partes.append(f"Impacto tecnico calculado: {evaluacion.get('impacto', 0)}.")
+    partes.append(f"Clasificación: {evaluacion['clasificacion']}.")
+    partes.append(f"Impacto calculado: {evaluacion.get('impacto', 0)}.")
+
+    # 👇 NUEVO BLOQUE (equidad histórica)
+    if evaluacion.get("ajuste_equidad") == "APLICADO":
+        partes.append("Considerando distribución reciente de carga.")
 
     return " ".join(partes)
 
