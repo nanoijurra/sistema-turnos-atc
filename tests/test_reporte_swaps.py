@@ -1,4 +1,4 @@
-from src.simulator import generar_reporte_swaps
+from src.simulator import generar_reporte_swaps, generar_resumen_operativo_swaps
 
 
 def test_generar_reporte_swaps_no_vacio(monkeypatch):
@@ -66,4 +66,39 @@ def test_generar_reporte_swaps_tolera_datos_incompletos(monkeypatch):
     assert "SIN_CTRL" in reporte
     assert "SIN_FECHA" in reporte
     assert "SIN_TURNO" in reporte
-    assert "Clasificacion desconocida" in reporte
+    assert "Clasificacion no reconocida" in reporte
+    
+    from src.simulator import generar_resumen_operativo_swaps
+
+
+def test_generar_resumen_operativo_swaps_no_vacio(monkeypatch):
+    fake_top = [
+        {
+            "swap": {"idx_a": 0, "idx_b": 1},
+            "clasificacion": "BENEFICIOSO",
+            "impacto": 10,
+            "recomendacion": "Reduce violaciones totales en 1.",
+        }
+    ]
+
+    def fake_top_swaps(*args, **kwargs):
+        return fake_top
+
+    monkeypatch.setattr(
+        "src.simulator.obtener_top_swaps",
+        fake_top_swaps,
+    )
+
+    class Dummy:
+        def __init__(self):
+            self.controlador = type("C", (), {"nombre": "ATC_A"})()
+            self.fecha = "2026-04-01"
+            self.turno = type("T", (), {"codigo": "A"})()
+
+    asignaciones = [Dummy(), Dummy()]
+
+    resumen = generar_resumen_operativo_swaps(asignaciones, limite=1)
+
+    assert "TOP 1 SWAPS RECOMENDADOS" in resumen
+    assert "ATC_A" in resumen
+    assert "Beneficioso" in resumen

@@ -620,7 +620,7 @@ def filtrar_swaps_utiles(evaluaciones: list[dict]) -> list[dict]:
 
 def generar_recomendacion_textual(evaluacion: dict) -> str:
     """
-    Genera una explicación textual incluyendo impacto por controlador.
+    Genera una explicacion textual incluyendo impacto por controlador.
     """
     swap = evaluacion["swap"]
     idx_a = swap["idx_a"]
@@ -689,18 +689,22 @@ def generar_recomendacion_textual(evaluacion: dict) -> str:
     clasificacion = evaluacion["clasificacion"]
 
     if clasificacion == "BENEFICIOSO":
-        partes.append("Este swap es beneficioso: mejora el estado general sin perjudicar a ningun controlador.")
+        partes.append(
+            "Este swap es beneficioso: mejora el estado general sin perjudicar a ningun controlador."
+        )
     elif clasificacion == "ACEPTABLE":
-        partes.append("Este swap es aceptable: no genera deterioro, aunque el beneficio es limitado.")
+        partes.append(
+            "Este swap es aceptable: no genera deterioro, aunque el beneficio es limitado."
+        )
     else:
-        partes.append("Este swap es rechazable: genera deterioro o no cumple condiciones operativas.")
+        partes.append(
+            "Este swap es rechazable: genera deterioro o no cumple condiciones operativas."
+        )
 
-    partes.append(f"Clasificación: {evaluacion['clasificacion']}.")
-    partes.append(f"Impacto calculado: {evaluacion.get('impacto', 0)}.")
+    partes.append(f"Impacto tecnico calculado: {evaluacion.get('impacto', 0)}.")
 
-    # 👇 NUEVO BLOQUE (equidad histórica)
     if evaluacion.get("ajuste_equidad") == "APLICADO":
-        partes.append("Considerando distribución reciente de carga.")
+        partes.append("Considerando distribucion reciente de carga.")
 
     return " ".join(partes)
 
@@ -825,14 +829,14 @@ def generar_reporte_swaps(
         idx_b = swap.get("idx_b")
 
         if idx_a is None or idx_b is None:
-            lineas.append(f"{i}) Swap con datos incompletos.")
-            lineas.append("   ✖ No se pudo reconstruir el detalle del intercambio.")
+            lineas.append(f"{i}) Swap con datos incompletos")
+            lineas.append("   ✖ No se pudo reconstruir el intercambio.")
             lineas.append("")
             continue
 
         if not (0 <= idx_a < len(asignaciones)) or not (0 <= idx_b < len(asignaciones)):
-            lineas.append(f"{i}) Swap con indices fuera de rango.")
-            lineas.append("   ✖ No se pudo reconstruir el detalle del intercambio.")
+            lineas.append(f"{i}) Swap con indices fuera de rango")
+            lineas.append("   ✖ No se pudo reconstruir el intercambio.")
             lineas.append("")
             continue
 
@@ -872,13 +876,91 @@ def generar_reporte_swaps(
         elif clasificacion == "RECHAZABLE":
             lineas.append("   ✖ Rechazable")
         else:
-            lineas.append(f"   ? Clasificacion desconocida: {clasificacion}")
+            lineas.append(f"   ? Clasificacion no reconocida: {clasificacion}")
 
         recomendacion = swap_info.get(
             "recomendacion",
             "Sin recomendacion textual disponible.",
         )
         lineas.append(f"   → {recomendacion}")
+        lineas.append("")
+
+    return "\n".join(lineas)
+
+def generar_resumen_operativo_swaps(
+    asignaciones: list,
+    limite: int = 5,
+    incluir_aceptables: bool = True,
+    config_file: str = "config_equilibrado.json",
+) -> str:
+    """
+    Genera una vista operativa compacta con los mejores swaps recomendados.
+    """
+    top_swaps = obtener_top_swaps(
+        asignaciones=asignaciones,
+        limite=limite,
+        incluir_aceptables=incluir_aceptables,
+        config_file=config_file,
+    )
+
+    if not top_swaps:
+        return "No se encontraron swaps recomendados."
+
+    lineas = [f"TOP {len(top_swaps)} SWAPS RECOMENDADOS", ""]
+
+    for i, swap_info in enumerate(top_swaps, start=1):
+        swap = swap_info.get("swap", {})
+        idx_a = swap.get("idx_a")
+        idx_b = swap.get("idx_b")
+
+        if idx_a is None or idx_b is None:
+            lineas.append(f"{i}) Swap con datos incompletos")
+            lineas.append("")
+            continue
+
+        if not (0 <= idx_a < len(asignaciones)) or not (0 <= idx_b < len(asignaciones)):
+            lineas.append(f"{i}) Swap con indices fuera de rango")
+            lineas.append("")
+            continue
+
+        asignacion_a = asignaciones[idx_a]
+        asignacion_b = asignaciones[idx_b]
+
+        ctrl_a = (
+            asignacion_a.controlador.nombre
+            if getattr(asignacion_a, "controlador", None) is not None
+            else "SIN_CTRL"
+        )
+        ctrl_b = (
+            asignacion_b.controlador.nombre
+            if getattr(asignacion_b, "controlador", None) is not None
+            else "SIN_CTRL"
+        )
+
+        fecha_a = getattr(asignacion_a, "fecha", None) or "SIN_FECHA"
+        fecha_b = getattr(asignacion_b, "fecha", None) or "SIN_FECHA"
+
+        turno_a = getattr(getattr(asignacion_a, "turno", None), "codigo", "SIN_TURNO")
+        turno_b = getattr(getattr(asignacion_b, "turno", None), "codigo", "SIN_TURNO")
+
+        lineas.append(
+            f"{i}) {ctrl_a} ({fecha_a} {turno_a}) ↔ {ctrl_b} ({fecha_b} {turno_b})"
+        )
+
+        clasificacion = swap_info.get("clasificacion", "DESCONOCIDA")
+        if clasificacion == "BENEFICIOSO":
+            lineas.append("   Beneficioso")
+        elif clasificacion == "ACEPTABLE":
+            lineas.append("   Aceptable")
+        elif clasificacion == "RECHAZABLE":
+            lineas.append("   Rechazable")
+        else:
+            lineas.append(f"   Clasificacion no reconocida: {clasificacion}")
+
+        recomendacion = swap_info.get("recomendacion", "")
+        if recomendacion:
+            lineas.append(f"   {recomendacion}")
+
         lineas.append("")
 
     return "\n".join(lineas)

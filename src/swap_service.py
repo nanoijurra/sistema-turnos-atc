@@ -239,7 +239,6 @@ def aplicar_swap_request(
     evaluacion: dict | None = None,
     historial_por_controlador: dict | None = None,
 ) -> RosterVersion:
-    
     if request.decision_sugerida is None:
         raise ValueError("No se puede aplicar un request que no fue evaluado.")
 
