@@ -929,3 +929,268 @@ Este checkpoint marca la primera capacidad completa de recomendacion:
 El sistema ya puede ser utilizado como herramienta de apoyo en la toma de decisiones operativas.
 
 ---
+
+## checkpoint-v12-equidad-historica-minima
+Fecha: 2026-04-07
+
+---
+
+### Estado general
+
+Se incorpora la primera implementación completa de equidad histórica en el sistema, manteniendo la arquitectura intacta.
+
+El sistema pasa de ser puramente técnico (evaluación y ranking) a incorporar una señal temporal mínima que permite comenzar a distribuir beneficios entre controladores.
+
+---
+
+### Que quedo implementado
+
+#### 1. Capa de priorizacion historica (modulo separado)
+
+- creacion de `historical_prioritization.py`
+- implementacion de:
+  - deteccion de controladores beneficiados
+  - score de equidad historica
+  - reordenamiento soft de swaps
+- integracion sin contaminar:
+  - engine
+  - scoring tecnico
+  - clasificacion
+  - workflow
+
+---
+
+#### 2. Integracion opt-in en simulator
+
+- nuevas funciones:
+  - `explorar_swaps_con_priorizacion_historica`
+  - `explorar_swaps_entre_controladores_con_priorizacion_historica`
+- comportamiento:
+  - ranking tecnico intacto
+  - ajuste solo dentro de misma clasificacion
+  - sin promocion de swaps rechazables
+
+---
+
+#### 3. Tracking minimo de beneficios
+
+- creacion de `historical_tracking.py`
+- implementacion de:
+  - deteccion de beneficios por controlador
+  - contador `beneficios_recientes`
+- modelo simple:
+  - sin persistencia
+  - sin ventana temporal compleja
+  - sin decaimiento
+
+---
+
+#### 4. Hook en flujo real de aplicacion
+
+- integracion en `aplicar_swap_request`
+- comportamiento:
+  - actualiza historial solo si se provee
+  - no modifica flujo existente
+  - no introduce reevaluacion
+- mantiene contrato:
+  - aplicar no reevalua
+  - no afecta decision operativa
+
+---
+
+#### 5. Hardening del reporte operativo
+
+- tolerancia a:
+  - controladores nulos
+  - fechas faltantes
+  - turnos incompletos
+  - clasificaciones desconocidas
+- mejora robustez de salida operativa
+
+---
+
+#### 6. Testing completo
+
+- tests unitarios:
+  - priorizacion historica
+  - tracking de beneficios
+- test de integracion:
+  - hook en `aplicar_swap_request`
+- validacion:
+  - sin regresiones
+  - comportamiento deterministico
+  - suite en verde
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Decision 30: equidad historica como señal soft
+- Decision 31: equidad fuera de simulator (no contaminar capa tecnica)
+- Decision 32: tracking desacoplado del modelo tecnico
+- Decision 33: integracion via hook en flujo operativo (aplicar)
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- historial no persistente (solo en memoria)
+- modelo historico simplificado:
+  - solo contador de beneficios
+- no hay ventana temporal real (conceptual)
+- no hay decaimiento temporal
+- no hay priorizacion por carga estructural (solo swaps)
+
+---
+
+### Proximos pasos naturales
+
+- persistencia del historial por controlador
+- definicion de ventana temporal real (ej: ultimos 3 rosters)
+- refinamiento del modelo de equidad:
+  - incorporar carga operativa
+  - no solo swaps
+- integracion automatica del historial en flujo completo
+- visualizacion de equidad en reportes
+
+---
+
+### Notas
+
+Este checkpoint marca el inicio del comportamiento adaptativo del sistema.
+
+El sistema deja de ser completamente estático (solo reglas y estado actual) y comienza a incorporar memoria mínima de decisiones pasadas.
+
+Se mantiene:
+- consistencia técnica
+- separación de capas
+- trazabilidad
+
+Se habilita:
+- evolución hacia un sistema justo en escenarios de alta escala (78 controladores)
+
+---
+
+## checkpoint-v13-equidad-historica-minima
+Fecha: 2026-04-07
+
+---
+
+### Estado general
+
+Se completa la primera implementación operativa de equidad histórica en el sistema.
+
+El sistema incorpora:
+- priorización histórica como señal soft
+- tracking mínimo de beneficios
+- integración en el flujo real de aplicación
+
+Sin alterar la arquitectura ni los contratos existentes.
+
+---
+
+### Que quedo implementado
+
+#### 1. Priorizacion historica desacoplada
+
+- módulo nuevo: `historical_prioritization.py`
+- funcionalidades:
+  - detección de controladores beneficiados
+  - cálculo de score de equidad
+  - reordenamiento soft de swaps
+- comportamiento:
+  - no modifica clasificación técnica
+  - no altera impacto ni validez
+  - solo reordena dentro de la misma clasificación
+
+---
+
+#### 2. Integracion en simulator (opt-in)
+
+- nuevas funciones:
+  - `explorar_swaps_con_priorizacion_historica`
+  - `explorar_swaps_entre_controladores_con_priorizacion_historica`
+- mantiene:
+  - ranking técnico original
+- agrega:
+  - ajuste por equidad como desempate
+
+---
+
+#### 3. Tracking minimo de beneficios
+
+- módulo nuevo: `historical_tracking.py`
+- lógica:
+  - identifica controladores beneficiados
+  - incrementa `beneficios_recientes`
+- características:
+  - modelo simple
+  - sin persistencia
+  - sin ventana temporal real
+  - sin decaimiento
+
+---
+
+#### 4. Integracion en flujo operativo
+
+- hook en `aplicar_swap_request`
+- comportamiento:
+  - actualización opcional del historial
+  - sin impacto si no se provee historial
+  - sin reevaluación técnica
+- respeta invariantes:
+  - aplicar no reevalua
+  - no modifica decisión
+
+---
+
+#### 5. Testing
+
+- tests unitarios:
+  - priorización histórica
+  - tracking de beneficios
+- test de integración:
+  - verificación de hook en `swap_service`
+- validación:
+  - comportamiento determinístico
+  - suite completa en verde
+
+---
+
+### Decisiones de diseño reforzadas
+
+- Decision 30: equidad histórica como señal soft
+- Decision 31: separación estricta de capas
+- Decision 32: tracking desacoplado
+- Decision 33: integración vía hook en aplicación
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- historial no persistente
+- modelo simplificado (solo beneficios)
+- no hay ventana temporal real
+- no hay decaimiento
+- no se considera carga estructural (solo swaps)
+
+---
+
+### Proximos pasos naturales
+
+- persistencia del historial por controlador
+- definición de ventana temporal (ej: últimos 3 rosters)
+- incorporación de decaimiento temporal
+- integración automática del historial en todo el flujo
+- ampliación del modelo de equidad (más allá de swaps)
+
+---
+
+### Notas
+
+Este checkpoint marca la transición hacia un sistema con memoria operativa mínima.
+
+Se mantiene la pureza técnica del sistema,
+pero se habilita una primera forma de distribución de beneficios en escenarios de alta escala.
+
+---

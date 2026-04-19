@@ -1,3 +1,5 @@
+from src.historical_store import incrementar_beneficio_controlador
+
 def _controladores_beneficiados(evaluacion: dict) -> list[str]:
     """
     Detecta controladores beneficiados segun la evaluacion tecnica ya calculada.
@@ -50,11 +52,15 @@ def actualizar_historial_beneficios(
     beneficiados = _controladores_beneficiados(evaluacion)
 
     for ctrl in beneficiados:
+        # memoria local (compatibilidad actual)
         if ctrl not in historial:
             historial[ctrl] = {"beneficios_recientes": 0}
 
         historial[ctrl]["beneficios_recientes"] = (
             historial[ctrl].get("beneficios_recientes", 0) + 1
         )
+
+        # persistencia SQLite (nuevo)
+        incrementar_beneficio_controlador(ctrl)
 
     return historial

@@ -13,6 +13,8 @@ db.DB_PATH = str(TEST_DB_PATH)
 
 import src.request_store as request_store
 import src.roster_store as roster_store
+import src.historical_store as historical_store
 
 request_store.init_db()
 roster_store.init_db()
+historical_store.init_historical_store()

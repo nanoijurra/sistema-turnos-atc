@@ -1,7 +1,9 @@
 from src.engine import validar_todo
 from src.scenarios.v1_basico import crear_escenario
 from src.scoring import es_roster_valido, calcular_score
+from src.historical_store import init_historical_store
 
+init_historical_store()
 
 def main():
     asignaciones = crear_escenario()
