@@ -1,3 +1,4 @@
+from src.historical_store import init_historical_store, incrementar_beneficio_controlador
 from src.historical_prioritization import (
     calcular_score_equidad_swap,
     priorizar_por_equidad_historica,
@@ -124,3 +125,37 @@ def test_priorizar_por_equidad_historica_no_promueve_rechazables():
 
     assert resultado[0]["clasificacion"] == "ACEPTABLE"
     assert resultado[1]["clasificacion"] == "RECHAZABLE"
+    
+def test_priorizar_por_equidad_historica_lee_historial_desde_sqlite_si_no_se_provee():
+    init_historical_store()
+    incrementar_beneficio_controlador("ATC_A")
+    incrementar_beneficio_controlador("ATC_A")
+    incrementar_beneficio_controlador("ATC_A")
+
+    evaluaciones = [
+        {
+            "swap": {"idx_a": 0, "idx_b": 1},
+            "clasificacion": "BENEFICIOSO",
+            "resumen_por_controlador_original": {
+                "ATC_A": {"valido": True, "violaciones": {"hard": 0, "total": 2}},
+            },
+            "resumen_por_controlador_nuevo": {
+                "ATC_A": {"valido": True, "violaciones": {"hard": 0, "total": 1}},
+            },
+        },
+        {
+            "swap": {"idx_a": 2, "idx_b": 3},
+            "clasificacion": "BENEFICIOSO",
+            "resumen_por_controlador_original": {
+                "ATC_B": {"valido": True, "violaciones": {"hard": 0, "total": 2}},
+            },
+            "resumen_por_controlador_nuevo": {
+                "ATC_B": {"valido": True, "violaciones": {"hard": 0, "total": 1}},
+            },
+        },
+    ]
+
+    resultado = priorizar_por_equidad_historica(evaluaciones)
+
+    assert resultado[0]["swap"] == {"idx_a": 2, "idx_b": 3}
+    assert resultado[1]["swap"] == {"idx_a": 0, "idx_b": 1}

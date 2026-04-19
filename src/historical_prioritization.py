@@ -1,5 +1,5 @@
 from copy import deepcopy
-
+from src.historical_store import obtener_historial_para_controladores
 
 def _controladores_beneficiados(evaluacion: dict) -> list[str]:
     """
@@ -65,6 +65,16 @@ def calcular_score_equidad_swap(
 
     return score
 
+def _controladores_involucrados(evaluacion: dict) -> list[str]:
+    """
+    Devuelve todos los controladores presentes en la evaluacion.
+    """
+    antes = evaluacion.get("resumen_por_controlador_original", {})
+    despues = evaluacion.get("resumen_por_controlador_nuevo", {})
+
+    nombres = set(antes.keys()) | set(despues.keys())
+    return sorted(nombres)
+
 
 def priorizar_por_equidad_historica(
     evaluaciones: list[dict],
@@ -80,13 +90,27 @@ def priorizar_por_equidad_historica(
     - no promueve swaps rechazables por encima de otras clasificaciones
     - solo reordena dentro de la misma clasificacion
     """
-    if not historial_por_controlador:
+    evaluaciones_copia = [deepcopy(e) for e in evaluaciones]
+
+    historial_cargado = historial_por_controlador
+
+    if historial_cargado is None:
+        controladores = set()
+
+        for evaluacion in evaluaciones_copia:
+            controladores.update(_controladores_involucrados(evaluacion))
+
+        if controladores:
+            historial_cargado = obtener_historial_para_controladores(sorted(controladores))
+        else:
+            historial_cargado = {}
+
+    if not historial_cargado:
         resultado = []
-        for evaluacion in evaluaciones:
-            copia = deepcopy(evaluacion)
-            copia["score_equidad"] = 0
-            copia["ajuste_equidad"] = "NEUTRO_SIN_HISTORIAL"
-            resultado.append(copia)
+        for evaluacion in evaluaciones_copia:
+            evaluacion["score_equidad"] = 0
+            evaluacion["ajuste_equidad"] = "NEUTRO_SIN_HISTORIAL"
+            resultado.append(evaluacion)
         return resultado
 
     grupos: dict[str, list[dict]] = {
@@ -97,17 +121,16 @@ def priorizar_por_equidad_historica(
 
     otros = []
 
-    for evaluacion in evaluaciones:
-        copia = deepcopy(evaluacion)
-        score_equidad = calcular_score_equidad_swap(copia, historial_por_controlador)
-        copia["score_equidad"] = score_equidad
-        copia["ajuste_equidad"] = "APLICADO"
+    for evaluacion in evaluaciones_copia:
+        score_equidad = calcular_score_equidad_swap(evaluacion, historial_cargado)
+        evaluacion["score_equidad"] = score_equidad
+        evaluacion["ajuste_equidad"] = "APLICADO"
 
-        clasificacion = copia.get("clasificacion")
+        clasificacion = evaluacion.get("clasificacion")
         if clasificacion in grupos:
-            grupos[clasificacion].append(copia)
+            grupos[clasificacion].append(evaluacion)
         else:
-            otros.append(copia)
+            otros.append(evaluacion)
 
     for clasificacion in ("BENEFICIOSO", "ACEPTABLE"):
         grupos[clasificacion].sort(
@@ -115,7 +138,6 @@ def priorizar_por_equidad_historica(
             reverse=True,
         )
 
-    # RECHAZABLE queda en el mismo orden tecnico recibido
     resultado = (
         grupos["BENEFICIOSO"]
         + grupos["ACEPTABLE"]
