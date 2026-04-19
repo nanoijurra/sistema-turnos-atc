@@ -1406,3 +1406,281 @@ El sistema ya no solo recuerda beneficios pasados:
 tambien los utiliza automaticamente para priorizar alternativas tecnicamente validas en escenarios de mayor escala.
 
 ---
+
+## checkpoint-v16-equidad-visible-en-salida
+Fecha: 2026-04-07
+
+---
+
+### Estado general
+
+Se incorpora una señal contextual mínima de equidad histórica en la salida textual de recomendaciones.
+
+El sistema comienza a comunicar, de forma no técnica, cuándo la priorización fue influenciada por la distribución reciente de carga entre controladores.
+
+---
+
+### Que quedo implementado
+
+#### 1. Exposicion controlada de equidad
+
+- integración en `generar_recomendacion_textual`
+- agregado de una línea contextual cuando aplica:
+  - "Considerando distribucion reciente de carga."
+- no se exponen:
+  - scores
+  - valores numericos
+  - detalles internos
+
+---
+
+#### 2. Activacion condicional
+
+- la señal solo aparece cuando:
+  - `ajuste_equidad == "APLICADO"`
+- comportamiento neutro en el resto de los casos
+- no genera ruido en recomendaciones tecnicas puras
+
+---
+
+#### 3. Integracion con modelo existente
+
+- reutiliza:
+  - `historical_prioritization`
+  - señal `ajuste_equidad`
+- no modifica:
+  - ranking
+  - clasificacion
+  - impacto tecnico
+
+---
+
+#### 4. Lenguaje operativo
+
+- wording alineado a contexto ATC:
+  - "distribucion reciente de carga"
+- evita terminologia tecnica:
+  - equidad
+  - score
+  - algoritmo
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Decision 37: explicar solo cuando es necesario (no sobrecargar)
+- Decision 38: lenguaje operativo por encima del tecnico
+- Decision 39: transparencia controlada en sistemas multi-actor
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- no se expone informacion cuantitativa
+- no hay visibilidad de equidad a nivel agregado
+- no existe vista administrativa de distribucion
+
+---
+
+### Proximos pasos naturales
+
+- definir si la señal debe aparecer en el reporte completo
+- evaluar exposicion para perfiles administrativos
+- incorporar visualizacion agregada de equidad
+
+---
+
+### Notas
+
+Este checkpoint marca la transicion desde una equidad historica interna a una equidad historica visible.
+
+Se mantiene el equilibrio entre:
+- transparencia
+- simplicidad
+- no interferir con el flujo mental del controlador
+
+---
+
+Perfecto. Cerramos ambos checkpoints de forma ordenada.
+
+🧾 checkpoint-v17-limpieza-salida-operativa
+---
+
+## checkpoint-v17-limpieza-salida-operativa
+Fecha: 2026-04-07
+
+---
+
+### Estado general
+
+Se realiza una limpieza integral de las salidas textuales del sistema, mejorando la consistencia, legibilidad y alineación con un uso operativo real.
+
+No se introducen cambios en la lógica del sistema ni en los contratos existentes.
+
+---
+
+### Que quedo implementado
+
+#### 1. Limpieza de recomendacion textual
+
+- simplificacion de mensajes
+- eliminacion de redundancias
+- unificacion de estilo (sin tildes)
+- mejora de claridad operativa
+
+---
+
+#### 2. Consistencia de lenguaje
+
+- alineacion de textos entre:
+  - recomendacion
+  - reporte
+- mensajes mas cortos y directos
+- mejor integracion con lenguaje operativo real
+
+---
+
+#### 3. Ajuste de mensajes de error y fallback
+
+- mejora en:
+  - swaps con datos incompletos
+  - indices fuera de rango
+  - clasificaciones desconocidas
+- mensajes mas claros y uniformes
+
+---
+
+#### 4. Limpieza menor de formato
+
+- eliminacion de lineas en blanco innecesarias
+- mejora de estructura visual del codigo
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Decision 37: separacion entre logica tecnica y presentacion textual
+- Decision 38: lenguaje operativo por encima de lenguaje tecnico en salida
+- Decision 39: consistencia de mensajes como parte de la calidad del sistema
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- no existe aun una vista operativa diferenciada (compacta vs detallada)
+- la recomendacion textual sigue siendo relativamente extensa
+
+---
+
+### Proximos pasos naturales
+
+- crear vista operativa compacta
+- evaluar cual salida es mas adecuada para uso real
+- separar explicitamente vistas:
+  - tecnica
+  - operativa
+
+---
+
+### Notas
+
+Este checkpoint no cambia comportamiento del sistema.
+
+Su objetivo es mejorar la interpretabilidad y preparar la salida para uso real en entorno ATC.
+
+---
+
+## checkpoint-v18-resumen-operativo-swaps
+Fecha: 2026-04-07
+
+---
+
+### Estado general
+
+Se incorpora una nueva vista operativa compacta para la recomendacion de swaps.
+
+El sistema ahora ofrece dos niveles de salida:
+- reporte detallado
+- resumen operativo
+
+---
+
+### Que quedo implementado
+
+#### 1. Nueva funcion de resumen operativo
+
+- creacion de:
+  - `generar_resumen_operativo_swaps`
+- ubicada en `simulator`
+- no modifica logica existente
+
+---
+
+#### 2. Vista compacta orientada a operacion
+
+- informacion clave por swap:
+  - controladores
+  - fecha y turno
+  - clasificacion
+  - recomendacion
+- formato reducido y facil de leer
+
+---
+
+#### 3. Manejo robusto de datos incompletos
+
+- tolerancia a:
+  - indices invalidos
+  - controladores faltantes
+  - fechas o turnos incompletos
+
+---
+
+#### 4. Integracion con flujo existente
+
+- reutiliza:
+  - `obtener_top_swaps`
+  - evaluacion tecnica existente
+- no recalcula ni altera ranking
+
+---
+
+#### 5. Testing
+
+- test dedicado para la nueva funcion
+- validacion de salida no vacia
+- consistencia con comportamiento esperado
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Decision 40: separacion explicita entre salida detallada y salida operativa
+- Decision 41: presentacion como responsabilidad del simulator
+- Decision 42: vistas multiples sin duplicar logica
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- ambas vistas conviven sin definicion de uso oficial
+- no hay seleccion dinamica de formato segun contexto
+- no hay interfaz externa (CLI/UI)
+
+---
+
+### Proximos pasos naturales
+
+- definir salida operativa oficial
+- incorporar selector de formato (modo detallado vs compacto)
+- evaluar integracion con interfaz de usuario
+
+---
+
+### Notas
+
+Este checkpoint marca el paso desde una salida orientada a desarrollo hacia una salida usable en operacion real.
+
+Se mantiene la coherencia con la arquitectura y se evita introducir logica duplicada.
+
+---
