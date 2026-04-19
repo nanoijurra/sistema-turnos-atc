@@ -3,6 +3,7 @@ from dataclasses import replace
 from datetime import datetime
 from uuid import uuid4
 
+from src.historical_tracking import actualizar_historial_beneficios
 from src.scoring import mapear_decision
 from src.models import SwapRequest, RosterVersion
 from src.request_store import guardar_request, listar_requests
@@ -232,7 +233,13 @@ def cancelar_requests_obsoletos(roster_version_id_viejo: str) -> int:
     return cancelados
 
 
-def aplicar_swap_request(asignaciones: list, request: SwapRequest) -> RosterVersion:
+def aplicar_swap_request(
+    asignaciones: list,
+    request: SwapRequest,
+    evaluacion: dict | None = None,
+    historial_por_controlador: dict | None = None,
+) -> RosterVersion:
+    
     if request.decision_sugerida is None:
         raise ValueError("No se puede aplicar un request que no fue evaluado.")
 
@@ -277,5 +284,11 @@ def aplicar_swap_request(asignaciones: list, request: SwapRequest) -> RosterVers
         request,
         f"SWAP_APLICADO: nueva_version={nueva_version.version_number}",
     )
+
+    if historial_por_controlador is not None:
+        actualizar_historial_beneficios(
+            historial_por_controlador=historial_por_controlador,
+            evaluacion=evaluacion,
+        )
 
     return nueva_version

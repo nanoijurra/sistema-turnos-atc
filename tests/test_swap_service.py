@@ -160,3 +160,61 @@ def test_aplicar_swap_request_falla_si_no_esta_aprobado():
 
     with pytest.raises(ValueError, match="estado APROBADO"):
         aplicar_swap_request(asignaciones, request)      
+    
+def test_aplicar_swap_request_actualiza_historial_si_se_provee(monkeypatch):
+    from src.engine import crear_roster_version_inicial
+    from src.roster_store import limpiar_rosters
+    from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
+    from src.swap_service import evaluar_swap_request, aplicar_swap_request
+
+    limpiar_rosters()
+    asignaciones = crear_escenario()
+    crear_roster_version_inicial(asignaciones, regimen_horario="8H")
+
+    request = _crear_request_desde_asignaciones(asignaciones, 0, 3)
+
+    evaluar_swap_request(
+        asignaciones,
+        request,
+        evaluar_swap_fn=evaluar_swap,
+    )
+
+    resolver_swap_request(request, "APROBAR")
+
+    historial = {"dummy": {"beneficios_recientes": 0}}
+    evaluacion_tracking = {
+        "resumen_por_controlador_original": {
+            "CTRL_X": {
+                "valido": True,
+                "violaciones": {"hard": 0, "total": 2},
+            },
+        },
+        "resumen_por_controlador_nuevo": {
+            "CTRL_X": {
+                "valido": True,
+                "violaciones": {"hard": 0, "total": 1},
+            },
+        },
+    }
+
+    llamado = {}
+
+    def fake_actualizar_historial_beneficios(historial_por_controlador, evaluacion):
+        llamado["historial"] = historial_por_controlador
+        llamado["evaluacion"] = evaluacion
+        return historial_por_controlador
+
+    monkeypatch.setattr(
+        "src.swap_service.actualizar_historial_beneficios",
+        fake_actualizar_historial_beneficios,
+    )
+
+    aplicar_swap_request(
+        asignaciones,
+        request,
+        evaluacion=evaluacion_tracking,
+        historial_por_controlador=historial,
+    )
+
+    assert llamado["historial"] is historial
+    assert llamado["evaluacion"] is evaluacion_tracking
