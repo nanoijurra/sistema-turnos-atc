@@ -93,6 +93,56 @@ def test_request_actualizado_permanece_recuperable_desde_store():
     assert recuperado.roster_version_id is not None
     assert len(recuperado.history) == 3
 
+def test_guardar_y_obtener_request_preserva_todos_los_campos_relevantes() -> None:
+    from datetime import datetime
+
+    from src.models import SwapRequest
+    from src.request_store import guardar_request, obtener_request
+
+    fecha_creacion = datetime(2026, 4, 20, 10, 30, 0)
+    fecha_resolucion = datetime(2026, 4, 20, 12, 45, 0)
+
+    request = SwapRequest(
+        id="req-roundtrip-completo",
+        controlador_a="ATC_A",
+        controlador_b="ATC_B",
+        idx_a=2,
+        idx_b=7,
+        estado="APROBADO",
+        fecha_creacion=fecha_creacion,
+        fecha_resolucion=fecha_resolucion,
+        decision_sugerida="VIABLE",
+        motivo="ROUNDTRIP_TEST",
+        history=[
+            "Request creado",
+            "Request evaluado",
+            "Request aprobado",
+        ],
+        roster_hash="hash-prueba-123",
+        roster_version_id="roster-version-xyz",
+    )
+
+    guardar_request(request)
+    recuperado = obtener_request(request.id)
+
+    assert recuperado is not None
+    assert recuperado.id == "req-roundtrip-completo"
+    assert recuperado.controlador_a == "ATC_A"
+    assert recuperado.controlador_b == "ATC_B"
+    assert recuperado.idx_a == 2
+    assert recuperado.idx_b == 7
+    assert recuperado.estado == "APROBADO"
+    assert recuperado.fecha_creacion == fecha_creacion
+    assert recuperado.fecha_resolucion == fecha_resolucion
+    assert recuperado.decision_sugerida == "VIABLE"
+    assert recuperado.motivo == "ROUNDTRIP_TEST"
+    assert recuperado.history == [
+        "Request creado",
+        "Request evaluado",
+        "Request aprobado",
+    ]
+    assert recuperado.roster_hash == "hash-prueba-123"
+    assert recuperado.roster_version_id == "roster-version-xyz"
 
 def test_limpiar_requests_vacia_el_store():
     from src.engine import crear_roster_version_inicial
