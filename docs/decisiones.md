@@ -662,6 +662,8 @@ contratos existentes
 
 Permitiendo mejorar la distribucion de beneficios en escenarios reales de uso ATC.
 
+---
+
 ### Decision 31 - Integracion de equidad historica fuera de simulator
 
 #### Decision
@@ -700,6 +702,7 @@ No actua sobre:
 
 ---
 
+
 #### Modelo adoptado
 
 Se utiliza un ajuste suave de ranking con peso bajo, subordinado siempre a la calidad tecnica del swap.
@@ -709,3 +712,228 @@ Se utiliza un ajuste suave de ranking con peso bajo, subordinado siempre a la ca
 #### Motivo
 
 Incorporar equidad historica sin contaminar el contrato tecnico de `simulator` ni alterar la separacion de capas del sistema.
+
+---
+
+### Decision 32 - Equidad historica basada en eventos aplicados
+
+#### Decision
+
+La equidad historica del sistema se calcula exclusivamente a partir de efectos realmente materializados en la operacion.
+
+#### Regla
+
+Solo los swaps con estado `APLICADO` generan eventos historicos utilizables para calculo de equidad.
+
+No generan señal historica:
+
+- swaps sugeridos
+- swaps explorados
+- swaps evaluados
+- swaps con decision operativa favorable
+- requests rechazados
+- requests cancelados
+- requests aprobados pero no aplicados
+
+#### Motivo
+
+Evitar que el sistema reaccione a propuestas no concretadas, bloqueos sociales, rechazos grupales o circunstancias ajenas al efecto operativo real del swap.
+
+---
+
+### Decision 33 - Ventana temporal configurable para equidad historica
+
+#### Decision
+
+La equidad historica avanzada se basa en una ventana temporal configurable, definida por tiempo y no por cantidad de rosters.
+
+#### Modelo adoptado
+
+Se recomienda una ventana inicial de 60 dias.
+
+#### Regla
+
+- el store conserva eventos historicos
+- la ventana se aplica en lectura
+- la configuracion de ventana pertenece a la capa de priorizacion historica
+
+#### Motivo
+
+Permitir un modelo estable, explicable y desacoplado del ritmo de publicacion de rosters.
+
+---
+
+### Decision 34 - Modelo historico basado en eventos
+
+#### Decision
+
+La equidad historica evoluciona desde un contador simplificado hacia un modelo basado en eventos historicos por controlador.
+
+#### Cada evento historico debe permitir representar, como minimo:
+
+- controlador involucrado
+- timestamp
+- roster_version_id
+- request_id
+- tipo de impacto:
+  - mejora
+  - neutro
+  - deterioro
+- magnitud o peso del impacto
+
+#### Motivo
+
+Permitir derivar recencia, frecuencia, saldo e historial operativo sin depender de acumuladores opacos.
+
+---
+
+### Decision 35 - Decaimiento calculado en lectura
+
+#### Decision
+
+El decaimiento de beneficios historicos no se persiste. Se calcula en lectura sobre eventos dentro de la ventana vigente.
+
+#### Modelo inicial recomendado
+
+Decaimiento por tramos temporales, simple y auditable.
+
+Ejemplo conceptual:
+- tramo reciente: peso alto
+- tramo intermedio: peso medio
+- tramo lejano: peso bajo
+- fuera de ventana: no computa
+
+#### Motivo
+
+Mantener trazabilidad, evitar reescritura del historico y permitir ajustar la formula sin migraciones de datos.
+
+---
+
+### Decision 36 - Controlador castigado como señal derivada
+
+#### Decision
+
+La condicion de controlador relativamente castigado no se persiste como estado explicito. Se deriva a partir del historial reciente.
+
+#### Señales validas
+
+- saldo historico ponderado desfavorable
+- baja frecuencia de mejoras recientes
+- antiguedad desde la ultima mejora
+
+#### Regla
+
+La condicion de castigado es una señal relativa de priorizacion, no una categoria fija del sistema.
+
+#### Motivo
+
+Evitar rigidez semantica, sesgos persistentes y estados historicos artificiales.
+
+---
+
+### Decision 37 - La equidad historica no reacciona a rechazo social ni a propuestas no materializadas
+
+#### Decision
+
+La equidad historica no debe verse afectada por propuestas de swap que no llegan a materializarse, aun cuando hayan sido tecnicamente correctas o operativamente favorables.
+
+#### Incluye
+
+El sistema no debe compensar ni penalizar por:
+
+- rechazo social del grupo
+- falta de aceptacion entre personas
+- swaps viables no aprobados
+- swaps aprobados que no llegan a aplicarse
+- preferencias informales o regulacion social externa al sistema
+
+#### Regla critica
+
+La equidad historica solo observa efectos operativos reales, no intenciones, propuestas ni oportunidades frustradas.
+
+#### Motivo
+
+Evitar que el sistema incorpore sesgos sociales externos y reaccione a dinamicas no controladas por la logica operativa formal.
+
+---
+
+### Decision 38 - La equidad historica ordena ofertas pero no aprende de elecciones ni rechazos
+
+#### Decision
+
+La equidad historica puede intervenir exclusivamente en el orden de presentacion de candidatos elegibles ofrecidos por el sistema.
+
+#### Alcance permitido
+
+La señal de equidad historica puede utilizarse para:
+
+- priorizar candidatos en el listado ofrecido
+- desempatar alternativas tecnicamente equivalentes
+- ordenar elegibles dentro de una ventana historica definida
+
+#### Prohibicion
+
+La equidad historica no debe recalcularse ni ajustarse a partir de:
+
+- la eleccion final realizada por el usuario sobre el listado ofrecido
+- rechazos de otros usuarios
+- solicitudes no concretadas
+- oportunidades frustradas
+- dinamicas sociales o regulatorias del grupo
+
+#### Regla critica
+
+La equidad historica influye en la oferta del sistema, pero no aprende del comportamiento humano posterior sobre esa oferta.
+
+#### Motivo
+
+Evitar sesgos reactivos, incomodidad operativa y sobrecompensacion artificial de controladores por causas no materializadas en la realidad operativa.
+
+---
+
+
+#### Regla
+
+La priorizacion historica puede actuar sobre el orden del listado de candidatos elegibles ofrecido por el sistema.
+
+No puede actuar sobre:
+
+- la eleccion final del usuario dentro de ese listado
+- rechazos de otros usuarios
+- solicitudes no concretadas
+- dinamicas sociales del grupo
+
+#### Trazabilidad
+
+Estos eventos pueden registrarse para auditoria y seguimiento operativo, pero no constituyen insumo valido para recalculo de equidad historica.
+
+#### Garantia
+
+La equidad historica modifica el orden de oferta inicial, pero no reacciona al comportamiento humano posterior sobre esa oferta.
+
+---
+
+### Decision 39 - Flujo de oferta con equidad historica no reactiva
+
+#### Decision
+
+La equidad historica puede intervenir en el orden del listado de candidatos elegibles ofrecido por el sistema, pero no puede reaccionar al comportamiento humano posterior sobre esa oferta.
+
+#### Flujo
+
+1. el usuario selecciona una asignacion origen y una alternativa deseada
+2. el sistema calcula candidatos elegibles segun reglas tecnicas y operativas
+3. el sistema ordena el listado usando:
+   - correccion tecnica
+   - prioridad historica soft
+4. el usuario elige libremente un candidato del listado
+5. la aceptacion o rechazo posterior se registra, pero no alimenta la equidad historica
+6. solo un swap con estado `APLICADO` genera evento historico valido
+
+#### Regla critica
+
+La equidad historica influye en la oferta del sistema, pero no aprende de elecciones humanas, rechazos ni oportunidades frustradas.
+
+#### Motivo
+
+Evitar sobrecompensacion reactiva, incomodidad operativa y sesgos derivados de dinamicas sociales externas a la logica formal del sistema.

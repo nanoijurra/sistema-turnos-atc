@@ -1,5 +1,11 @@
 from copy import deepcopy
-from src.historical_store import obtener_historial_para_controladores
+from datetime import datetime
+
+from src.historical_store import obtener_historial_equidad_derivado
+
+
+DEFAULT_VENTANA_DIAS = 90
+
 
 def _controladores_beneficiados(evaluacion: dict) -> list[str]:
     """
@@ -38,33 +44,6 @@ def _controladores_beneficiados(evaluacion: dict) -> list[str]:
     return beneficiados
 
 
-def calcular_score_equidad_swap(
-    evaluacion: dict,
-    historial_por_controlador: dict | None = None,
-) -> int:
-    """
-    Calcula una señal soft de equidad historica.
-
-    Regla minima:
-    - controlador con menos beneficios recientes => mejor score
-    - si no hay historial => score neutro
-    """
-    if not historial_por_controlador:
-        return 0
-
-    beneficiados = _controladores_beneficiados(evaluacion)
-    if not beneficiados:
-        return 0
-
-    score = 0
-
-    for ctrl in beneficiados:
-        datos_hist = historial_por_controlador.get(ctrl, {})
-        beneficios_recientes = datos_hist.get("beneficios_recientes", 0)
-        score -= beneficios_recientes
-
-    return score
-
 def _controladores_involucrados(evaluacion: dict) -> list[str]:
     """
     Devuelve todos los controladores presentes en la evaluacion.
@@ -76,9 +55,39 @@ def _controladores_involucrados(evaluacion: dict) -> list[str]:
     return sorted(nombres)
 
 
+def calcular_score_equidad_swap(
+    evaluacion: dict,
+    historial_por_controlador: dict | None = None,
+) -> float:
+    """
+    Calcula una señal soft de equidad historica.
+
+    Regla:
+    - controlador con menos beneficios recientes => mejor score
+    - si no hay historial => score neutro
+    """
+    if not historial_por_controlador:
+        return 0.0
+
+    beneficiados = _controladores_beneficiados(evaluacion)
+    if not beneficiados:
+        return 0.0
+
+    score = 0.0
+
+    for ctrl in beneficiados:
+        datos_hist = historial_por_controlador.get(ctrl, {})
+        beneficios_recientes = datos_hist.get("beneficios_recientes", 0.0)
+        score -= beneficios_recientes
+
+    return score
+
+
 def priorizar_por_equidad_historica(
     evaluaciones: list[dict],
     historial_por_controlador: dict | None = None,
+    ventana_dias: int = DEFAULT_VENTANA_DIAS,
+    fecha_referencia: datetime | None = None,
 ) -> list[dict]:
     """
     Reordena evaluaciones ya rankeadas tecnicamente usando equidad historica
@@ -101,14 +110,18 @@ def priorizar_por_equidad_historica(
             controladores.update(_controladores_involucrados(evaluacion))
 
         if controladores:
-            historial_cargado = obtener_historial_para_controladores(sorted(controladores))
+            historial_cargado = obtener_historial_equidad_derivado(
+                nombres=sorted(controladores),
+                ventana_dias=ventana_dias,
+                fecha_referencia=fecha_referencia,
+            )
         else:
             historial_cargado = {}
 
     if not historial_cargado:
         resultado = []
         for evaluacion in evaluaciones_copia:
-            evaluacion["score_equidad"] = 0
+            evaluacion["score_equidad"] = 0.0
             evaluacion["ajuste_equidad"] = "NEUTRO_SIN_HISTORIAL"
             resultado.append(evaluacion)
         return resultado
@@ -134,7 +147,7 @@ def priorizar_por_equidad_historica(
 
     for clasificacion in ("BENEFICIOSO", "ACEPTABLE"):
         grupos[clasificacion].sort(
-            key=lambda e: e.get("score_equidad", 0),
+            key=lambda e: e.get("score_equidad", 0.0),
             reverse=True,
         )
 

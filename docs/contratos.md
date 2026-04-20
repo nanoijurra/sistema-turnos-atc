@@ -944,7 +944,7 @@ El estado APROBADO representa la materialización en el workflow de una decisió
 ### Proposito
 Definir la superficie publica valida de `simulator` y evitar mezcla con responsabilidades operativas.
 
----
+
 
 ### Frontera valida de simulator
 
@@ -957,7 +957,7 @@ Puede exponer:
 - calculo de impacto
 - exploracion de alternativas
 
----
+
 
 ### Prohibicion de exposicion operativa
 
@@ -969,19 +969,19 @@ Puede exponer:
 - gestion de estado
 - workflow operativo
 
----
+
 
 ### Regla de delegacion
 
 La existencia de delegacion interna hacia `swap_service` no habilita la exposicion publica de funciones operativas desde `simulator`.
 
----
+
 
 ### Puerta operativa unica
 
 Todas las operaciones del ciclo de vida del request deben exponerse exclusivamente desde `swap_service`.
 
----
+
 
 ### Regla de consistencia
 
@@ -993,15 +993,16 @@ En consecuencia:
 
 Ambas superficies no deben solaparse.
 
-### 13.Contrato de priorizacion historica de swaps
+---
 
-#### Proposito
+## 13.Contrato de priorizacion historica de swaps
+
+### Proposito
 
 Aplicar un criterio de equidad historica sobre un conjunto de swaps ya evaluados tecnicamente, ajustando su orden relativo sin modificar su significado tecnico.
 
----
 
-#### Ubicacion
+### Ubicacion
 
 Este modulo se ubica:
 
@@ -1014,16 +1015,14 @@ No forma parte de:
 - simulator
 - swap_service
 
----
 
-#### Entrada
+### Entrada
 
 - lista de evaluaciones tecnicas de swaps
 - informacion historica por controlador dentro de la ventana definida
 
----
 
-#### Salida
+### Salida
 
 - misma lista de evaluaciones
 - orden ajustado por equidad historica
@@ -1038,18 +1037,16 @@ No puede modificar:
 - score tecnico
 - validez
 
----
 
-#### Garantias
+### Garantias
 
 - no altera evaluacion tecnica
 - no introduce decision operativa
 - no modifica workflow
 - comportamiento deterministico
 
----
 
-#### Regla de actuacion
+### Regla de actuacion
 
 Puede:
 - reordenar swaps validos o aceptables
@@ -1060,14 +1057,103 @@ No puede:
 - redefinir clasificacion tecnica
 - eliminar swaps por criterio historico
 
----
-
-#### Regla de peso
+### Regla de peso
 
 La equidad historica es una señal soft subordinada a la calidad tecnica del swap.
 
----
-
-#### Regla critica
+### Regla critica
 
 La equidad historica modifica prioridad, no significado.
+
+---
+
+## 14. Contrato de equidad historica avanzada
+
+### Proposito
+
+Definir el modelo contractual de equidad historica sin alterar evaluacion tecnica, clasificacion ni decision operativa.
+
+
+### Fuente de datos valida
+
+La equidad historica solo puede construirse a partir de eventos derivados de swaps con estado `APLICADO`.
+
+No son fuente valida:
+
+- evaluaciones tecnicas
+- decisiones operativas favorables
+- requests rechazados
+- requests cancelados
+- requests aprobados no aplicados
+- sugerencias del sistema
+
+
+### Modelo historico
+
+La informacion historica se representa mediante eventos por controlador, con capacidad minima para expresar:
+
+- controlador
+- timestamp
+- roster_version_id
+- request_id
+- tipo de impacto
+- peso o magnitud
+
+
+### Ventana temporal
+
+La lectura historica se realiza sobre una ventana temporal configurable.
+
+La ventana:
+- no pertenece a engine
+- no pertenece a scoring tecnico
+- no modifica simulator
+- se aplica en la capa de priorizacion historica
+
+
+### Decaimiento
+
+El decaimiento de los eventos historicos se calcula en lectura.
+
+No debe persistirse como valor fijo en el store.
+
+
+### Señal derivada
+
+La condicion de controlador castigado se deriva a partir del historial reciente y no se persiste como estado propio del sistema.
+
+
+### Prohibicion
+
+La equidad historica no puede reaccionar a:
+
+- propuestas no materializadas
+- rechazos sociales
+- bloqueos grupales
+- oportunidades no concretadas
+
+La equidad historica solo observa efectos operativos reales.
+
+---
+
+
+## 15. Contrato de flujo de oferta con equidad historica
+
+### Regla
+
+La priorizacion historica puede modificar el orden del listado de candidatos elegibles ofrecido por el sistema.
+
+No puede modificar ni recalcularse a partir de:
+
+- la eleccion final del usuario dentro del listado
+- rechazos de otros usuarios
+- solicitudes no concretadas
+- regulacion social o grupal
+
+### Trazabilidad
+
+Las elecciones humanas y los rechazos pueden registrarse para auditoria, pero no constituyen insumo valido para la señal de equidad historica.
+
+### Fuente historica valida
+
+Solo los swaps con estado `APLICADO` generan eventos historicos validos para calculo de equidad.

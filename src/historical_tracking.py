@@ -1,4 +1,10 @@
-from src.historical_store import incrementar_beneficio_controlador
+from datetime import datetime
+
+from src.historical_store import (
+    incrementar_beneficio_controlador,
+    registrar_evento_beneficio_controlador,
+)
+
 
 def _controladores_beneficiados(evaluacion: dict) -> list[str]:
     """
@@ -37,12 +43,15 @@ def _controladores_beneficiados(evaluacion: dict) -> list[str]:
 def actualizar_historial_beneficios(
     historial_por_controlador: dict | None,
     evaluacion: dict | None,
+    swap_request_id: str | None = None,
+    fecha_evento: datetime | None = None,
 ) -> dict:
     """
     Actualiza historial minimo de beneficios recientes por controlador.
 
-    Si no hay historial, crea uno nuevo.
-    Si no hay evaluacion, no modifica nada.
+    - mantiene compatibilidad en memoria
+    - registra evento historico persistente
+    - mantiene contador legacy durante la transicion
     """
     historial = historial_por_controlador or {}
 
@@ -52,7 +61,6 @@ def actualizar_historial_beneficios(
     beneficiados = _controladores_beneficiados(evaluacion)
 
     for ctrl in beneficiados:
-        # memoria local (compatibilidad actual)
         if ctrl not in historial:
             historial[ctrl] = {"beneficios_recientes": 0}
 
@@ -60,7 +68,11 @@ def actualizar_historial_beneficios(
             historial[ctrl].get("beneficios_recientes", 0) + 1
         )
 
-        # persistencia SQLite (nuevo)
         incrementar_beneficio_controlador(ctrl)
+        registrar_evento_beneficio_controlador(
+            nombre=ctrl,
+            swap_request_id=swap_request_id,
+            fecha_evento=fecha_evento,
+        )
 
     return historial
