@@ -1684,3 +1684,135 @@ Este checkpoint marca el paso desde una salida orientada a desarrollo hacia una 
 Se mantiene la coherencia con la arquitectura y se evita introducir logica duplicada.
 
 ---
+
+## checkpoint-v19-equidad-eventos-y-decaimiento
+Fecha: 2026-04-07
+
+---
+
+### Estado general
+
+Se evoluciona el modelo de equidad historica desde un contador simple hacia un esquema basado en eventos persistidos, con ventana temporal configurable y decaimiento calculado en lectura.
+
+La equidad historica mantiene su rol de señal soft de priorizacion, pero ahora con una base temporal mas realista para escenarios de escala.
+
+---
+
+### Que quedo implementado
+
+#### 1. Modelo historico basado en eventos
+
+- incorporacion de `historical_equity_events` como nueva fuente de informacion historica
+- cada beneficio valido aplicado genera un evento persistido
+- los eventos guardan:
+  - controlador
+  - swap_request_id
+  - fecha_evento
+  - tipo_evento
+
+---
+
+#### 2. Evolucion de historical_store
+
+- `historical_store.py` pasa a soportar:
+  - registro de eventos
+  - listado de eventos por controlador
+  - lectura derivada de historial
+- se mantiene compatibilidad con el contador legacy durante la transicion
+
+---
+
+#### 3. Ventana temporal configurable
+
+- incorporacion de ventana temporal deslizante en lectura
+- primer modelo:
+  - `ventana_dias`
+- los eventos fuera de ventana dejan de aportar al score historico
+
+---
+
+#### 4. Decaimiento calculado en lectura
+
+- implementacion de decaimiento lineal
+- los eventos mas recientes pesan mas
+- los eventos cercanos al limite de ventana pesan menos
+- el decaimiento no se persiste
+
+---
+
+#### 5. Evolucion de historical_tracking
+
+- el tracking deja de depender solo del contador agregado
+- ahora:
+  - mantiene compatibilidad en memoria
+  - conserva contador legacy
+  - registra eventos historicos validos
+- solo swaps aplicados generan eventos
+
+---
+
+#### 6. Evolucion de historical_prioritization
+
+- la priorizacion historica puede leer historial derivado desde eventos
+- si no se provee historial manual:
+  - detecta controladores involucrados
+  - consulta historial persistido
+  - aplica ventana + decaimiento
+- se mantiene:
+  - misma clasificacion tecnica
+  - mismo workflow
+  - mismo criterio de señal soft
+
+---
+
+#### 7. Testing
+
+- nuevos tests para:
+  - registro de eventos
+  - lectura de eventos
+  - ventana temporal
+  - decaimiento
+  - consumo automatico desde SQLite
+- validacion completa en verde
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Decision 40: el historial historico evoluciona a modelo basado en eventos
+- Decision 41: la ventana temporal se aplica en lectura, no en persistencia
+- Decision 42: el decaimiento se calcula on-the-fly
+- Decision 43: los eventos aplicados son la fuente valida de memoria historica
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- se mantiene compatibilidad legacy durante la transicion
+- el modelo sigue enfocado en beneficios, no en carga estructural completa
+- el decaimiento es lineal y fijo
+- no existe aun una definicion avanzada de controlador castigado
+- no hay agregados ni vistas administrativas sobre eventos
+
+---
+
+### Proximos pasos naturales
+
+- retirar progresivamente el contador simplificado legacy
+- definir si la ventana temporal debe pasar a configuracion externa
+- evaluar si el modelo de equidad debe incorporar:
+  - carga estructural
+  - noches
+  - secuencias desfavorables
+- estudiar si el decaimiento lineal sigue siendo suficiente
+
+---
+
+### Notas
+
+Este checkpoint marca el pasaje desde una equidad historica minima y agregada hacia una equidad historica con dimension temporal real.
+
+El sistema ya no solo recuerda que hubo beneficios:
+tambien distingue cuando ocurrieron y cuanto deben seguir pesando en la priorizacion actual.
+
+---

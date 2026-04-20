@@ -159,7 +159,9 @@ def test_aplicar_swap_request_falla_si_no_esta_aprobado():
     # no aprobamos → queda en EVALUADO
 
     with pytest.raises(ValueError, match="estado APROBADO"):
-        aplicar_swap_request(asignaciones, request)      
+        aplicar_swap_request(asignaciones, request)   
+        
+
     
 def test_aplicar_swap_request_actualiza_historial_si_se_provee(monkeypatch):
     from src.engine import crear_roster_version_inicial
