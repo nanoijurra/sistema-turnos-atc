@@ -1816,3 +1816,283 @@ El sistema ya no solo recuerda que hubo beneficios:
 tambien distingue cuando ocurrieron y cuanto deben seguir pesando en la priorizacion actual.
 
 ---
+
+## checkpoint-v20-double-apply-test
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se incorpora un test explícito para validar el comportamiento de no idempotencia de `aplicar_swap_request`, asegurando que un `SwapRequest` no pueda ser aplicado más de una vez.
+
+Este checkpoint fortalece la robustez del sistema frente a reintentos indebidos, sin modificar lógica existente.
+
+---
+
+### Que quedo implementado
+
+#### 1. Test explicito de doble aplicacion
+
+- se agrega test especifico para validar que un `SwapRequest` ya aplicado no pueda volver a aplicarse
+- el flujo cubierto es:
+  - crear request
+  - evaluar
+  - aprobar
+  - aplicar correctamente
+  - intentar aplicar nuevamente
+- el segundo intento debe fallar con error
+
+---
+
+#### 2. Cobertura explicita de no idempotencia
+
+- se hace explicito mediante test que `aplicar_swap_request` es una operacion no idempotente
+- se valida que el estado `APLICADO` actua como guard terminal
+- se protege contra regresiones futuras en el flujo de aplicacion
+
+---
+
+#### 3. Sin cambios de logica productiva
+
+- no se modifico comportamiento de:
+  - `engine`
+  - `scoring`
+  - `simulator`
+  - `swap_service`
+- no se alteraron contratos
+- no se modifico persistencia ni versionado
+- el refuerzo es exclusivamente via testing
+
+---
+
+#### 4. Testing
+
+- se agrega cobertura explicita sobre:
+  - doble aplicacion de `SwapRequest`
+- validacion completa en verde
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `aplicar_swap_request` no es idempotente
+- un request en estado `APLICADO` es terminal y no puede reutilizarse
+- los guards de estado deben ser respetados estrictamente
+- la validacion de flujo se refuerza mediante tests, no mediante logica redundante
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- no se cubren aun otros estados terminales (`RECHAZADO`, `CANCELADO`) en tests explicitos
+- no se valida persistencia completa campo por campo
+- no se valida explicitamente la no reevaluacion
+
+---
+
+### Proximos pasos naturales
+
+- agregar test de aplicar sobre `RECHAZADO`
+- agregar test de aplicar sobre `CANCELADO`
+- avanzar sobre persistencia completa (roundtrip)
+- evaluar test explicito de no reevaluacion
+
+---
+
+### Notas
+
+Este checkpoint transforma un comportamiento ya implementado en una garantia verificable.
+
+La no idempotencia de `aplicar_swap_request` deja de ser una propiedad implícita y pasa a estar protegida por la suite de tests.
+
+---
+
+## checkpoint-v21-apply-guards
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se amplía la cobertura de tests sobre los guards de `aplicar_swap_request`, incorporando validación explícita para el estado terminal `RECHAZADO`.
+
+El objetivo es asegurar que el sistema no permita la aplicación de requests fuera del flujo operativo válido.
+
+---
+
+### Que quedo implementado
+
+#### 1. Test explicito de aplicar sobre request rechazado
+
+- se agrega test especifico para validar que un `SwapRequest` en estado `RECHAZADO` no pueda aplicarse
+- el test fuerza el estado terminal y verifica que `aplicar_swap_request` bloquee la operacion
+- se valida el comportamiento esperado sin depender de la evaluacion tecnica
+
+---
+
+#### 2. Refuerzo de guards por estado terminal
+
+- se hace explicito que solo requests en estado `APROBADO` son elegibles para aplicacion
+- cualquier otro estado (`RECHAZADO`, `PENDIENTE`, `EVALUADO`, etc.) queda implicitamente bloqueado
+- el test asegura que esta restriccion no se degrade en el futuro
+
+---
+
+#### 3. Sin cambios de logica productiva
+
+- no se modifico comportamiento de:
+  - `engine`
+  - `scoring`
+  - `simulator`
+  - `swap_service`
+- no se alteraron contratos
+- no se modifico persistencia ni versionado
+- el refuerzo es exclusivamente via testing
+
+---
+
+#### 4. Testing
+
+- se agrega cobertura explicita sobre:
+  - aplicar `SwapRequest` en estado `RECHAZADO`
+- validacion completa en verde
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `RECHAZADO` es un estado terminal incompatible con aplicacion
+- los guards de `aplicar_swap_request` deben ser estrictos y deterministas
+- el flujo operativo define claramente que solo `APROBADO` habilita la aplicacion
+- la proteccion se implementa via tests, no via complejidad adicional
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- no se cubre aun el estado `CANCELADO` en test explicito
+- no se valida persistencia exhaustiva
+- no se valida explicitamente la no reevaluacion en aplicar
+
+---
+
+### Proximos pasos naturales
+
+- agregar test de aplicar sobre `CANCELADO`
+- completar cobertura de estados terminales
+- avanzar sobre test de persistencia completa
+- evaluar test de no reevaluacion
+
+---
+
+### Notas
+
+Este checkpoint continúa el endurecimiento del flujo de aplicación.
+
+Se transforma una restricción implícita del sistema en una garantía explícita protegida por tests, reduciendo el riesgo de regresiones en el manejo de estados terminales.
+
+---
+
+## checkpoint-v22-blindaje-aplicar-tests-explicitos
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se refuerza la cobertura de tests sobre el flujo de aplicacion de `SwapRequest`, sin modificar logica productiva ni arquitectura.
+
+El objetivo de este checkpoint fue cerrar huecos puntuales detectados en la verificacion de implementacion: proteger con evidencia explicita los guards de `aplicar_swap_request` para estados terminales y reintentos de aplicacion.
+
+---
+
+### Que quedo implementado
+
+#### 1. Test explicito de doble aplicacion
+
+- se agrega test especifico para validar que un `SwapRequest` ya aplicado no pueda volver a aplicarse
+- el flujo cubierto es:
+  - crear request
+  - evaluar
+  - aprobar
+  - aplicar correctamente
+  - intentar aplicar de nuevo
+- el segundo intento debe fallar con error
+
+---
+
+#### 2. Test explicito de aplicar sobre request rechazado
+
+- se agrega test especifico para validar que un `SwapRequest` en estado `RECHAZADO` no pueda aplicarse
+- el test fuerza un estado terminal rechazado y verifica que `aplicar_swap_request` lo bloquee
+- esto hace explicita una proteccion que ya existia en la logica general de guards
+
+---
+
+#### 3. Test explicito de aplicar sobre request cancelado
+
+- se agrega test especifico para validar que un `SwapRequest` en estado `CANCELADO` no pueda aplicarse
+- el test verifica que `aplicar_swap_request` rechace el intento de aplicacion sobre un request ya cancelado
+- queda cubierto otro estado terminal critico del workflow
+
+---
+
+#### 4. Sin cambios de logica productiva
+
+- no se modifico comportamiento de:
+  - `engine`
+  - `scoring`
+  - `simulator`
+  - `swap_service`
+- no se alteraron contratos
+- no se movieron responsabilidades entre capas
+- no se toco persistencia ni versionado
+
+---
+
+#### 5. Testing
+
+- se amplifica la cobertura sobre guards de `aplicar_swap_request`
+- quedan ahora cubiertos de forma explicita:
+  - doble aplicacion
+  - aplicar sobre `RECHAZADO`
+  - aplicar sobre `CANCELADO`
+- validacion completa en verde
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `aplicar_swap_request` sigue siendo una operacion terminal y no idempotente
+- solo requests en estado `APROBADO` pueden aplicarse
+- `RECHAZADO`, `CANCELADO` y `APLICADO` son estados incompatibles con aplicacion
+- aplicar no reevalua ni reclasifica
+- el endurecimiento actual se hace via tests, no via rediseño
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- todavia no se agrego test explicito de roundtrip exhaustivo de persistencia campo por campo
+- todavia no se agrego test explicito de no reevaluacion mediante aislamiento o verificacion negativa
+- parte del blindaje sigue validado por inspeccion de codigo y cobertura indirecta, no siempre por test quirurgico dedicado
+
+---
+
+### Proximos pasos naturales
+
+- agregar test de persistencia exhaustiva de `SwapRequest` en roundtrip completo
+- evaluar test explicito de no reevaluacion en `aplicar_swap_request`
+- revisar si conviene endurecer aun mas la cobertura de estados terminales en `resolver_swap_request`
+- continuar limpieza incremental de cobertura sin tocar arquitectura
+
+---
+
+### Notas
+
+Este checkpoint no cambia el sistema:
+lo vuelve mas defendible.
+
+La implementacion ya estaba correctamente blindada en logica.
+Lo que se hizo aca fue transformar protecciones implicitas o generales en evidencia de test explicita, reduciendo riesgo de regresion futura en el workflow de aplicacion.

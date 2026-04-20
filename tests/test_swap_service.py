@@ -161,6 +161,60 @@ def test_aplicar_swap_request_falla_si_no_esta_aprobado():
     with pytest.raises(ValueError, match="estado APROBADO"):
         aplicar_swap_request(asignaciones, request)   
         
+def test_aplicar_swap_request_falla_si_esta_rechazado() -> None:
+    import pytest
+    from datetime import datetime
+
+    from src.swap_service import aplicar_swap_request, crear_swap_request
+    from src.roster_store import obtener_roster_vigente
+
+    roster = obtener_roster_vigente()
+    assert roster is not None
+
+    asignacion_a = roster.asignaciones[0]
+    asignacion_b = roster.asignaciones[1]
+
+    request = crear_swap_request(
+        asignacion_a.controlador.nombre,
+        asignacion_b.controlador.nombre,
+        0,
+        1,
+    )
+
+    request.decision_sugerida = "RECHAZAR"
+    request.estado = "RECHAZADO"
+    request.fecha_resolucion = datetime.now()
+
+    with pytest.raises(ValueError):
+        aplicar_swap_request(roster, request)
+        
+def test_aplicar_swap_request_falla_si_esta_cancelado() -> None:
+    import pytest
+    from datetime import datetime
+
+    from src.swap_service import aplicar_swap_request, crear_swap_request
+    from src.roster_store import obtener_roster_vigente
+
+    roster = obtener_roster_vigente()
+    assert roster is not None
+
+    asignacion_a = roster.asignaciones[0]
+    asignacion_b = roster.asignaciones[1]
+
+    request = crear_swap_request(
+        asignacion_a.controlador.nombre,
+        asignacion_b.controlador.nombre,
+        0,
+        1,
+    )
+
+    request.estado = "CANCELADO"
+    request.motivo = "REQUEST_OBSOLETO"
+    request.fecha_resolucion = datetime.now()
+
+    with pytest.raises(ValueError):
+        aplicar_swap_request(roster, request)
+        
 
     
 def test_aplicar_swap_request_actualiza_historial_si_se_provee(monkeypatch):
