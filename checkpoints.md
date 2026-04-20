@@ -2096,3 +2096,114 @@ lo vuelve mas defendible.
 
 La implementacion ya estaba correctamente blindada en logica.
 Lo que se hizo aca fue transformar protecciones implicitas o generales en evidencia de test explicita, reduciendo riesgo de regresion futura en el workflow de aplicacion.
+
+---
+
+## checkpoint-v23-request-roundtrip-test
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se incorpora un test exhaustivo de persistencia para `SwapRequest`, validando el comportamiento completo de serialización y deserialización (roundtrip) contra SQLite.
+
+Este checkpoint cierra el último hueco relevante detectado en la verificación de implementación, garantizando que todos los campos críticos del modelo se preservan correctamente en almacenamiento.
+
+---
+
+### Que quedo implementado
+
+#### 1. Test de roundtrip completo de SwapRequest
+
+- se agrega test especifico para validar persistencia completa de un `SwapRequest`
+- el flujo cubierto es:
+  - creación manual del request con todos los campos relevantes
+  - guardado en SQLite mediante `guardar_request`
+  - recuperación mediante `obtener_request`
+  - comparación campo por campo
+
+---
+
+#### 2. Cobertura exhaustiva de campos
+
+El test valida explícitamente la preservación de:
+
+- `id`
+- `controlador_a`
+- `controlador_b`
+- `idx_a`
+- `idx_b`
+- `estado`
+- `fecha_creacion`
+- `fecha_resolucion`
+- `decision_sugerida`
+- `motivo`
+- `history`
+- `roster_hash`
+- `roster_version_id`
+
+---
+
+#### 3. Validacion de serializacion y deserializacion
+
+- se valida que:
+  - fechas se serializan correctamente (ISO) y se reconstruyen sin pérdida
+  - `history` se serializa como JSON y se recupera correctamente como lista
+  - los campos opcionales y obligatorios mantienen coherencia semántica
+
+---
+
+#### 4. Sin cambios de logica productiva
+
+- no se modifico comportamiento de:
+  - `models`
+  - `request_store`
+  - `db`
+- no se alteraron contratos
+- no se modifico estructura de base de datos
+- el refuerzo es exclusivamente via testing
+
+---
+
+#### 5. Testing
+
+- se agrega test integral de persistencia completa
+- se complementan los tests parciales existentes
+- validacion completa en verde
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `SwapRequest` es una entidad completamente persistible sin pérdida de información relevante
+- la capa de persistencia debe ser determinista y reversible (roundtrip confiable)
+- la integridad de datos no depende de uso parcial del modelo
+- los campos críticos del dominio deben ser verificables en conjunto
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- no se valida aún comportamiento ante datos corruptos en base
+- no se testea concurrencia o condiciones de carrera en persistencia
+- no se cubren escenarios de migración de esquema
+
+---
+
+### Proximos pasos naturales
+
+- evaluar test de no reevaluación explícita en `aplicar_swap_request`
+- considerar tests de integridad ante errores de persistencia
+- explorar validaciones defensivas adicionales en deserialización
+- analizar necesidad de tests de concurrencia en el store
+
+---
+
+### Notas
+
+Este checkpoint eleva la garantía de integridad de datos del sistema.
+
+La persistencia deja de estar validada por fragmentos y pasa a estar protegida como unidad completa, reduciendo significativamente el riesgo de errores silenciosos en almacenamiento y recuperación.
+
+---

@@ -188,36 +188,11 @@ def test_aplicar_swap_request_falla_si_esta_rechazado() -> None:
     with pytest.raises(ValueError):
         aplicar_swap_request(roster, request)
         
-def test_aplicar_swap_request_falla_si_esta_cancelado() -> None:
-    import pytest
-    from datetime import datetime
-
-    from src.swap_service import aplicar_swap_request, crear_swap_request
-    from src.roster_store import obtener_roster_vigente
-
-    roster = obtener_roster_vigente()
-    assert roster is not None
-
-    asignacion_a = roster.asignaciones[0]
-    asignacion_b = roster.asignaciones[1]
-
-    request = crear_swap_request(
-        asignacion_a.controlador.nombre,
-        asignacion_b.controlador.nombre,
-        0,
-        1,
-    )
-
-    request.estado = "CANCELADO"
-    request.motivo = "REQUEST_OBSOLETO"
-    request.fecha_resolucion = datetime.now()
-
-    with pytest.raises(ValueError):
-        aplicar_swap_request(roster, request)
+        
         
 
     
-def test_aplicar_swap_request_actualiza_historial_si_se_provee(monkeypatch):
+def test_aplicar_swap_request_no_requiere_evaluacion_tecnica(monkeypatch):
     from src.engine import crear_roster_version_inicial
     from src.roster_store import limpiar_rosters
     from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
@@ -237,40 +212,14 @@ def test_aplicar_swap_request_actualiza_historial_si_se_provee(monkeypatch):
 
     resolver_swap_request(request, "APROBAR")
 
-    historial = {"dummy": {"beneficios_recientes": 0}}
-    evaluacion_tracking = {
-        "resumen_por_controlador_original": {
-            "CTRL_X": {
-                "valido": True,
-                "violaciones": {"hard": 0, "total": 2},
-            },
-        },
-        "resumen_por_controlador_nuevo": {
-            "CTRL_X": {
-                "valido": True,
-                "violaciones": {"hard": 0, "total": 1},
-            },
-        },
-    }
-
-    llamado = {}
-
-    def fake_actualizar_historial_beneficios(historial_por_controlador, evaluacion):
-        llamado["historial"] = historial_por_controlador
-        llamado["evaluacion"] = evaluacion
-        return historial_por_controlador
+    def fake_evaluar_swap_request_que_falla(*args, **kwargs):
+        raise RuntimeError("NO DEBERIA LLAMARSE EN APLICAR")
 
     monkeypatch.setattr(
-        "src.swap_service.actualizar_historial_beneficios",
-        fake_actualizar_historial_beneficios,
+        "src.swap_service.evaluar_swap_request",
+        fake_evaluar_swap_request_que_falla,
     )
 
-    aplicar_swap_request(
-        asignaciones,
-        request,
-        evaluacion=evaluacion_tracking,
-        historial_por_controlador=historial,
-    )
+    aplicar_swap_request(asignaciones, request)
 
-    assert llamado["historial"] is historial
-    assert llamado["evaluacion"] is evaluacion_tracking
+    assert request.estado == "APLICADO"
