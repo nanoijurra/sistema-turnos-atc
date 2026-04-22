@@ -2474,3 +2474,246 @@ Validacion:
 Este checkpoint no cambia la evaluacion tecnica del sistema.
 
 Introduce la primera base concreta para escalar la generacion de candidatos sin caer en exploracion global exhaustiva, preservando la arquitectura vigente y manteniendo intactas las responsabilidades de cada capa.
+
+---
+
+## checkpoint-v26-simulator-bounded-candidate-entrypoint
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se incorpora una integracion minima y segura en `simulator.py` para habilitar exploracion acotada de candidatos usando:
+
+- `roster_index`
+- `candidate_generation`
+
+El objetivo de este checkpoint es conectar la nueva generacion acotada con el simulador sin tocar el flujo brute force existente.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nueva funcion en `simulator.py`
+
+- se agrega `explorar_candidatos_acotados(asignacion_origen, asignaciones, modo="auto")`
+- la funcion:
+  - construye `roster_index`
+  - invoca `generate_candidates`
+  - devuelve candidatos crudos
+
+---
+
+#### 2. Integracion minima y no invasiva
+
+- no se reemplaza `explorar_swaps_entre_controladores`
+- no se elimina el brute force existente
+- no se altera la evaluacion tecnica vigente
+- no se cambia clasificacion ni scoring
+
+`simulator` actua solo como orquestador de la nueva exploracion acotada.
+
+---
+
+#### 3. Contrato preservado
+
+La nueva funcion:
+
+- no evalua
+- no clasifica
+- no decide
+- no crea `SwapRequest`
+- no persiste
+
+Devuelve exclusivamente asignaciones candidatas plausibles para simulacion posterior.
+
+---
+
+#### 4. Testing
+
+Se agregan tests nuevos en `tests/test_simulator_candidate_generation.py` para validar:
+
+- que `explorar_candidatos_acotados` devuelve lista
+- que `same_day` funciona
+- que `future` funciona
+- que no rompe el simulator existente
+- que no devuelve `SwapRequest`
+- que no clasifica ni decide
+- que usa correctamente `candidate_generation`
+
+Validacion:
+- tests nuevos en verde
+- suite completa en verde
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `simulator` puede orquestar exploracion acotada sin absorber responsabilidades de generacion
+- `candidate_generation` sigue siendo la capa de construccion del universo plausible
+- la exploracion acotada se integra como camino nuevo, no como reemplazo abrupto del brute force
+- se mantiene separacion estricta entre:
+  - generacion de candidatos
+  - evaluacion tecnica
+  - decision operativa
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- `explorar_candidatos_acotados` aun devuelve candidatos crudos y no evaluados
+- no existe aun benchmark comparativo formal entre brute force y exploracion acotada
+- no se reemplazo todavia ningun flujo operativo existente por el nuevo camino
+- no se introdujo aun una entidad explicita de necesidad concreta o request context
+
+---
+
+### Proximos pasos naturales
+
+- medir benchmark comparativo entre exploracion global y exploracion acotada
+- definir si el simulador debe ofrecer una variante que evalue tecnicamente solo los candidatos acotados
+- analizar integracion posterior con flujo centrado en request o necesidad concreta
+- estudiar si la nueva exploracion acotada debe convertirse en camino preferente del sistema
+
+---
+
+### Notas
+
+Este checkpoint completa la primera cadena funcional de exploracion acotada:
+
+- indice derivado
+- generacion acotada
+- punto de entrada en simulator
+
+Con esto, el sistema ya dispone de una base concreta para abandonar progresivamente la exploracion global exhaustiva sin romper la arquitectura vigente.
+
+---
+
+## checkpoint-v27-comparative-exploration-benchmark
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se incorpora un benchmark comparativo seguro entre:
+
+- exploracion global exhaustiva (brute force)
+- exploracion acotada centrada en asignacion origen
+
+El objetivo de este checkpoint es medir escalabilidad operativa sin tocar codigo productivo ni forzar ejecuciones fuera de rango temporal.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo benchmark comparativo
+
+- se agrega `tools/benchmark_comparativo_exploracion.py`
+- compara:
+  - `explorar_swaps_entre_controladores`
+  - `explorar_candidatos_acotados`
+- usa escenarios escalados para:
+  - 80 controladores
+  - 120 controladores
+  - 180 controladores
+
+---
+
+#### 2. Estrategia segura de medicion
+
+- el benchmark no fuerza ejecucion brute force cuando el universo excede el umbral definido
+- en esos casos reporta `NO_EJEC`
+- se mantiene:
+  - cantidad de pares brutos estimados
+  - medicion real del camino acotado
+  - factor de reduccion del universo
+
+Esto evita benchmarks inutilmente largos o fuera de rango operativo.
+
+---
+
+#### 3. Resultado comparativo principal
+
+Resultados observados:
+
+- 80 controladores:
+  - brute total: 12640
+  - acotado total: 158
+  - reduccion: 80x
+  - acotado ms: ~0.36
+
+- 120 controladores:
+  - brute total: 28560
+  - acotado total: 238
+  - reduccion: 120x
+  - acotado ms: ~0.50
+
+- 180 controladores:
+  - brute total: 64440
+  - acotado total: 358
+  - reduccion: 180x
+  - acotado ms: ~0.78
+
+---
+
+#### 4. Confirmacion de limite operativo del brute force
+
+- el brute force global queda explicitamente fuera de rango operativo en escalas reales del dominio
+- la exploracion acotada se mantiene en tiempos sub-milisegundo para las escalas medidas
+- queda validada empiricamente la direccion arquitectonica adoptada
+
+---
+
+#### 5. Sin cambios de logica productiva
+
+- no se toca:
+  - `engine`
+  - `scoring`
+  - `swap_service`
+  - `simulator.py`
+  - `candidate_generation`
+  - `roster_index`
+  - persistencia
+  - tests
+- el benchmark vive exclusivamente en `tools/`
+
+---
+
+### Decisiones de diseno reforzadas
+
+- la exploracion global exhaustiva no es un camino operativo viable para dotaciones reales ATC
+- la exploracion acotada centrada en una asignacion origen reduce drasticamente el universo candidato
+- la estrategia arquitectonica basada en `roster_index` + `candidate_generation` queda respaldada por evidencia de escala
+- el brute force puede permanecer como referencia o herramienta auxiliar, no como camino preferente
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- la comparacion no busca equivalencia funcional exacta entre ambos caminos
+- la exploracion acotada se mide desde una asignacion origen concreta
+- el brute force en escalas altas no se ejecuta realmente en modo seguro
+- aun no existe una variante integrada que evalue tecnicamente solo los candidatos acotados
+
+---
+
+### Proximos pasos naturales
+
+- definir si la exploracion acotada pasa a ser camino preferente del sistema
+- agregar una variante que simule tecnicamente solo los candidatos acotados
+- medir pipeline completo:
+  - generacion acotada
+  - simulacion tecnica
+  - ranking posterior
+- decidir el rol residual del brute force en el sistema
+
+---
+
+### Notas
+
+Este checkpoint no optimiza brute force:
+demuestra que ya no hace falta insistir con el como camino principal.
+
+La evidencia de escala respalda que el sistema debe evolucionar hacia generacion acotada de candidatos seguida de simulacion tecnica selectiva.
