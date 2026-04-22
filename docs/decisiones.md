@@ -937,3 +937,143 @@ La equidad historica influye en la oferta del sistema, pero no aprende de elecci
 #### Motivo
 
 Evitar sobrecompensacion reactiva, incomodidad operativa y sesgos derivados de dinamicas sociales externas a la logica formal del sistema.
+
+---
+
+### Decision 40 - Exploracion acotada centrada en request
+
+#### Decision
+
+La exploracion de swaps deja de ser global y exhaustiva, y pasa a ser acotada y centrada en una necesidad concreta del usuario.
+
+#### Modelo adoptado
+
+El flujo correcto del sistema pasa a ser:
+
+- request o asignacion origen
+- generacion de candidatos elegibles
+- simulacion tecnica
+- ranking
+- oferta al usuario
+
+#### Regla
+
+No se explora el universo completo de swaps del roster.
+
+Se explora solo un conjunto acotado de candidatos plausibles, definido por filtros baratos y relevantes para la necesidad concreta.
+
+#### Motivo
+
+Garantizar escalabilidad operativa sin alterar la evaluacion tecnica ni los contratos actuales.
+
+---
+
+### Decision 41 - Candidate generation como capa separada
+
+#### Decision
+
+La generacion de swaps candidatos se define como una responsabilidad separada de la evaluacion tecnica.
+
+#### Responsabilidad
+
+La capa de candidate generation:
+
+- construye un universo elegible acotado
+- aplica filtros estructurales baratos
+- entrega candidatos para simulacion
+
+#### Prohibiciones
+
+No debe:
+
+- clasificar swaps
+- ejecutar evaluacion tecnica completa
+- decidir operativamente
+- persistir
+- reemplazar simulator
+
+#### Motivo
+
+Separar reduccion del universo de busqueda respecto de la evaluacion tecnica del swap.
+
+---
+
+### Decision 42 - Contrato de candidate_generation
+
+#### Decision
+
+Se define `candidate_generation` como una capa separada responsable de generar un universo acotado de swaps candidatos antes de la simulacion tecnica.
+
+#### Responsabilidad
+
+`candidate_generation`:
+
+- parte de una necesidad concreta
+- aplica filtros baratos
+- devuelve candidatos plausibles para evaluar
+
+#### No responsabilidad
+
+`candidate_generation` no:
+
+- clasifica
+- decide
+- persiste
+- calcula score tecnico final
+- reemplaza simulator
+
+#### Motivo
+
+Separar generacion del universo elegible respecto de la evaluacion tecnica del swap, garantizando escalabilidad sin romper capas ni contratos actuales.
+
+---
+
+### Decision 43 - Introduccion de roster_index
+
+#### Decision
+
+Se incorpora el concepto de `roster_index` como estructura derivada del roster vigente.
+
+#### Objetivo
+
+Permitir acceso eficiente a subconjuntos operativos del roster sin recorrer toda la colección de asignaciones.
+
+#### Responsabilidad
+
+`roster_index`:
+
+- indexa asignaciones
+- acelera búsquedas
+- sirve a candidate_generation
+
+#### No responsabilidad
+
+`roster_index` no:
+
+- evalúa
+- clasifica
+- decide
+- persiste requests
+- reemplaza roster_version
+
+#### Motivo
+
+Escalar generación de candidatos sin modificar contratos técnicos existentes.
+
+---
+
+### Decision 44 - candidate_generation consume roster_index
+
+#### Decision
+
+La capa `candidate_generation` debe construir el universo elegible de swaps a partir de `roster_index`, y no mediante recorridos globales completos del roster.
+
+#### Regla
+
+- para escenarios de mismo dia, debe apoyarse en indices por fecha y fecha+turno
+- para escenarios de otro dia, debe apoyarse en indices temporales futuros
+- la generacion de candidatos sigue siendo una etapa previa y barata respecto de la simulacion tecnica
+
+#### Motivo
+
+Reducir drásticamente el espacio de búsqueda sin alterar la evaluación técnica ni introducir lógica de decisión en la generación de candidatos.

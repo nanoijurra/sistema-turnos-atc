@@ -1157,3 +1157,331 @@ Las elecciones humanas y los rechazos pueden registrarse para auditoria, pero no
 ### Fuente historica valida
 
 Solo los swaps con estado `APLICADO` generan eventos historicos validos para calculo de equidad.
+
+
+---
+
+## 16. Contrato de candidate_generation
+
+### 16.1 Proposito
+
+Definir la responsabilidad de generación acotada de swaps candidatos antes de la simulación técnica.
+
+La capa `candidate_generation` existe para reducir el universo de búsqueda y entregar a `simulator` solo candidatos plausibles para una necesidad concreta.
+
+---
+
+### 16.2 Ubicacion en el flujo
+
+El flujo correcto del sistema queda:
+
+- request o asignacion origen
+- candidate_generation
+- simulator
+- ranking tecnico
+- priorizacion historica (si aplica)
+- oferta al usuario
+
+---
+
+### 16.3 Responsabilidad exclusiva
+
+`candidate_generation` es responsable de:
+
+- tomar una asignacion origen o necesidad concreta del usuario
+- construir un universo elegible acotado
+- aplicar filtros previos baratos
+- devolver candidatos estructuralmente plausibles para simulacion
+
+---
+
+### 16.4 Entrada
+
+La entrada de `candidate_generation` debe poder incluir:
+
+- asignacion origen
+- roster actual
+- criterios de búsqueda del usuario
+- restricciones estructurales baratas
+- configuración operativa mínima si corresponde
+
+---
+
+### 16.5 Salida
+
+La salida de `candidate_generation` debe ser una colección acotada de candidatos para simulación.
+
+La salida puede expresarse como:
+
+- pares de índices
+- referencias estructurales equivalentes
+
+Siempre que no redefina la identidad conceptual del swap.
+
+---
+
+### 16.6 Filtros permitidos
+
+`candidate_generation` puede aplicar únicamente filtros baratos y previos a la simulación.
+
+Ejemplos:
+
+- excluir misma asignacion
+- excluir mismo controlador si no corresponde
+- restringir por fecha o rango de fechas
+- restringir por tipo de turno o compatibilidad declarada
+- excluir candidatos estructuralmente incompatibles
+- limitar el universo por criterios operativos simples y baratos
+
+---
+
+### 16.7 Prohibiciones
+
+`candidate_generation` no debe:
+
+- ejecutar evaluacion tecnica completa
+- usar engine para clasificar candidatos
+- calcular score tecnico final
+- clasificar swaps
+- decidir operativamente
+- persistir
+- reemplazar simulator
+- reemplazar swap_service
+
+---
+
+### 16.8 Regla de frontera
+
+La capa `candidate_generation` reduce universo de búsqueda.
+
+La capa `simulator` evalúa técnicamente.
+
+La capa `swap_service` decide operativamente.
+
+Estas responsabilidades no deben mezclarse.
+
+---
+
+### 16.9 Regla critica
+
+La generación de candidatos modifica cobertura, no significado.
+
+Reducir el universo elegible no implica evaluar, clasificar ni decidir.
+
+---
+
+## 17. Contrato de roster_index
+
+### 17.1 Proposito
+
+Definir una estructura derivada del roster vigente que permita acceso rápido a subconjuntos operativos relevantes.
+
+`roster_index` existe para reducir el costo de búsqueda dentro del roster y permitir generación eficiente de candidatos.
+
+---
+
+### 17.2 Naturaleza
+
+`roster_index` es una estructura derivada y reconstruible.
+
+No representa una nueva fuente de verdad.
+
+La fuente de verdad sigue siendo:
+
+- RosterVersion vigente
+
+---
+
+### 17.3 Responsabilidad exclusiva
+
+`roster_index` es responsable de:
+
+- indexar asignaciones del roster vigente
+- permitir acceso rápido por criterios estructurales
+- reducir exploración lineal completa
+- asistir a candidate_generation
+
+---
+
+### 17.4 Fuente de datos
+
+`roster_index` se construye exclusivamente desde:
+
+- roster vigente
+- asignaciones persistidas
+
+No puede incorporar información externa.
+
+---
+
+### 17.5 Relacion con versionado
+
+Cada versión vigente del roster debe tener un índice consistente asociado.
+
+Cuando cambia la versión:
+
+- el índice anterior deja de ser vigente
+- debe reconstruirse un nuevo índice
+
+---
+
+### 17.6 Consultas permitidas
+
+El índice puede responder consultas como:
+
+- asignaciones por fecha
+- asignaciones por turno
+- asignaciones por controlador
+- asignaciones por fecha y turno
+- subconjuntos por rango temporal
+- agrupaciones operativas simples
+
+---
+
+### 17.7 Restricciones
+
+`roster_index` no debe:
+
+- evaluar reglas
+- clasificar swaps
+- calcular score
+- decidir workflow
+- persistir requests
+- reemplazar simulator
+- reemplazar candidate_generation
+
+---
+
+### 17.8 Regla critica
+
+`roster_index` acelera acceso.
+
+No redefine significado.
+
+No modifica semántica del roster.
+
+---
+
+### 17.9 Regla de consistencia
+
+El índice debe representar exactamente la misma realidad que la versión vigente del roster.
+
+No puede existir divergencia entre:
+
+- roster vigente
+- índice vigente
+
+---
+
+### 17.10 Estructura conceptual recomendada
+
+`roster_index` puede organizarse mediante múltiples vistas estructurales derivadas.
+
+Se recomienda incluir:
+
+- by_date
+- by_date_turno
+- by_controller
+- future_window
+
+Estas estructuras permiten navegación rápida sin recorrer el roster completo.
+
+---
+
+#### by_date
+
+Agrupa asignaciones por fecha.
+
+Permite:
+
+- consultas operativas por día
+- subconjuntos diarios
+
+---
+
+#### by_date_turno
+
+Agrupa asignaciones por fecha y turno.
+
+Permite:
+
+- obtener universo compatible por día y turno
+- acelerar generación de candidatos
+
+---
+
+#### by_controller
+
+Agrupa asignaciones por controlador.
+
+Permite:
+
+- navegación histórica individual
+- filtros rápidos por persona
+
+---
+
+#### future_window
+
+Agrupa asignaciones futuras desde una fecha dada.
+
+Permite:
+
+- reducir universo temporal
+- evitar exploración retrospectiva
+- escalar búsqueda multi-fecha
+
+---
+
+#### Regla
+
+Estas estructuras son derivadas.
+
+No reemplazan la fuente de verdad del roster.
+
+---
+
+### 17.11 Uso de roster_index por candidate_generation
+
+`candidate_generation` debe utilizar `roster_index` como fuente estructural principal para construir el universo elegible de candidatos.
+
+No debe recorrer el roster completo como estrategia base.
+
+---
+
+#### Caso de mismo dia
+
+Si la necesidad del usuario se limita al mismo dia, `candidate_generation` debe consultar prioritariamente:
+
+- by_date
+- by_date_turno
+
+Esto permite construir rapidamente el subconjunto de candidatos del dia y turno buscado.
+
+---
+
+#### Caso de otro dia
+
+Si la necesidad del usuario se extiende a dias futuros, `candidate_generation` debe consultar prioritariamente:
+
+- future_window
+
+Esto permite reducir el universo a asignaciones futuras relevantes sin explorar retrospectivamente todo el roster.
+
+---
+
+#### Regla de composicion
+
+`candidate_generation` puede combinar subconjuntos obtenidos desde `roster_index` con filtros baratos adicionales, pero no debe ejecutar evaluacion tecnica completa en esta etapa.
+
+---
+
+#### Regla critica
+
+`roster_index` reduce acceso.
+`candidate_generation` reduce universo.
+`simulator` evalua tecnicamente.
+
+Estas funciones no deben mezclarse.
+
+

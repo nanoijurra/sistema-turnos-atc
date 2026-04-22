@@ -2207,3 +2207,121 @@ Este checkpoint eleva la garantía de integridad de datos del sistema.
 La persistencia deja de estar validada por fragmentos y pasa a estar protegida como unidad completa, reduciendo significativamente el riesgo de errores silenciosos en almacenamiento y recuperación.
 
 ---
+
+Excelente. Con esto cerraste todos los invariantes críticos del sistema.
+
+Estado real después de v24
+
+Tenés cubierto explícitamente:
+
+Guards de aplicación
+✔ no evaluado → bloquea
+✔ no aprobado → bloquea
+✔ RECHAZADO → bloquea
+✔ CANCELADO → bloquea
+✔ doble aplicación → bloquea
+Persistencia
+✔ roundtrip completo garantizado
+Flujo crítico
+✔ aplicar no reevalúa (test explícito)
+Arquitectura
+✔ separación de capas intacta
+✔ contratos respetados
+✔ invariantes protegidos por tests
+
+👉 Esto ya es nivel producción robusta, no prototipo.
+
+Commit y tag
+git add .
+git commit -m "add explicit test ensuring aplicar does not reevaluate"
+git tag checkpoint-v24-no-reevaluacion-test
+Checkpoint v24 (listo para copiar/pegar)
+## checkpoint-v24-no-reevaluacion-test
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se incorpora un test explícito para validar que `aplicar_swap_request` no depende de evaluación técnica ni reingresa al flujo de evaluación.
+
+Este checkpoint cierra el último invariante crítico del sistema a nivel de workflow operativo.
+
+---
+
+### Que quedo implementado
+
+#### 1. Test explicito de no reevaluacion
+
+- se agrega test especifico para validar que `aplicar_swap_request` no llama a `evaluar_swap_request`
+- el test utiliza monkeypatch para reemplazar la función de evaluación por una versión que falla
+- si el flujo de aplicar intentara reevaluar, el test falla inmediatamente
+
+---
+
+#### 2. Aislamiento completo de la fase de aplicación
+
+- se valida que:
+  - la evaluación ocurre exclusivamente en la fase de evaluación
+  - la decisión ocurre en la fase de resolución
+  - la aplicación no depende de lógica técnica adicional
+- `aplicar_swap_request` actúa únicamente sobre estado ya decidido
+
+---
+
+#### 3. Sin cambios de logica productiva
+
+- no se modifico comportamiento de:
+  - `engine`
+  - `scoring`
+  - `simulator`
+  - `swap_service`
+- no se alteraron contratos
+- no se modifico persistencia ni versionado
+- el refuerzo es exclusivamente via testing
+
+---
+
+#### 4. Testing
+
+- se agrega cobertura explícita sobre:
+  - no reevaluación en aplicar
+- validacion completa en verde
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `aplicar_swap_request` no reevalúa ni reclasifica
+- la clasificación técnica es responsabilidad exclusiva del `simulator`
+- la decisión operativa es responsabilidad exclusiva de `swap_service`
+- la aplicación es una operación terminal que no altera evaluación previa
+- se refuerza la separación estricta entre evaluación, decisión y aplicación
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- no se testea aún comportamiento ante corrupción de datos en persistencia
+- no se cubren escenarios de concurrencia en aplicación
+- no se validan condiciones de carrera sobre versiones de roster
+
+---
+
+### Proximos pasos naturales
+
+- evaluar mecanismos de bloqueo de concurrencia en aplicación
+- analizar consistencia bajo escenarios simultáneos
+- explorar herramientas de observabilidad del sistema
+- avanzar hacia escenarios de uso real o integración
+
+---
+
+### Notas
+
+Este checkpoint cierra el núcleo lógico del sistema.
+
+A partir de este punto, el sistema no solo está correctamente diseñado:
+también está defendido contra regresiones en sus invariantes más críticos.
+
+---

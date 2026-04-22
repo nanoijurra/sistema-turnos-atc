@@ -237,3 +237,7 @@ implementación
 testing/debug
 
 Cada contexto tiene responsabilidades definidas y no debe mezclar concerns.
+
+---
+
+
