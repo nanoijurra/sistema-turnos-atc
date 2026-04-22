@@ -2,8 +2,10 @@
 from dataclasses import replace
 from datetime import date
 
+from src.candidate_generation import generate_candidates
 from src.engine import validar_todo
 from src.models import RosterVersion, SwapRequest
+from src.roster_index import build_roster_index
 from src.roster_diff import impacto_por_controlador
 from src.rule_types import RuleResult
 from src.scoring import calcular_score, es_roster_valido
@@ -561,6 +563,23 @@ def explorar_swaps_entre_controladores(
     """
     pares = generar_pares_swap_entre_controladores(asignaciones, limite=limite)
     return explorar_swaps(asignaciones, pares, config_file=config_file)
+
+
+def explorar_candidatos_acotados(
+    asignacion_origen,
+    asignaciones: list,
+    modo: str = "auto",
+) -> list:
+    """
+    Devuelve candidatos crudos para exploracion acotada, sin evaluarlos ni decidir.
+    """
+    roster_index = build_roster_index(asignaciones)
+    return generate_candidates(
+        asignacion_origen=asignacion_origen,
+        roster_index=roster_index,
+        mode=modo,
+    )
+
 
 def explorar_swaps_con_priorizacion_historica(
     asignaciones: list,

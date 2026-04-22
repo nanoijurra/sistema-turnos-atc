@@ -2325,3 +2325,152 @@ A partir de este punto, el sistema no solo está correctamente diseñado:
 también está defendido contra regresiones en sus invariantes más críticos.
 
 ---
+
+## checkpoint-v25-roster-index-candidate-generation-v1
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se implementa una primera version minima y segura de exploracion acotada mediante dos nuevas piezas arquitectonicas:
+
+- `roster_index`
+- `candidate_generation`
+
+El objetivo de este checkpoint es introducir una base escalable para generacion de candidatos plausibles, sin tocar la evaluacion tecnica ni el workflow operativo existente.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo modulo `roster_index`
+
+- se incorpora `src/roster_index.py`
+- se implementa una estructura derivada `RosterIndex`
+- se agrega `build_roster_index(asignaciones)`
+
+El indice expone como minimo:
+
+- `by_date`
+- `by_date_turno`
+- `by_controller`
+- `future_window`
+
+---
+
+#### 2. `roster_index` como estructura derivada
+
+- `roster_index` se construye desde asignaciones dadas
+- no es fuente de verdad
+- no persiste
+- no evalua
+- no decide
+- no crea requests
+
+Su funcion en esta v1 es acelerar acceso y recorte de universo elegible.
+
+---
+
+#### 3. Nuevo modulo `candidate_generation`
+
+- se incorpora `src/candidate_generation.py`
+- se implementa generacion acotada de candidatos
+- se soportan casos minimos:
+  - cambio dentro del mismo dia
+  - cambio hacia dias futuros
+
+Se implementan funciones de generacion sobre asignaciones candidatas plausibles para simulacion posterior.
+
+---
+
+#### 4. Filtros baratos aplicados
+
+`candidate_generation` aplica solo filtros baratos, compatibles con su contrato:
+
+- exclusion de la misma asignacion exacta
+- exclusion del mismo controlador
+- mismo dia para exploracion same-day
+- fecha origen hacia adelante para exploracion future
+
+No se agregan filtros caros ni evaluacion tecnica.
+
+---
+
+#### 5. Sin invasion de capas tecnicas
+
+- no se toca `engine`
+- no se toca `scoring`
+- no se toca `swap_service`
+- no se toca persistencia
+- no se modifica `simulator.py` en esta v1
+
+`candidate_generation` no:
+
+- clasifica
+- calcula score
+- decide
+- crea `SwapRequest`
+- invoca evaluacion hard completa
+
+---
+
+#### 6. Testing
+
+Se agregan tests nuevos para:
+
+##### `tests/test_roster_index.py`
+- construccion correcta de `by_date`
+- construccion correcta de `by_date_turno`
+- construccion correcta de `by_controller`
+- construccion correcta de `future_window`
+- no perdida de asignaciones
+- no duplicacion de asignaciones
+
+##### `tests/test_candidate_generation.py`
+- candidatos same-day
+- candidatos future
+- exclusion de mismo controlador
+- exclusion de fechas anteriores
+- contrato de retorno como asignaciones
+- ausencia de clasificacion o decision
+
+Validacion:
+- tests nuevos en verde
+- suite completa en verde
+
+---
+
+### Decisiones de diseno reforzadas
+
+- la generacion de candidatos debe estar separada de la evaluacion tecnica
+- `roster_index` es solo una vista derivada del roster
+- `candidate_generation` construye universo plausible, no universo total
+- la exploracion acotada reemplaza conceptualmente a la exploracion global exhaustiva como direccion futura del sistema
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- esta v1 aun no integra el flujo acotado dentro de `simulator`
+- no reemplaza todavia el brute force existente
+- los filtros son intencionalmente baratos y conservadores
+- aun no existe benchmark comparativo entre brute force y candidate generation acotado
+- no se modela todavia una entidad explicita de necesidad o request context
+
+---
+
+### Proximos pasos naturales
+
+- integrar un punto minimo en `simulator` para consumir `roster_index` + `candidate_generation`
+- medir benchmark comparativo entre exploracion global y generacion acotada
+- definir contrato de entrada para exploracion centrada en necesidad concreta
+- evaluar refinamientos adicionales de filtros baratos sin invadir evaluacion tecnica
+
+---
+
+### Notas
+
+Este checkpoint no cambia la evaluacion tecnica del sistema.
+
+Introduce la primera base concreta para escalar la generacion de candidatos sin caer en exploracion global exhaustiva, preservando la arquitectura vigente y manteniendo intactas las responsabilidades de cada capa.
