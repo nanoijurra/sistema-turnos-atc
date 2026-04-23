@@ -581,6 +581,38 @@ def explorar_candidatos_acotados(
     )
 
 
+def explorar_y_evaluar_candidatos_acotados(
+    asignacion_origen,
+    asignaciones: list,
+    modo: str = "auto",
+    config_file: str = "config_equilibrado.json",
+) -> list[dict]:
+    """
+    Evalua tecnicamente solo los candidatos generados por exploracion acotada.
+    """
+    idx_origen = asignaciones.index(asignacion_origen)
+    candidatos = explorar_candidatos_acotados(
+        asignacion_origen=asignacion_origen,
+        asignaciones=asignaciones,
+        modo=modo,
+    )
+
+    evaluaciones = []
+
+    for candidato in candidatos:
+        idx_candidato = asignaciones.index(candidato)
+        evaluaciones.append(
+            evaluar_swap(
+                asignaciones=asignaciones,
+                idx_a=idx_origen,
+                idx_b=idx_candidato,
+                config_file=config_file,
+            )
+        )
+
+    return evaluaciones
+
+
 def explorar_swaps_con_priorizacion_historica(
     asignaciones: list,
     pares: list[tuple[int, int]],
