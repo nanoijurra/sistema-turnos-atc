@@ -2,6 +2,7 @@ from dataclasses import replace
 
 from src.engine import cargar_config
 from src.models import Asignacion, obtener_inicio_fin_asignacion
+from src.validator import validar_secuencia
 
 
 def _nombre_controlador(asignacion: Asignacion) -> str | None:
@@ -36,6 +37,19 @@ def _obtener_horas_minimas_descanso(config_file: str = "config_equilibrado.json"
 
         if isinstance(horas_minimas, (int, float)):
             return float(horas_minimas)
+
+    return None
+
+
+def _obtener_regla_config(
+    funcion_regla: str,
+    config_file: str = "config_equilibrado.json",
+) -> dict | None:
+    config = cargar_config(config_file)
+
+    for regla in config.get("reglas", []):
+        if regla.get("funcion") == funcion_regla:
+            return regla
 
     return None
 
@@ -132,12 +146,45 @@ def _tiene_descanso_local_inmediato_insuficiente(
     return False
 
 
+def _tiene_secuencia_local_inmediata_prohibida(
+    asignacion_objetivo: Asignacion,
+    turno_nuevo,
+    asignaciones: list[Asignacion],
+    config_file: str = "config_equilibrado.json",
+) -> bool:
+    regla_secuencia = _obtener_regla_config(
+        funcion_regla="validar_secuencia",
+        config_file=config_file,
+    )
+    if regla_secuencia is None:
+        return False
+
+    nombre_controlador = _nombre_controlador(asignacion_objetivo)
+    asignaciones_controlador = _asignaciones_ordenadas_por_controlador(
+        asignaciones=asignaciones,
+        nombre_controlador=nombre_controlador,
+    )
+    posicion = _buscar_posicion_asignacion(asignaciones_controlador, asignacion_objetivo)
+
+    if posicion is None:
+        return False
+
+    asignacion_actualizada = replace(asignacion_objetivo, turno=turno_nuevo)
+    inicio = max(0, posicion - 1)
+    fin = min(len(asignaciones_controlador), posicion + 2)
+    ventana_local = list(asignaciones_controlador[inicio:fin])
+    ventana_local[posicion - inicio] = asignacion_actualizada
+
+    return len(validar_secuencia(ventana_local)) > 0
+
+
 def get_candidate_prefilter_diagnostic_reasons(
     asignacion_origen: Asignacion,
     asignacion_candidata: Asignacion,
     asignaciones: list[Asignacion],
     config_file: str = "config_equilibrado.json",
 ) -> list[str]:
+    motivos: list[str] = []
     horas_minimas_descanso = _obtener_horas_minimas_descanso(config_file=config_file)
 
     if _tiene_descanso_local_inmediato_insuficiente(
@@ -146,7 +193,7 @@ def get_candidate_prefilter_diagnostic_reasons(
         asignaciones=asignaciones,
         horas_minimas_descanso=horas_minimas_descanso,
     ):
-        return ["DESCANSO_LOCAL"]
+        motivos.append("DESCANSO_LOCAL")
 
     if asignacion_candidata.fecha == asignacion_origen.fecha:
         if _tiene_descanso_local_inmediato_insuficiente(
@@ -155,9 +202,26 @@ def get_candidate_prefilter_diagnostic_reasons(
             asignaciones=asignaciones,
             horas_minimas_descanso=horas_minimas_descanso,
         ):
-            return ["DESCANSO_LOCAL"]
+            motivos.append("DESCANSO_LOCAL")
 
-    return []
+    if _tiene_secuencia_local_inmediata_prohibida(
+        asignacion_objetivo=asignacion_origen,
+        turno_nuevo=asignacion_candidata.turno,
+        asignaciones=asignaciones,
+        config_file=config_file,
+    ):
+        motivos.append("SECUENCIA_LOCAL")
+
+    if asignacion_candidata.fecha == asignacion_origen.fecha:
+        if _tiene_secuencia_local_inmediata_prohibida(
+            asignacion_objetivo=asignacion_candidata,
+            turno_nuevo=asignacion_origen.turno,
+            asignaciones=asignaciones,
+            config_file=config_file,
+        ):
+            motivos.append("SECUENCIA_LOCAL")
+
+    return sorted(set(motivos))
 
 
 def is_candidate_technically_plausible(

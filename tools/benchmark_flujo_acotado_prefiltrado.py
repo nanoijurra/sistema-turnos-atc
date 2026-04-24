@@ -117,6 +117,7 @@ def main() -> None:
         f"{'Asignaciones':>12} | "
         f"{'Generados':>10} | "
         f"{'Desc local':>10} | "
+        f"{'Seq local':>10} | "
         f"{'Prefiltrados':>13} | "
         f"{'Simulados':>10} | "
         f"{'Gen ms':>10} | "
@@ -142,14 +143,23 @@ def main() -> None:
         fin_generacion = perf_counter()
 
         inicio_prefiltro = perf_counter()
-        descartados_descanso_local = sum(
-            1
-            for candidato in candidatos
-            if "DESCANSO_LOCAL" in get_candidate_prefilter_diagnostic_reasons(
+        diagnosticos = [
+            get_candidate_prefilter_diagnostic_reasons(
                 asignacion_origen=asignacion_origen,
                 asignacion_candidata=candidato,
                 asignaciones=asignaciones,
             )
+            for candidato in candidatos
+        ]
+        descartados_descanso_local = sum(
+            1
+            for motivos in diagnosticos
+            if "DESCANSO_LOCAL" in motivos
+        )
+        descartados_secuencia_local = sum(
+            1
+            for motivos in diagnosticos
+            if "SECUENCIA_LOCAL" in motivos
         )
         candidatos_prefiltrados = filter_technically_plausible_candidates(
             asignacion_origen=asignacion_origen,
@@ -183,6 +193,7 @@ def main() -> None:
             f"{len(asignaciones):>12} | "
             f"{len(candidatos):>10} | "
             f"{descartados_descanso_local:>10} | "
+            f"{descartados_secuencia_local:>10} | "
             f"{len(candidatos_prefiltrados):>13} | "
             f"{simulados:>10} | "
             f"{generacion_ms:>10.2f} | "

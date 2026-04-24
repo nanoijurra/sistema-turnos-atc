@@ -98,7 +98,27 @@ def test_filter_technically_plausible_candidates_descarta_descanso_local_obvio()
     motivos = get_candidate_prefilter_diagnostic_reasons(origen, candidata, asignaciones)
 
     assert candidata not in resultado
-    assert motivos == ["DESCANSO_LOCAL"]
+    assert "DESCANSO_LOCAL" in motivos
+
+
+def test_filter_technically_plausible_candidates_descarta_secuencia_local_evidente():
+    esquema = crear_esquema_8h()
+    turno_a = esquema.obtener_turno("A")
+    turno_b = esquema.obtener_turno("B")
+    turno_c = esquema.obtener_turno("C")
+    controlador_a = Controlador("ATC_A")
+    controlador_b = Controlador("ATC_B")
+
+    asignacion_previa = Asignacion(date(2026, 3, 1), turno_c, controlador_a)
+    origen = Asignacion(date(2026, 3, 2), turno_c, controlador_a)
+    candidata = Asignacion(date(2026, 3, 2), turno_a, controlador_b)
+    asignaciones = [asignacion_previa, origen, candidata]
+
+    resultado = filter_technically_plausible_candidates(origen, [candidata], asignaciones)
+    motivos = get_candidate_prefilter_diagnostic_reasons(origen, candidata, asignaciones)
+
+    assert candidata not in resultado
+    assert "SECUENCIA_LOCAL" in motivos
 
 
 def test_is_candidate_technically_plausible_caso_ambiguo_deja_pasar():
@@ -121,6 +141,23 @@ def test_is_candidate_technically_plausible_caso_ambiguo_deja_pasar():
     ) is True
 
 
+def test_is_candidate_technically_plausible_secuencia_local_ambigua_deja_pasar():
+    esquema = crear_esquema_8h()
+    turno_a = esquema.obtener_turno("A")
+    turno_c = esquema.obtener_turno("C")
+    controlador_a = Controlador("ATC_A")
+    controlador_b = Controlador("ATC_B")
+
+    origen = Asignacion(date(2026, 3, 2), turno_c, controlador_a)
+    candidata_fuera_roster = Asignacion(date(2026, 3, 2), turno_a, controlador_b)
+
+    assert is_candidate_technically_plausible(
+        origen,
+        candidata_fuera_roster,
+        [origen],
+    ) is True
+
+
 def test_is_candidate_technically_plausible_sin_vecinos_deja_pasar():
     esquema = crear_esquema_8h()
     turno_a = esquema.obtener_turno("A")
@@ -132,6 +169,25 @@ def test_is_candidate_technically_plausible_sin_vecinos_deja_pasar():
     candidata = Asignacion(date(2026, 3, 2), turno_a, controlador_b)
 
     assert is_candidate_technically_plausible(origen, candidata, [origen, candidata]) is True
+
+
+def test_is_candidate_technically_plausible_secuencia_local_no_supera_limite_deja_pasar():
+    esquema = crear_esquema_8h()
+    turno_b = esquema.obtener_turno("B")
+    turno_a = esquema.obtener_turno("A")
+    turno_c = esquema.obtener_turno("C")
+    controlador_a = Controlador("ATC_A")
+    controlador_b = Controlador("ATC_B")
+
+    asignacion_previa = Asignacion(date(2026, 3, 1), turno_a, controlador_a)
+    origen = Asignacion(date(2026, 3, 2), turno_c, controlador_a)
+    candidata = Asignacion(date(2026, 3, 2), turno_b, controlador_b)
+
+    assert is_candidate_technically_plausible(
+        origen,
+        candidata,
+        [asignacion_previa, origen, candidata],
+    ) is True
 
 
 def test_filter_technically_plausible_candidates_no_puntua():
