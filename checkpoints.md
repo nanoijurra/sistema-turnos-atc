@@ -2717,3 +2717,525 @@ Este checkpoint no optimiza brute force:
 demuestra que ya no hace falta insistir con el como camino principal.
 
 La evidencia de escala respalda que el sistema debe evolucionar hacia generacion acotada de candidatos seguida de simulacion tecnica selectiva.
+
+---
+
+## checkpoint-v28-bounded-technical-evaluation-flow
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se incorpora una nueva variante en `simulator.py` para evaluar tecnicamente solo los candidatos generados por exploracion acotada.
+
+Con este checkpoint queda completa la primera cadena funcional de exploracion escalable del sistema:
+
+- `roster_index`
+- `candidate_generation`
+- `explorar_candidatos_acotados`
+- `explorar_y_evaluar_candidatos_acotados`
+
+---
+
+### Que quedo implementado
+
+#### 1. Nueva funcion en `simulator.py`
+
+- se agrega `explorar_y_evaluar_candidatos_acotados(asignacion_origen, asignaciones, modo="auto", config_file="config_equilibrado.json")`
+- la funcion:
+  - usa `explorar_candidatos_acotados(...)`
+  - localiza indices en `asignaciones`
+  - evalua tecnicamente cada candidato con `evaluar_swap(...)`
+  - devuelve resultados tecnicos reales del simulator
+
+---
+
+#### 2. Evaluacion tecnica selectiva
+
+- ya no se depende de exploracion global exhaustiva para obtener resultados tecnicos
+- el flujo nuevo toma un subconjunto acotado de candidatos plausibles
+- luego ejecuta evaluacion tecnica real solo sobre ese subconjunto
+
+Esto convierte la exploracion acotada en un camino util y completo para simulacion tecnica.
+
+---
+
+#### 3. Contrato preservado
+
+La nueva funcion:
+
+- no crea `SwapRequest`
+- no decide
+- no persiste
+- no invoca `swap_service`
+- no altera scoring
+- no altera clasificacion tecnica
+
+`simulator` se mantiene como capa de evaluacion tecnica y orquestacion.
+
+---
+
+#### 4. Sin ruptura del flujo existente
+
+- no se reemplaza `explorar_swaps_entre_controladores`
+- no se elimina brute force
+- no se modifica el flujo global existente
+- el nuevo camino convive como variante integrada y separada
+
+---
+
+#### 5. Testing
+
+Se agregan tests nuevos en `tests/test_simulator_bounded_evaluation.py` para validar:
+
+- que la nueva funcion devuelve lista
+- que `same_day` funciona
+- que `future` funciona
+- que los elementos devueltos contienen evaluacion tecnica real
+- que no devuelve `SwapRequest`
+- que no decide ni agrega decision operativa
+- que no rompe el simulator existente
+- que la clasificacion tecnica sigue siendo la vigente del sistema
+
+Validacion:
+- tests nuevos en verde
+- suite completa en verde
+
+---
+
+### Decisiones de diseno reforzadas
+
+- la generacion de candidatos sigue separada de la evaluacion tecnica
+- `simulator` puede evaluar tecnicamente solo un subconjunto acotado sin absorber responsabilidades de generacion
+- la estrategia escalable del sistema queda alineada con:
+  - prefiltrado barato
+  - simulacion tecnica selectiva
+  - preservacion del contrato tecnico vigente
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- el flujo nuevo aun no esta integrado a ningun camino operativo preferente del sistema
+- no reemplaza todavia el brute force global
+- no existe aun un pipeline completo que conecte esta salida tecnica con ranking operativo final
+- falta benchmark especifico del flujo acotado + evaluacion tecnica completa
+
+---
+
+### Proximos pasos naturales
+
+- benchmark del flujo completo:
+  - exploracion acotada
+  - evaluacion tecnica selectiva
+- definir si este camino pasa a ser preferente frente al brute force
+- integrar el flujo acotado evaluado con ranking o consumo posterior
+- decidir el rol residual del brute force en el sistema
+
+---
+
+### Notas
+
+Este checkpoint marca el pasaje desde una exploracion acotada solo generativa hacia una exploracion acotada tecnicamente util.
+
+El sistema ya no solo puede recortar el universo:
+tambien puede evaluarlo tecnicamente de forma selectiva y escalable.
+
+---
+
+## checkpoint-v29-bounded-evaluated-flow-benchmark
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se incorpora un benchmark especifico para medir el flujo completo acotado evaluado del sistema:
+
+- generacion acotada de candidatos
+- evaluacion tecnica selectiva
+
+El objetivo de este checkpoint es validar si el nuevo camino escalable queda en rango operativo util una vez incluida la evaluacion tecnica real del simulator.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo benchmark del flujo acotado evaluado
+
+- se agrega `tools/benchmark_flujo_acotado_evaluado.py`
+- el benchmark:
+  - toma `asignaciones[0]` como `asignacion_origen`
+  - ejecuta `explorar_y_evaluar_candidatos_acotados(...)`
+  - mide tiempo total del flujo
+  - reporta cantidad de candidatos evaluados
+  - reporta conteo por clasificacion tecnica
+
+---
+
+#### 2. Escalas medidas
+
+Se mide el flujo completo sobre escenarios escalados para:
+
+- 80 controladores
+- 120 controladores
+- 180 controladores
+
+---
+
+#### 3. Resultados observados
+
+Resultados obtenidos:
+
+- 80 controladores
+  - asignaciones: 160
+  - flujo: ~12426 ms
+  - evaluados: 158
+  - BENEFICIOSO: 0
+  - ACEPTABLE: 0
+  - RECHAZABLE: 158
+
+- 120 controladores
+  - asignaciones: 240
+  - flujo: ~28435 ms
+  - evaluados: 238
+  - BENEFICIOSO: 0
+  - ACEPTABLE: 0
+  - RECHAZABLE: 238
+
+- 180 controladores
+  - asignaciones: 360
+  - flujo: ~63475 ms
+  - evaluados: 358
+  - BENEFICIOSO: 0
+  - ACEPTABLE: 0
+  - RECHAZABLE: 358
+
+---
+
+#### 4. Conclusiones tecnicas del benchmark
+
+- la generacion acotada sigue reduciendo correctamente el universo candidato
+- el cuello dominante del flujo completo ya no es la combinatoria global
+- el cuello pasa a ser la evaluacion tecnica individual por candidato
+- el sistema mejora radicalmente frente al brute force global, pero el flujo completo aun no queda en rango operativo comodo para escalas altas
+
+---
+
+#### 5. Sin cambios de logica productiva
+
+- no se toca `src/`
+- no se modifica:
+  - `engine`
+  - `scoring`
+  - `swap_service`
+  - `candidate_generation`
+  - `roster_index`
+  - `simulator.py`
+- el benchmark vive exclusivamente en `tools/`
+
+---
+
+### Decisiones de diseno reforzadas
+
+- la estrategia de exploracion acotada fue correcta y necesaria
+- el problema combinatorio global queda resuelto conceptualmente
+- el siguiente cuello del sistema ya no es la generacion del universo
+- el siguiente cuello esta en el costo de evaluacion tecnica selectiva por candidato
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- el benchmark usa una `asignacion_origen` fija (`asignaciones[0]`)
+- el escenario escalado puede no representar distribucion operativa real de casos utiles
+- todos los candidatos resultaron `RECHAZABLE`, lo cual puede reflejar:
+  - origen poco representativo
+  - escenario artificialmente restrictivo
+  - filtros baratos aun demasiado amplios
+- no se perfila internamente en que subpasos exactos se consume el tiempo de evaluacion tecnica
+
+---
+
+### Proximos pasos naturales
+
+- discutir en arquitectura el nuevo cuello de botella
+- decidir si la proxima palanca es:
+  - endurecer filtros baratos
+  - introducir una prevalidacion tecnica ligera
+  - optimizar el pipeline de evaluacion tecnica selectiva
+- medir costo interno por candidato y por subpaso tecnico
+- definir si el flujo acotado evaluado puede convertirse en camino operativo preferente tras una nueva iteracion
+
+---
+
+### Notas
+
+Este checkpoint confirma que la arquitectura nueva resolvio el problema correcto:
+la combinatoria.
+
+El sistema ya no falla por explorar demasiado.
+Ahora el problema esta en cuanto cuesta evaluar tecnicamente cada candidato que sobrevive al recorte inicial.
+
+---
+
+Contexto: sistema de swaps ATC en Python.
+
+Estado actual:
+- exploracion global exhaustiva descartada
+- roster_index implementado
+- candidate_generation implementado
+- simulator ya tiene:
+  - explorar_candidatos_acotados(...)
+  - explorar_y_evaluar_candidatos_acotados(...)
+- benchmark actual muestra:
+  - universo ya reducido
+  - pero costo aun alto en evaluacion tecnica completa
+  - casi todos los candidatos terminan RECHAZABLE
+
+Decision arquitectonica ya tomada:
+Agregar una capa intermedia de prevalidacion tecnica ligera entre:
+- candidate_generation
+- simulator
+
+---
+
+Modo de trabajo:
+IMPLEMENTACION CONTROLADA
+
+---
+
+Arquitectura vigente (NO TOCAR)
+
+- engine = validacion de reglas y configuracion
+- scoring = validez tecnica y score tecnico
+- simulator = evaluacion tecnica y clasificacion
+- swap_service = workflow operativo
+- candidate_generation = generacion acotada de candidatos
+- roster_index = estructura derivada del roster
+
+---
+
+Restricciones duras
+
+NO tocar:
+- engine
+- scoring
+- swap_service
+- persistencia
+- request_store
+- roster_store
+- modelos
+- candidate_generation.py
+- roster_index.py
+- benchmarks existentes
+- docs
+- checkpoints
+
+NO hacer:
+- refactor
+- cambios de arquitectura
+- cambios semanticos
+- cambios en clasificacion tecnica
+- cambios en scoring tecnico
+- cambios en contratos existentes
+- optimizacion ciega de simulator
+- paralelizacion
+- caching masivo
+- limpieza oportunista
+
+NO introducir:
+- decision operativa en simulator
+- evaluacion tecnica completa en candidate_generation
+- logica hard completa en prefilter
+- score en prefilter
+- clasificacion en prefilter
+- persistencia en prefilter
+- requests en prefilter
+
+---
+
+Objetivo funcional
+
+Implementar una v1 minima y segura de una nueva capa:
+
+- src/technical_prefilter.py
+
+e integrarla de forma minima en simulator.py para crear un flujo:
+
+candidate_generation
+→ technical_prefilter
+→ simulator
+
+sin romper nada existente.
+
+---
+
+Contrato esperado de la nueva capa
+
+## technical_prefilter
+Debe:
+- descartar solo inviabilidad tecnica obvia
+- ser barata
+- ser conservadora
+- trabajar sobre:
+  - asignacion_origen
+  - candidatos
+  - asignaciones del roster
+
+No debe:
+- clasificar
+- puntuar
+- decidir
+- persistir
+- crear SwapRequest
+- reemplazar simulator
+
+---
+
+Diseno minimo esperado
+
+## src/technical_prefilter.py
+
+Implementar funciones minimas equivalentes a:
+
+- is_candidate_technically_plausible(asignacion_origen, asignacion_candidata, asignaciones) -> bool
+- filter_technically_plausible_candidates(asignacion_origen, candidatos, asignaciones) -> list
+
+Mantener implementacion extremadamente conservadora en esta v1.
+
+Chequeos admitidos en v1:
+- excluir mismo controlador
+- excluir misma asignacion exacta
+- excluir intercambio trivial sin cambio real
+- solo chequeos locales, baratos y obvios
+
+NO meter en esta v1:
+- descanso minimo completo
+- secuencias completas
+- noches consecutivas
+- dotacion minima
+- score
+- clasificacion
+- validez hard completa del roster
+
+---
+
+Integracion minima en simulator.py
+
+Agregar una funcion nueva y separada.
+
+Nombre sugerido:
+- explorar_y_evaluar_candidatos_con_prefiltro(...)
+o equivalente claro y consistente
+
+Debe:
+1. usar explorar_candidatos_acotados(...)
+2. pasar por technical_prefilter
+3. evaluar tecnicamente solo los sobrevivientes
+4. devolver resultados tecnicos reales del simulator
+
+No reemplazar:
+- explorar_swaps_entre_controladores
+- explorar_candidatos_acotados
+- explorar_y_evaluar_candidatos_acotados
+
+Solo agregar una nueva variante.
+
+---
+
+Tests a agregar
+
+Crear:
+- tests/test_technical_prefilter.py
+- tests/test_simulator_prefiltered_bounded_evaluation.py
+
+Validar como minimo:
+
+## test_technical_prefilter.py
+- devuelve lista
+- excluye mismo controlador
+- excluye misma asignacion exacta
+- no clasifica
+- no decide
+- no devuelve requests
+- mantiene candidatos plausibles simples
+
+## test_simulator_prefiltered_bounded_evaluation.py
+- la nueva funcion devuelve lista
+- same_day funciona
+- future funciona
+- usa prefilter antes de evaluar
+- no rompe simulator existente
+- no crea requests
+- no decide
+- mantiene clasificacion tecnica real en la salida
+
+Usar escenarios existentes del proyecto si sirven.
+No crear fixtures complejos innecesarios.
+
+---
+
+Benchmark por etapas
+
+Crear:
+- tools/benchmark_flujo_acotado_prefiltrado.py
+
+Debe reportar, para 80 / 120 / 180 controladores si es posible:
+
+- controladores
+- asignaciones
+- generados
+- prefiltrados
+- simulados
+- tiempo generacion
+- tiempo prefiltrado
+- tiempo simulacion
+- tiempo total
+- clasificacion final:
+  - BENEFICIOSO
+  - ACEPTABLE
+  - RECHAZABLE
+
+Si alguna escala tarda demasiado, permitir modo seguro o corte preventivo, pero no tocar codigo productivo.
+
+---
+
+Validacion final obligatoria
+
+1. correr tests nuevos
+2. correr pytest completo
+3. correr el benchmark nuevo
+4. reportar:
+   - archivos creados o modificados
+   - funciones agregadas
+   - resumen corto del flujo
+   - resultado de tests
+   - salida del benchmark
+   - por que no rompe arquitectura
+
+---
+
+Formato de entrega obligatorio
+
+Quiero que trabajes asi:
+
+1. inspecciona el codigo existente y detecta nombres reales reutilizables
+2. implementa solo lo minimo necesario
+3. agrega tests nuevos minimos
+4. agrega benchmark nuevo
+5. corre tests
+6. corre benchmark
+7. entrega resumen corto y preciso
+
+NO hagas explicaciones largas.
+NO propongas rediseños.
+NO mejores otras areas.
+NO toques mas de lo pedido.
+
+Si dudas entre hacer mas o hacer menos:
+hacer menos.
+
+Regla principal:
+instalar correctamente la nueva frontera arquitectonica con una v1 minima, segura y conservadora, sin romper nada.

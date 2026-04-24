@@ -9,6 +9,7 @@ from src.roster_index import build_roster_index
 from src.roster_diff import impacto_por_controlador
 from src.rule_types import RuleResult
 from src.scoring import calcular_score, es_roster_valido
+from src.technical_prefilter import filter_technically_plausible_candidates
 from src.historical_prioritization import priorizar_por_equidad_historica
 
 def _validar_indices_swap(asignaciones: list, idx_a: int, idx_b: int) -> None:
@@ -580,7 +581,6 @@ def explorar_candidatos_acotados(
         mode=modo,
     )
 
-
 def explorar_y_evaluar_candidatos_acotados(
     asignacion_origen,
     asignaciones: list,
@@ -611,6 +611,52 @@ def explorar_y_evaluar_candidatos_acotados(
         )
 
     return evaluaciones
+
+
+def _buscar_indice_asignacion_en_roster(asignaciones: list, asignacion_objetivo) -> int:
+    for idx, asignacion in enumerate(asignaciones):
+        if asignacion is asignacion_objetivo:
+            return idx
+
+    for idx, asignacion in enumerate(asignaciones):
+        if asignacion == asignacion_objetivo:
+            return idx
+
+    raise ValueError("La asignacion indicada no pertenece al roster recibido.")
+
+
+def explorar_y_evaluar_candidatos_con_prefiltro(
+    asignacion_origen,
+    asignaciones: list,
+    modo: str = "auto",
+    config_file: str = "config_equilibrado.json",
+) -> list[dict]:
+    """
+    Explora candidatos acotados, aplica prefiltro tecnico ligero
+    y evalua tecnicamente solo los sobrevivientes.
+    """
+    candidatos = explorar_candidatos_acotados(
+        asignacion_origen=asignacion_origen,
+        asignaciones=asignaciones,
+        modo=modo,
+    )
+    candidatos_prefiltrados = filter_technically_plausible_candidates(
+        asignacion_origen=asignacion_origen,
+        candidatos=candidatos,
+        asignaciones=asignaciones,
+    )
+
+    idx_origen = _buscar_indice_asignacion_en_roster(asignaciones, asignacion_origen)
+    pares = [
+        (idx_origen, _buscar_indice_asignacion_en_roster(asignaciones, candidato))
+        for candidato in candidatos_prefiltrados
+    ]
+
+    return explorar_swaps(
+        asignaciones=asignaciones,
+        pares=pares,
+        config_file=config_file,
+    )
 
 
 def explorar_swaps_con_priorizacion_historica(
