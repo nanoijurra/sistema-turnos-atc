@@ -3239,3 +3239,559 @@ hacer menos.
 
 Regla principal:
 instalar correctamente la nueva frontera arquitectonica con una v1 minima, segura y conservadora, sin romper nada.
+
+---
+
+## checkpoint-v30-technical-prefilter-v1
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se implementa una primera version minima y conservadora de prevalidacion tecnica ligera entre:
+
+- `candidate_generation`
+- `simulator`
+
+El objetivo es reducir candidatos de baja plausibilidad tecnica antes de ejecutar la evaluacion tecnica completa, sin romper contratos ni mover responsabilidades entre capas.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo modulo `technical_prefilter`
+
+- se agrega `src/technical_prefilter.py`
+- se implementan:
+  - `is_candidate_technically_plausible(...)`
+  - `filter_technically_plausible_candidates(...)`
+
+---
+
+#### 2. Prefiltro tecnico ligero
+
+La v1 descarta solo obviedades locales y conservadoras:
+
+- mismo controlador
+- misma asignacion exacta
+- swap trivial sin cambio real
+
+No clasifica, no puntua, no decide, no persiste, no crea requests y no reemplaza al simulator.
+
+---
+
+#### 3. Nueva variante en `simulator.py`
+
+- se agrega `explorar_y_evaluar_candidatos_con_prefiltro(...)`
+- el flujo nuevo es:
+
+`candidate_generation -> technical_prefilter -> simulator`
+
+La funcion nueva evalua tecnicamente solo los candidatos sobrevivientes al prefiltro.
+
+---
+
+#### 4. Testing
+
+Se agregan tests nuevos:
+
+- `tests/test_technical_prefilter.py`
+- `tests/test_simulator_prefiltered_bounded_evaluation.py`
+
+Validacion:
+- tests nuevos en verde
+- suite completa: `130 passed`
+
+---
+
+#### 5. Benchmark por etapas
+
+Se agrega:
+
+- `tools/benchmark_flujo_acotado_prefiltrado.py`
+
+Resultados observados:
+
+- 80 controladores:
+  - generados: 158
+  - simulados: 79
+  - total: ~6375 ms
+
+- 120 controladores:
+  - generados: 238
+  - simulados: 119
+  - total: ~14007 ms
+
+- 180 controladores:
+  - generados: 358
+  - simulados: 179
+  - total: ~35271 ms
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `candidate_generation` sigue siendo estructural
+- `technical_prefilter` filtra inviabilidad tecnica obvia y barata
+- `simulator` sigue siendo fuente de verdad de evaluacion tecnica completa y clasificacion
+- la nueva capa no reemplaza al simulator ni invade scoring
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- la reduccion inicial es significativa pero todavia no deja el flujo completo en tiempo ideal para 180 controladores
+- todos los candidatos simulados siguen resultando `RECHAZABLE`
+- no se incorporan todavia chequeos tecnicos mas ricos
+- no se optimizo internamente `evaluar_swap`
+- no se introdujo paralelizacion ni cache
+
+---
+
+### Proximos pasos naturales
+
+- analizar si el benchmark usa una asignacion origen representativa
+- medir otros origenes para validar calidad del universo candidato
+- evaluar nuevos chequeos conservadores en `technical_prefilter`
+- perfilar costo interno de `evaluar_swap`
+- decidir si el flujo prefiltrado puede pasar a ser camino preferente tras una iteracion adicional
+
+---
+
+### Notas
+
+Este checkpoint instala correctamente una nueva frontera arquitectonica.
+
+El sistema ya no solo reduce el universo candidato por estructura:
+tambien descarta inviabilidades tecnicas obvias antes de pagar el costo de simulacion completa.
+
+---
+
+## checkpoint-v31-prefiltered-origins-benchmark
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se incorpora un benchmark diagnostico para medir el flujo prefiltrado sobre multiples asignaciones origen.
+
+El objetivo es determinar si el patron observado de candidatos `RECHAZABLE` depende de una asignacion origen puntual o si se repite en diferentes puntos del escenario escalado.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo benchmark de multiples origenes
+
+- se agrega `tools/benchmark_origenes_prefiltrados.py`
+- el benchmark mide el flujo:
+
+`exploracion acotada -> technical_prefilter -> evaluacion tecnica`
+
+sobre varios origenes representativos de cada escenario.
+
+---
+
+#### 2. Origenes evaluados
+
+Para cada escala se toman origenes distribuidos en el roster escalado:
+
+- primer elemento
+- cuarto aproximado
+- mitad
+- tres cuartos aproximado
+- ultimo elemento
+
+Se evitan duplicados si coincidieran.
+
+---
+
+#### 3. Escalas medidas
+
+Se mide el flujo sobre escenarios escalados para:
+
+- 80 controladores
+- 120 controladores
+- 180 controladores
+
+---
+
+#### 4. Resultados observados
+
+##### 80 controladores
+
+- origenes principales con turno `C`:
+  - generados: 158
+  - prefiltrados/simulados: 79
+  - resultado: 79 `RECHAZABLE`
+- ultimo origen con turno `B`:
+  - generados: 39
+  - prefiltrados/simulados: 0
+
+Resumen:
+- promedio tiempo: ~5049 ms
+- promedio simulados: ~63
+- total `RECHAZABLE`: 316
+
+---
+
+##### 120 controladores
+
+- origenes principales con turno `C`:
+  - generados: 238
+  - prefiltrados/simulados: 119
+  - resultado: 119 `RECHAZABLE`
+- ultimo origen con turno `B`:
+  - generados: 59
+  - prefiltrados/simulados: 0
+
+Resumen:
+- promedio tiempo: ~11429 ms
+- promedio simulados: ~95
+- total `RECHAZABLE`: 476
+
+---
+
+##### 180 controladores
+
+- origenes principales con turno `C`:
+  - generados: 358 o 178 segun origen
+  - prefiltrados/simulados: 179 o 89
+  - resultado: todos `RECHAZABLE`
+- ultimo origen con turno `B`:
+  - generados: 89
+  - prefiltrados/simulados: 0
+
+Resumen:
+- promedio tiempo: ~19325 ms
+- promedio simulados: ~107
+- total `RECHAZABLE`: 536
+
+---
+
+#### 5. Conclusion tecnica del benchmark
+
+El patron de candidatos `RECHAZABLE` no depende solamente de `asignaciones[0]`.
+
+Se repite en multiples origenes representativos, lo que indica que el problema probablemente esta en:
+
+- el escenario escalado artificialmente restrictivo
+- candidatos estructuralmente plausibles pero tecnicamente pobres
+- falta de un prefiltro tecnico mas especifico
+- o una combinacion de los anteriores
+
+---
+
+### Decisiones de diseno reforzadas
+
+- no conviene agregar mas logica al prefiltro sin diagnostico adicional
+- la medicion de multiples origenes evita optimizar en base a un solo caso
+- el siguiente paso debe identificar causas tecnicas concretas de rechazo
+- el flujo prefiltrado permite medir comportamiento por origen sin tocar codigo productivo
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- el benchmark sigue usando escenarios escalados artificiales
+- los origenes son representativos por posicion, no necesariamente por valor operativo real
+- no identifica todavia que reglas hard dominan los rechazos
+- no distingue aun entre problema de escenario y problema de candidato
+
+---
+
+### Proximos pasos naturales
+
+- agregar benchmark diagnostico de motivos de rechazo
+- identificar si los rechazos provienen de descanso, secuencia, noches, dotacion u otras reglas
+- decidir si una v2 de `technical_prefilter` puede incorporar chequeos locales conservadores
+- no modificar prefiltro todavia sin evidencia de reglas dominantes
+
+---
+
+### Notas
+
+Este checkpoint confirma que el problema no es un origen aislado.
+
+La exploracion prefiltrada se comporta consistentemente en varios puntos del escenario, por lo que la proxima decision debe basarse en reglas tecnicas dominantes y no en intuicion.
+
+---
+
+## checkpoint-v32-dominant-hard-rules-diagnostics
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se incorpora un benchmark diagnostico para identificar las reglas hard dominantes responsables de los rechazos en el flujo prefiltrado.
+
+El objetivo es dejar de tratar los resultados `RECHAZABLE` como una caja negra y determinar que invariantes tecnicas invalidan los swaps candidatos.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo benchmark de reglas dominantes
+
+- se agrega `tools/benchmark_reglas_dominantes_prefiltrado.py`
+- el benchmark analiza el flujo:
+
+`exploracion acotada -> technical_prefilter -> evaluacion tecnica`
+
+y extrae informacion desde los resultados tecnicos del simulator.
+
+---
+
+#### 2. Analisis de estructuras tecnicas existentes
+
+El benchmark inspecciona campos ya presentes en la salida tecnica:
+
+- `resumen_por_regla_nuevo`
+- `resumen_por_regla_original`
+- `delta_hard`
+- `resultado_swap`
+- `valido_nuevo`
+
+No se modifica codigo productivo.
+
+---
+
+#### 3. Escalas medidas
+
+Se miden escenarios escalados para:
+
+- 80 controladores
+- 120 controladores
+- 180 controladores
+
+usando los mismos criterios de origenes representativos del benchmark anterior.
+
+---
+
+#### 4. Resultados observados
+
+##### 80 controladores
+
+- total simulados: 316
+- total rechazables: 316
+- reglas dominantes:
+  - `Descanso minimo`: 316
+  - `Secuencia`: 316
+
+---
+
+##### 120 controladores
+
+- total simulados: 476
+- total rechazables: 476
+- reglas dominantes:
+  - `Descanso minimo`: 476
+  - `Secuencia`: 476
+
+---
+
+##### 180 controladores
+
+- total simulados: 536
+- total rechazables: 536
+- reglas dominantes:
+  - `Descanso minimo`: 536
+  - `Secuencia`: 536
+
+---
+
+#### 5. Conclusion tecnica del benchmark
+
+Los rechazos del flujo prefiltrado no son aleatorios ni difusos.
+
+El patron dominante es consistente:
+
+- todos los candidatos simulados terminan `RECHAZABLE`
+- las reglas hard responsables son principalmente:
+  - `Descanso minimo`
+  - `Secuencia`
+
+No aparecen como dominantes en esta medicion:
+
+- noches consecutivas
+- dotacion
+- otros factores
+
+---
+
+### Decisiones de diseno reforzadas
+
+- no corresponde optimizar a ciegas el simulator
+- no corresponde agregar filtros al prefiltro sin evidencia
+- la siguiente mejora debe estar dirigida especificamente a descanso minimo y secuencia
+- el diagnostico confirma que el problema ya no es la combinatoria global sino la plausibilidad tecnica local
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- el benchmark sigue usando escenarios escalados artificiales
+- los resultados dependen de la estructura actual de salida del simulator
+- no distingue aun si descanso minimo y secuencia fallan por la misma causa local
+- no define todavia que parte de esos chequeos puede entrar legalmente en `technical_prefilter`
+
+---
+
+### Proximos pasos naturales
+
+- discutir en arquitectura la frontera permitida de `technical_prefilter` v2
+- definir chequeos locales y conservadores para:
+  - descanso minimo
+  - secuencia inmediata
+- decidir si el prefiltro puede leer parametros de configuracion
+- evitar duplicar la validacion completa del engine
+- medir impacto de una eventual v2 sobre:
+  - cantidad de simulados
+  - tiempo total
+  - preservacion de candidatos tecnicamente validos
+
+---
+
+### Notas
+
+Este checkpoint convierte el problema de performance en un problema semantico preciso.
+
+Ya no se sabe solamente que los candidatos son rechazados:
+ahora se sabe que la invalidacion dominante proviene de descanso minimo y secuencia.
+
+---
+
+## checkpoint-v33-technical-prefilter-descanso-local
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se implementa `technical_prefilter v2.1` con un chequeo conservador de descanso minimo local inmediato.
+
+El objetivo es detectar inviabilidad tecnica local evidente antes de enviar candidatos a evaluacion tecnica completa en `simulator`.
+
+---
+
+### Que quedo implementado
+
+#### 1. Chequeo local de descanso minimo
+
+Se agregan funciones auxiliares en `src/technical_prefilter.py` para:
+
+- obtener horas minimas de descanso desde configuracion existente
+- agrupar asignaciones por controlador
+- ubicar posicion de una asignacion dentro del roster
+- calcular descanso entre asignaciones vecinas
+- detectar descanso local inmediato insuficiente
+
+---
+
+#### 2. Motivo diagnostico simple
+
+Se agrega exposicion de motivo diagnostico:
+
+- `DESCANSO_LOCAL`
+
+El motivo se usa para benchmark y trazabilidad tecnica ligera.
+
+No representa clasificacion tecnica ni decision operativa.
+
+---
+
+#### 3. Contrato conservador
+
+El prefiltro:
+
+- no demuestra validez
+- no clasifica
+- no puntua
+- no decide
+- no persiste
+- no crea `SwapRequest`
+- no reemplaza al simulator
+
+Ante duda, deja pasar el candidato.
+
+---
+
+#### 4. Testing
+
+Se amplian tests en `tests/test_technical_prefilter.py`.
+
+Validacion:
+- tests del prefiltro: `10 passed`
+- suite completa: `142 passed`
+
+---
+
+#### 5. Benchmark actualizado
+
+Se actualiza `tools/benchmark_flujo_acotado_prefiltrado.py` para reportar:
+
+- generados
+- descartados por `DESCANSO_LOCAL`
+- prefiltrados
+- simulados
+- tiempos por etapa
+- clasificacion final
+
+Resultados observados:
+
+- 80 controladores:
+  - generados: 158
+  - `DESCANSO_LOCAL`: 79
+  - simulados: 79
+  - total: ~6597 ms
+
+- 120 controladores:
+  - generados: 238
+  - `DESCANSO_LOCAL`: 119
+  - simulados: 119
+  - total: ~14372 ms
+
+- 180 controladores:
+  - generados: 358
+  - `DESCANSO_LOCAL`: 179
+  - simulados: 179
+  - total: ~32326 ms
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `technical_prefilter` puede descartar inviabilidad tecnica local evidente
+- el descanso minimo local inmediato puede analizarse antes del simulator si se mantiene conservador
+- la configuracion existente debe usarse para evitar hardcodear parametros
+- el simulator sigue siendo la fuente de verdad de evaluacion tecnica completa
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- la v2.1 no redujo mas el universo simulado respecto de la v1 en el escenario medido
+- los candidatos que sobreviven siguen terminando `RECHAZABLE`
+- el cuello dominante restante probablemente este asociado a secuencia o a descanso no detectable localmente
+- no se implemento secuencia local
+- no se implemento cache, paralelizacion ni optimizacion de `evaluar_swap`
+
+---
+
+### Proximos pasos naturales
+
+- analizar si conviene discutir `technical_prefilter v2.2` para secuencia local inmediata
+- revisar si los candidatos sobrevivientes fallan por secuencia dominante
+- evitar agregar mas logica sin evidencia adicional
+- mantener la frontera estricta del prefiltro para no crear un mini-simulator
+
+---
+
+### Notas
+
+Este checkpoint instala un chequeo conservador de descanso local y mejora la trazabilidad del prefiltro.
+
+Aunque no reduce mas la cantidad de simulaciones en el escenario actual, permite distinguir descartes por descanso local y delimita mejor el problema restante.

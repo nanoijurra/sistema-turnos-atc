@@ -4,6 +4,7 @@ from datetime import date
 from src.models import Asignacion, Controlador, SwapRequest, crear_esquema_8h
 from src.technical_prefilter import (
     filter_technically_plausible_candidates,
+    get_candidate_prefilter_diagnostic_reasons,
     is_candidate_technically_plausible,
 )
 
@@ -14,12 +15,13 @@ def _crear_asignaciones():
     turno_c = esquema.obtener_turno("C")
     controlador_a = Controlador("ATC_A")
     controlador_b = Controlador("ATC_B")
+    controlador_c = Controlador("ATC_C")
     fecha_base = date(2026, 3, 1)
 
     origen = Asignacion(fecha_base, turno_b, controlador_a)
     mismo_controlador = Asignacion(fecha_base, turno_c, controlador_a)
     misma_asignacion_exacta = replace(origen)
-    swap_trivial = Asignacion(fecha_base, turno_b, controlador_b)
+    swap_trivial = Asignacion(fecha_base, turno_b, controlador_c)
     plausible = Asignacion(fecha_base, turno_c, controlador_b)
 
     return origen, [
@@ -60,8 +62,9 @@ def test_filter_technically_plausible_candidates_excluye_swap_trivial_sin_cambio
 
 def test_filter_technically_plausible_candidates_no_clasifica_ni_decide_ni_devuelve_requests():
     origen, candidatos = _crear_asignaciones()
+    asignaciones = [origen, candidatos[3]]
 
-    resultado = filter_technically_plausible_candidates(origen, candidatos, [origen, *candidatos])
+    resultado = filter_technically_plausible_candidates(origen, [candidatos[3]], asignaciones)
 
     assert resultado
     assert all(not isinstance(candidato, SwapRequest) for candidato in resultado)
@@ -71,7 +74,71 @@ def test_filter_technically_plausible_candidates_no_clasifica_ni_decide_ni_devue
 
 def test_filter_technically_plausible_candidates_mantiene_candidatos_plausibles_simples():
     origen, candidatos = _crear_asignaciones()
+    asignaciones = [origen, candidatos[3]]
 
-    resultado = filter_technically_plausible_candidates(origen, candidatos, [origen, *candidatos])
+    resultado = filter_technically_plausible_candidates(origen, [candidatos[3]], asignaciones)
 
     assert candidatos[3] in resultado
+
+
+def test_filter_technically_plausible_candidates_descarta_descanso_local_obvio():
+    esquema = crear_esquema_8h()
+    turno_a = esquema.obtener_turno("A")
+    turno_b = esquema.obtener_turno("B")
+    turno_c = esquema.obtener_turno("C")
+    controlador_a = Controlador("ATC_A")
+    controlador_b = Controlador("ATC_B")
+
+    asignacion_previa = Asignacion(date(2026, 3, 1), turno_c, controlador_a)
+    origen = Asignacion(date(2026, 3, 2), turno_b, controlador_a)
+    candidata = Asignacion(date(2026, 3, 2), turno_a, controlador_b)
+    asignaciones = [asignacion_previa, origen, candidata]
+
+    resultado = filter_technically_plausible_candidates(origen, [candidata], asignaciones)
+    motivos = get_candidate_prefilter_diagnostic_reasons(origen, candidata, asignaciones)
+
+    assert candidata not in resultado
+    assert motivos == ["DESCANSO_LOCAL"]
+
+
+def test_is_candidate_technically_plausible_caso_ambiguo_deja_pasar():
+    esquema = crear_esquema_8h()
+    turno_a = esquema.obtener_turno("A")
+    turno_b = esquema.obtener_turno("B")
+    turno_c = esquema.obtener_turno("C")
+    controlador_a = Controlador("ATC_A")
+    controlador_b = Controlador("ATC_B")
+    controlador_c = Controlador("ATC_C")
+
+    origen = Asignacion(date(2026, 3, 2), turno_b, controlador_a)
+    candidata_fuera_roster = Asignacion(date(2026, 3, 3), turno_a, controlador_b)
+    otra = Asignacion(date(2026, 3, 1), turno_c, controlador_c)
+
+    assert is_candidate_technically_plausible(
+        origen,
+        candidata_fuera_roster,
+        [origen, otra],
+    ) is True
+
+
+def test_is_candidate_technically_plausible_sin_vecinos_deja_pasar():
+    esquema = crear_esquema_8h()
+    turno_a = esquema.obtener_turno("A")
+    turno_b = esquema.obtener_turno("B")
+    controlador_a = Controlador("ATC_A")
+    controlador_b = Controlador("ATC_B")
+
+    origen = Asignacion(date(2026, 3, 2), turno_b, controlador_a)
+    candidata = Asignacion(date(2026, 3, 2), turno_a, controlador_b)
+
+    assert is_candidate_technically_plausible(origen, candidata, [origen, candidata]) is True
+
+
+def test_filter_technically_plausible_candidates_no_puntua():
+    origen, candidatos = _crear_asignaciones()
+    asignaciones = [origen, candidatos[3]]
+
+    resultado = filter_technically_plausible_candidates(origen, [candidatos[3]], asignaciones)
+
+    assert resultado
+    assert all(not hasattr(candidato, "score") for candidato in resultado)

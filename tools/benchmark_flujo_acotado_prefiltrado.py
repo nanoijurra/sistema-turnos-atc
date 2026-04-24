@@ -11,7 +11,10 @@ if str(ROOT) not in sys.path:
 
 from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
 from src.simulator import explorar_candidatos_acotados, explorar_swaps
-from src.technical_prefilter import filter_technically_plausible_candidates
+from src.technical_prefilter import (
+    filter_technically_plausible_candidates,
+    get_candidate_prefilter_diagnostic_reasons,
+)
 
 
 ESCALAS = [80, 120, 180]
@@ -113,6 +116,7 @@ def main() -> None:
         f"{'Controladores':>14} | "
         f"{'Asignaciones':>12} | "
         f"{'Generados':>10} | "
+        f"{'Desc local':>10} | "
         f"{'Prefiltrados':>13} | "
         f"{'Simulados':>10} | "
         f"{'Gen ms':>10} | "
@@ -138,6 +142,15 @@ def main() -> None:
         fin_generacion = perf_counter()
 
         inicio_prefiltro = perf_counter()
+        descartados_descanso_local = sum(
+            1
+            for candidato in candidatos
+            if "DESCANSO_LOCAL" in get_candidate_prefilter_diagnostic_reasons(
+                asignacion_origen=asignacion_origen,
+                asignacion_candidata=candidato,
+                asignaciones=asignaciones,
+            )
+        )
         candidatos_prefiltrados = filter_technically_plausible_candidates(
             asignacion_origen=asignacion_origen,
             candidatos=candidatos,
@@ -169,6 +182,7 @@ def main() -> None:
             f"{cantidad_controladores:>14} | "
             f"{len(asignaciones):>12} | "
             f"{len(candidatos):>10} | "
+            f"{descartados_descanso_local:>10} | "
             f"{len(candidatos_prefiltrados):>13} | "
             f"{simulados:>10} | "
             f"{generacion_ms:>10.2f} | "
