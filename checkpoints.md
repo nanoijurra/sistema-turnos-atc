@@ -3795,3 +3795,444 @@ Resultados observados:
 Este checkpoint instala un chequeo conservador de descanso local y mejora la trazabilidad del prefiltro.
 
 Aunque no reduce mas la cantidad de simulaciones en el escenario actual, permite distinguir descartes por descanso local y delimita mejor el problema restante.
+
+---
+
+## checkpoint-v33-technical-prefilter-descanso-local
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se implementa `technical_prefilter v2.1` con un chequeo conservador de descanso minimo local inmediato.
+
+El objetivo es detectar inviabilidad tecnica local evidente antes de enviar candidatos a evaluacion tecnica completa en `simulator`.
+
+---
+
+### Que quedo implementado
+
+#### 1. Chequeo local de descanso minimo
+
+Se agregan funciones auxiliares en `src/technical_prefilter.py` para:
+
+- obtener horas minimas de descanso desde configuracion existente
+- agrupar asignaciones por controlador
+- ubicar posicion de una asignacion dentro del roster
+- calcular descanso entre asignaciones vecinas
+- detectar descanso local inmediato insuficiente
+
+---
+
+#### 2. Motivo diagnostico simple
+
+Se agrega exposicion de motivo diagnostico:
+
+- `DESCANSO_LOCAL`
+
+El motivo se usa para benchmark y trazabilidad tecnica ligera.
+
+No representa clasificacion tecnica ni decision operativa.
+
+---
+
+#### 3. Contrato conservador
+
+El prefiltro:
+
+- no demuestra validez
+- no clasifica
+- no puntua
+- no decide
+- no persiste
+- no crea `SwapRequest`
+- no reemplaza al simulator
+
+Ante duda, deja pasar el candidato.
+
+---
+
+#### 4. Testing
+
+Se amplian tests en `tests/test_technical_prefilter.py`.
+
+Validacion:
+- tests del prefiltro: `10 passed`
+- suite completa: `142 passed`
+
+---
+
+#### 5. Benchmark actualizado
+
+Se actualiza `tools/benchmark_flujo_acotado_prefiltrado.py` para reportar:
+
+- generados
+- descartados por `DESCANSO_LOCAL`
+- prefiltrados
+- simulados
+- tiempos por etapa
+- clasificacion final
+
+Resultados observados:
+
+- 80 controladores:
+  - generados: 158
+  - `DESCANSO_LOCAL`: 79
+  - simulados: 79
+  - total: ~6597 ms
+
+- 120 controladores:
+  - generados: 238
+  - `DESCANSO_LOCAL`: 119
+  - simulados: 119
+  - total: ~14372 ms
+
+- 180 controladores:
+  - generados: 358
+  - `DESCANSO_LOCAL`: 179
+  - simulados: 179
+  - total: ~32326 ms
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `technical_prefilter` puede descartar inviabilidad tecnica local evidente
+- el descanso minimo local inmediato puede analizarse antes del simulator si se mantiene conservador
+- la configuracion existente debe usarse para evitar hardcodear parametros
+- el simulator sigue siendo la fuente de verdad de evaluacion tecnica completa
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- la v2.1 no redujo mas el universo simulado respecto de la v1 en el escenario medido
+- los candidatos que sobreviven siguen terminando `RECHAZABLE`
+- el cuello dominante restante probablemente este asociado a secuencia o a descanso no detectable localmente
+- no se implemento secuencia local
+- no se implemento cache, paralelizacion ni optimizacion de `evaluar_swap`
+
+---
+
+### Proximos pasos naturales
+
+- analizar si conviene discutir `technical_prefilter v2.2` para secuencia local inmediata
+- revisar si los candidatos sobrevivientes fallan por secuencia dominante
+- evitar agregar mas logica sin evidencia adicional
+- mantener la frontera estricta del prefiltro para no crear un mini-simulator
+
+---
+
+### Notas
+
+Este checkpoint instala un chequeo conservador de descanso local y mejora la trazabilidad del prefiltro.
+
+Aunque no reduce mas la cantidad de simulaciones en el escenario actual, permite distinguir descartes por descanso local y delimita mejor el problema restante.
+
+---
+
+## checkpoint-v34-technical-prefilter-secuencia-local
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se implementa `technical_prefilter v2.2` con chequeo conservador de secuencia local inmediata.
+
+El objetivo es detectar inviabilidad tecnica local evidente por secuencia antes de enviar candidatos a evaluacion tecnica completa en `simulator`.
+
+---
+
+### Que quedo implementado
+
+#### 1. Chequeo local de secuencia inmediata
+
+Se agregan funciones auxiliares en `src/technical_prefilter.py` para:
+
+- obtener regla de configuracion existente
+- evaluar secuencia local minima alrededor de asignaciones afectadas
+- detectar secuencia local inmediata prohibida
+
+---
+
+#### 2. Motivo diagnostico simple
+
+Se agrega exposicion de motivo diagnostico:
+
+- `SECUENCIA_LOCAL`
+
+El motivo se usa para benchmark y trazabilidad tecnica ligera.
+
+No representa clasificacion tecnica ni decision operativa.
+
+---
+
+#### 3. Contrato conservador
+
+El prefiltro:
+
+- no demuestra validez
+- no clasifica
+- no puntua
+- no decide
+- no persiste
+- no crea `SwapRequest`
+- no reemplaza al simulator
+
+Ante duda, deja pasar el candidato.
+
+---
+
+#### 4. Testing
+
+Se amplian tests en `tests/test_technical_prefilter.py`.
+
+Validacion:
+
+- tests del prefiltro: `13 passed`
+- suite completa: `145 passed`
+
+---
+
+#### 5. Benchmark actualizado
+
+Se actualiza `tools/benchmark_flujo_acotado_prefiltrado.py` para reportar:
+
+- generados
+- descartados por `DESCANSO_LOCAL`
+- descartados por `SECUENCIA_LOCAL`
+- prefiltrados
+- simulados
+- tiempos por etapa
+- clasificacion final
+
+Resultados observados:
+
+- 80 controladores:
+  - generados: 158
+  - `DESCANSO_LOCAL`: 79
+  - `SECUENCIA_LOCAL`: 79
+  - simulados: 79
+  - total: ~6623 ms
+
+- 120 controladores:
+  - generados: 238
+  - `DESCANSO_LOCAL`: 119
+  - `SECUENCIA_LOCAL`: 119
+  - simulados: 119
+  - total: ~14409 ms
+
+- 180 controladores:
+  - generados: 358
+  - `DESCANSO_LOCAL`: 179
+  - `SECUENCIA_LOCAL`: 179
+  - simulados: 179
+  - total: ~32257 ms
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `technical_prefilter` puede detectar inviabilidad tecnica local evidente por secuencia inmediata
+- la deteccion de secuencia local debe mantenerse conservadora y limitada
+- la fuente de verdad de evaluacion completa sigue siendo `simulator`
+- el prefiltro puede mejorar trazabilidad aunque no reduzca aun el universo simulado
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- `SECUENCIA_LOCAL` no redujo simulaciones adicionales respecto de `DESCANSO_LOCAL` en el escenario medido
+- los motivos `DESCANSO_LOCAL` y `SECUENCIA_LOCAL` parecen solaparse sobre el mismo subconjunto
+- los candidatos sobrevivientes siguen terminando `RECHAZABLE`
+- no se implementaron reglas de noches, dotacion, score, cache ni paralelizacion
+- no se optimizo internamente `evaluar_swap`
+
+---
+
+### Proximos pasos naturales
+
+- diagnosticar por que los candidatos que sobreviven al prefiltro siguen siendo `RECHAZABLE`
+- distinguir si el rechazo restante proviene de validacion global del roster base escalado o del swap candidato
+- revisar si el benchmark escalado artificial introduce violaciones estructurales de base
+- antes de agregar mas logica al prefiltro, comparar `valido_original` vs `valido_nuevo`
+
+---
+
+### Notas
+
+Este checkpoint agrega trazabilidad semantica al prefiltro.
+
+Aunque no mejora la cantidad de simulaciones en el escenario actual, confirma que descanso local y secuencia local detectan el mismo tipo de inviabilidad temprana sobre una parte del universo candidato.
+
+---
+
+## checkpoint-v35-prefiltered-flow-diagnostics
+Fecha: 2026-04-20
+
+---
+
+### Estado general
+
+Se incorporan benchmarks diagnosticos para interpretar correctamente el comportamiento del flujo prefiltrado cuando el roster base puede ser tecnicamente invalido.
+
+El objetivo es distinguir si los resultados `RECHAZABLE` provienen de swaps realmente negativos o de escenarios escalados que ya comienzan contaminados.
+
+---
+
+### Problema detectado
+
+Hasta este checkpoint, los benchmarks mostraban:
+
+- 0 `BENEFICIOSO`
+- 0 `ACEPTABLE`
+- muchos `RECHAZABLE`
+
+Sin embargo, no existia visibilidad sobre:
+
+- si el roster original ya era invalido
+- si el swap mejoraba o empeoraba
+- si el swap mantenia invalidez previa
+- si el escenario escalado estaba contaminado desde origen
+
+---
+
+### Que quedo implementado
+
+#### 1. Benchmark de validez original vs nueva
+
+Se agrega:
+
+- `tools/benchmark_validez_original_vs_nuevo.py`
+
+El benchmark usa el flujo:
+
+`candidate_generation -> technical_prefilter -> simulator`
+
+sin modificar logica de evaluacion.
+
+---
+
+#### 2. Instrumentacion de diagnostico
+
+Se inspeccionan resultados reales devueltos por:
+
+`explorar_y_evaluar_candidatos_con_prefiltro(...)`
+
+Extrayendo:
+
+- `valido_original`
+- `valido_nuevo`
+- `resumen_original`
+- `resumen_nuevo`
+- `delta_hard`
+- `delta_soft`
+- `delta_score`
+- `clasificacion`
+
+---
+
+#### 3. Nuevas categorias de interpretacion
+
+Se agregan categorias de diagnostico:
+
+- `VV`
+  - original valido -> nuevo valido
+- `VI`
+  - original valido -> nuevo invalido
+- `IV`
+  - original invalido -> nuevo valido
+- `II`
+  - original invalido -> nuevo invalido
+
+Para `II` se agrega subclasificacion:
+
+- `II_mejora`
+- `II_igual`
+- `II_empeora`
+
+usando:
+
+- mejora si `hard_nuevo < hard_original`
+- igual si `hard_nuevo == hard_original`
+- empeora si `hard_nuevo > hard_original`
+
+---
+
+### Resultados observados
+
+Escenario medido:
+- escala 80 controladores
+- origenes representativos
+
+Resultado dominante:
+
+- `II = 79`
+- `II_mejora = 79`
+- `VV = 0`
+- `VI = 0`
+- `IV = 0`
+- `BENEFICIOSO = 0`
+- `ACEPTABLE = 0`
+- `RECHAZABLE = 79`
+
+---
+
+### Interpretacion tecnica
+
+El benchmark demuestra que:
+
+- el roster original ya era invalido
+- los swaps evaluados mejoran el roster
+- pero no alcanzan a volverlo valido
+- la clasificacion sigue siendo `RECHAZABLE`
+
+Esto implica que:
+
+- el escenario escalado esta contaminado o parte de una base ya invalida
+- el sistema no esta necesariamente generando swaps malos
+- la taxonomia actual exige validez final para salir de `RECHAZABLE`
+
+---
+
+### Decisiones de diseno reforzadas
+
+- no corresponde agregar mas prefiltros por ahora
+- no corresponde optimizar simulator a ciegas
+- los benchmarks deben distinguir invalidez heredada de invalidez causada
+- `RECHAZABLE` no siempre significa empeoramiento
+- la interpretacion de benchmark debe considerar `valido_original`
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- el benchmark solo se ejecuto inicialmente sobre escala 80
+- no se instrumentaron aun escalas 120/180 con diagnostico completo
+- no se redefine taxonomia tecnica
+- no se modifica clasificacion
+- no se separa aun mejora parcial de validez final
+
+---
+
+### Proximos pasos naturales
+
+- discutir en arquitectura como interpretar mejoras parciales sobre rosters invalidos
+- decidir si el benchmark debe reportar:
+  - mejora tecnica parcial
+  - invalidez heredada
+  - invalidez introducida
+- estudiar si los escenarios escalados deben construirse desde base valida
+- evitar seguir optimizando sobre benchmarks contaminados
+
+---
+
+### Notas
+
+Este checkpoint cambia la interpretacion del flujo prefiltrado.
+
+El problema ya no parece ser simplemente que los swaps sean malos.
+
+La evidencia muestra que muchos swaps mejoran tecnicamente el roster, pero parten de escenarios ya invalidos y no logran recuperar validez completa.
