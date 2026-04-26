@@ -4236,3 +4236,268 @@ Este checkpoint cambia la interpretacion del flujo prefiltrado.
 El problema ya no parece ser simplemente que los swaps sean malos.
 
 La evidencia muestra que muchos swaps mejoran tecnicamente el roster, pero parten de escenarios ya invalidos y no logran recuperar validez completa.
+
+---
+
+## checkpoint-v36-diagnostic-transition-benchmark
+Fecha: 2026-04-26
+
+---
+
+### Estado general
+
+Se incorpora un benchmark de transiciones diagnosticas separado de la clasificacion tecnica.
+
+El objetivo es interpretar correctamente resultados `RECHAZABLE` cuando el roster original ya es tecnicamente invalido.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo benchmark de transiciones diagnosticas
+
+Se agrega:
+
+- `tools/benchmark_transiciones_diagnosticas.py`
+
+El benchmark usa resultados tecnicos existentes del simulator y deriva una taxonomia diagnostica solo para reporting.
+
+---
+
+#### 2. Taxonomia diagnostica separada
+
+Se reportan transiciones como:
+
+- `VV_MEJORA`
+- `VV_IGUAL`
+- `VV_EMPEORA`
+- `VI_DEGRADA`
+- `IV_RECUPERA`
+- `II_MEJORA`
+- `II_IGUAL`
+- `II_EMPEORA`
+
+Esta taxonomia no cambia:
+
+- clasificacion tecnica
+- ranking
+- decision operativa
+- scoring
+- contratos
+
+---
+
+#### 3. Resultados observados
+
+##### 80 controladores
+
+- evaluados: 79
+- clasificacion tecnica: `RECHAZABLE=79`
+- diagnostico: `II_MEJORA=79`
+
+##### 120 controladores
+
+- evaluados: 119
+- clasificacion tecnica: `RECHAZABLE=119`
+- diagnostico: `II_MEJORA=119`
+
+##### 180 controladores
+
+- evaluados: 179
+- clasificacion tecnica: `RECHAZABLE=179`
+- diagnostico: `II_MEJORA=179`
+
+---
+
+### Interpretacion tecnica
+
+Los resultados muestran que los swaps evaluados:
+
+- parten de un roster original invalido
+- terminan en un roster nuevo que sigue invalido
+- reducen violaciones hard
+- por lo tanto son mejoras parciales sobre invalidez heredada
+
+La clasificacion tecnica permanece correctamente como `RECHAZABLE`, porque no se recupera validez completa.
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `RECHAZABLE` no debe reinterpretarse como empeoramiento automatico
+- la clasificacion tecnica no se modifica
+- las transiciones diagnosticas pertenecen al reporting/benchmark
+- la mejora parcial sobre roster invalido debe medirse aparte de la clasificacion tecnica
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- el benchmark sigue siendo diagnostico, no productivo
+- no se persiste la taxonomia diagnostica
+- no se integra aun a reportes operativos
+- no corrige la contaminacion del escenario escalado
+- no modifica el generador de escenarios
+
+---
+
+### Proximos pasos naturales
+
+- definir si futuros benchmarks deben exigir roster base valido
+- crear escenarios escalados tecnicamente validos
+- reportar siempre clasificacion tecnica junto con transicion diagnostica
+- evitar optimizar sobre escenarios contaminados sin separar invalidez heredada
+
+---
+
+### Notas
+
+Este checkpoint estabiliza la interpretacion de benchmarks.
+
+A partir de ahora, un resultado `RECHAZABLE` puede distinguirse diagnosticamente como degradacion, invalidez heredada o mejora parcial, sin alterar la taxonomia tecnica del sistema.
+
+---
+
+## checkpoint-v37-benchmark-safe-roster-mode
+Fecha: 2026-04-26
+
+---
+
+### Estado general
+
+Se incorpora el concepto de modo de benchmark para distinguir escenarios normales, escenarios de recuperacion y escenarios contaminados artificialmente.
+
+El objetivo es evitar interpretar benchmarks sobre rosters base invalidos como si fueran mediciones normales del sistema.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo helper de safety para benchmarks
+
+Se agrega:
+
+- `tools/benchmark_safety.py`
+
+Este modulo permite evaluar el estado base del roster antes de ejecutar benchmarks.
+
+Reporta:
+
+- modo de benchmark
+- `valido_original`
+- `hard_original`
+- `soft_original`
+- `score_original`
+
+---
+
+#### 2. Modos de benchmark
+
+Se incorporan modos conceptuales:
+
+- `NORMAL`
+  - exige roster base sin violaciones hard
+  - si `hard_original > 0`, aborta
+
+- `RECUPERACION`
+  - permite roster base invalido
+  - etiqueta explicitamente el escenario como recuperacion
+
+- `STRESS_CONTAMINADO`
+  - permite escenarios artificiales contaminados
+  - debe declararlo explicitamente
+
+---
+
+#### 3. Integracion en benchmark de transiciones diagnosticas
+
+Se actualiza:
+
+- `tools/benchmark_transiciones_diagnosticas.py`
+
+El benchmark ahora corre en modo:
+
+- `RECUPERACION`
+
+y reporta safety por escala antes de interpretar resultados.
+
+---
+
+#### 4. Validacion de escenario contaminado
+
+Resultados observados:
+
+- 80 controladores:
+  - `valido_original=False`
+  - `hard_original=160`
+  - `soft_original=0`
+  - `score_original=100`
+
+- 120 controladores:
+  - `valido_original=False`
+  - `hard_original=240`
+  - `soft_original=0`
+  - `score_original=100`
+
+- 180 controladores:
+  - `valido_original=False`
+  - `hard_original=360`
+  - `soft_original=0`
+  - `score_original=100`
+
+Esto confirma que el escenario escalado actual no es benchmark-safe para modo `NORMAL`.
+
+---
+
+#### 5. Prueba de modo NORMAL
+
+Se valida que el modo `NORMAL` aborta correctamente cuando el roster base es invalido.
+
+Mensaje esperado:
+
+`Benchmark NORMAL abortado: roster base invalido (...)`
+
+---
+
+### Decisiones de diseno reforzadas
+
+- los benchmarks normales deben partir de roster base valido
+- los benchmarks sobre rosters invalidos deben declararse como recuperacion o stress contaminado
+- la taxonomia tecnica no se modifica
+- la taxonomia diagnostica sigue siendo reporting
+- la interpretacion del benchmark depende del modo declarado
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- todavia no existe builder escalado que garantice `hard_original=0`
+- los benchmarks actuales siguen usando escenarios escalados contaminados
+- el modo `RECUPERACION` permite interpretar mejoras parciales, pero no representa operacion normal
+- no se corrige aun el generador de escenarios
+
+---
+
+### Proximos pasos naturales
+
+- crear o ajustar builder de escenarios benchmark-safe
+- exigir modo `NORMAL` para benchmarks de performance operativa
+- mantener modo `RECUPERACION` para pruebas de reparacion sobre rosters invalidos
+- comparar resultados entre:
+  - benchmark normal
+  - benchmark recuperacion
+  - benchmark stress contaminado
+
+---
+
+### Notas
+
+Este checkpoint separa definitivamente dos conceptos:
+
+- funcionamiento normal del sistema sobre roster valido
+- recuperacion parcial sobre escenarios invalidos
+
+A partir de ahora, ningun benchmark deberia interpretarse sin declarar su modo y estado base del roster.
+
+---
+

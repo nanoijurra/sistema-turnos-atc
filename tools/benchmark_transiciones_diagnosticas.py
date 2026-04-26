@@ -10,9 +10,11 @@ if str(ROOT) not in sys.path:
 
 from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
 from src.simulator import explorar_y_evaluar_candidatos_con_prefiltro
+from tools.benchmark_safety import RECUPERACION, validar_benchmark_safe
 
 
 ESCALAS = [80, 120, 180]
+MODO_BENCHMARK = RECUPERACION
 CLASIFICACIONES = ["BENEFICIOSO", "ACEPTABLE", "RECHAZABLE"]
 DIAGNOSTICOS = [
     "VV_MEJORA",
@@ -178,9 +180,14 @@ def main() -> None:
     print()
     print("Benchmark transiciones diagnosticas - sistema de swaps ATC")
     print("Nota: esta taxonomia no cambia la clasificacion tecnica, el ranking ni la decision.")
+    print(f"Modo benchmark: {MODO_BENCHMARK}")
 
     for escala in ESCALAS:
         asignaciones = _crear_escenario_escalado(escala)
+        seguridad = validar_benchmark_safe(
+            asignaciones=asignaciones,
+            modo=MODO_BENCHMARK,
+        )
         indices_origen = [0, len(asignaciones) - 1]
         total_clasificaciones = _conteos_vacios(CLASIFICACIONES)
         total_diagnosticos = _conteos_vacios(DIAGNOSTICOS)
@@ -188,6 +195,14 @@ def main() -> None:
 
         print()
         print(f"ESCALA {escala} CONTROLADORES")
+        print(
+            "Benchmark safety: "
+            f"modo={seguridad['modo']}, "
+            f"valido_original={seguridad['valido_original']}, "
+            f"hard_original={seguridad['hard_original']}, "
+            f"soft_original={seguridad['soft_original']}, "
+            f"score_original={seguridad['score_original']}"
+        )
         print("-" * 170)
         print(
             f"{'Idx origen':>10} | "
