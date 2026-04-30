@@ -4501,3 +4501,353 @@ A partir de ahora, ningun benchmark deberia interpretarse sin declarar su modo y
 
 ---
 
+## checkpoint-v38-benchmark-safe-builder-v1
+Fecha: 2026-04-26
+
+---
+
+### Estado general
+
+Se incorpora un builder benchmark-safe inicial dentro de `tools/`.
+
+El objetivo es generar escenarios sinteticos tecnicamente validos para benchmarks de modo `NORMAL`, evitando partir de rosters contaminados.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo builder benchmark-safe
+
+Se agrega:
+
+- `tools/benchmark_safe_builder.py`
+
+El builder genera escenarios sinteticos de baja densidad para distintas cantidades de controladores.
+
+---
+
+#### 2. Validacion tecnica del escenario base
+
+El builder valida el roster generado usando la validacion tecnica existente del sistema.
+
+Reporta metadata:
+
+- `modo`
+- `valido_original`
+- `hard_original`
+- `soft_original`
+- `score_original`
+- `benchmark_safe`
+
+---
+
+#### 3. Modo NORMAL
+
+En modo `NORMAL`, el builder exige:
+
+- `hard_original = 0`
+
+Si el roster base no cumple, debe abortar.
+
+---
+
+#### 4. Escalas verificadas
+
+Se probo el builder para:
+
+- 80 controladores
+- 120 controladores
+- 180 controladores
+
+Resultados:
+
+- `benchmark_safe=True`
+- `valido_original=True`
+- `hard_original=0`
+- `soft_original=0`
+- `score_original=100`
+
+en las tres escalas.
+
+---
+
+### Decisiones de diseno reforzadas
+
+- los benchmarks normales deben partir de escenarios hard-clean
+- la certificacion de validez la hace el engine/scoring existente
+- el builder vive en `tools/`, no en `src/`
+- el escenario generado no pretende ser un roster operativo completo
+- la validez del benchmark se separa de la calidad operativa del escenario
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- el builder genera escenarios de baja densidad
+- no representa aun una lista operativa real completa
+- no garantiza dotaciones operativas por turno
+- no modela secuencias reales de trabajo
+- sirve como base tecnica limpia para benchmarks, no como generador de rosters reales
+
+---
+
+### Proximos pasos naturales
+
+- usar este builder como fuente para benchmarks `NORMAL`
+- comparar resultados entre:
+  - escenario contaminado en modo `RECUPERACION`
+  - escenario benchmark-safe en modo `NORMAL`
+- decidir si se necesita un builder operativo mas denso
+- medir candidate_generation y prefilter sobre base no contaminada
+
+---
+
+### Notas
+
+Este checkpoint corrige el problema de interpretacion de benchmarks contaminados.
+
+A partir de ahora, el sistema puede distinguir entre benchmarks de recuperacion sobre rosters invalidos y benchmarks normales sobre rosters hard-clean.
+
+---
+
+## checkpoint-v39-normal-vs-recovery-benchmark
+Fecha: 2026-04-28
+
+---
+
+### Estado general
+
+Se incorpora un benchmark comparativo entre escenario `NORMAL` benchmark-safe y escenario `RECUPERACION` contaminado.
+
+El objetivo es validar la diferencia entre medir sobre un roster base tecnicamente limpio y medir sobre un roster base invalido.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo benchmark comparativo
+
+Se agrega:
+
+- `tools/benchmark_normal_vs_recuperacion.py`
+
+El benchmark compara:
+
+- escenario `NORMAL benchmark-safe`
+- escenario `RECUPERACION contaminado`
+
+sin modificar logica productiva.
+
+---
+
+#### 2. Escenario NORMAL benchmark-safe
+
+Resultado observado:
+
+- `benchmark_safe=True`
+- `valido_original=True`
+- `hard_original=0`
+- `soft_original=0`
+- `score_original=100`
+- evaluados: 0
+
+Interpretacion:
+
+- el builder benchmark-safe v1 genera una base tecnicamente limpia
+- pero la base es demasiado simple o de baja densidad para producir candidatos evaluables
+
+---
+
+#### 3. Escenario RECUPERACION contaminado
+
+Resultado observado:
+
+- `benchmark_safe=False`
+- `valido_original=False`
+- `hard_original=160`
+- `soft_original=0`
+- `score_original=100`
+- evaluados: 79
+- clasificacion tecnica: `RECHAZABLE=79`
+- transicion diagnostica: `II_MEJORA=79`
+
+Interpretacion:
+
+- el escenario contaminado genera actividad
+- pero mide recuperacion parcial sobre invalidez heredada
+- no representa benchmark normal de operacion
+
+---
+
+### Decisiones de diseno reforzadas
+
+- benchmark `NORMAL` exige roster base hard-clean
+- benchmark `RECUPERACION` debe declarar invalidez heredada
+- `RECHAZABLE + II_MEJORA` no significa swap negativo
+- un escenario benchmark-safe tambien debe tener densidad suficiente para generar intercambios utiles
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- el builder benchmark-safe v1 es tecnicamente valido pero operativamente pobre
+- no genera candidatos evaluables en el benchmark comparativo
+- el escenario contaminado sigue siendo util para pruebas de recuperacion, no para performance normal
+- falta un builder benchmark-safe v2 con mayor densidad operativa
+
+---
+
+### Proximos pasos naturales
+
+- diseñar builder benchmark-safe v2
+- generar rosters base validos con mas de una asignacion por controlador
+- mantener `hard_original=0`
+- asegurar que existan candidatos evaluables
+- comparar performance normal sobre escenario valido y suficientemente denso
+
+---
+
+### Notas
+
+Este checkpoint demuestra que no alcanza con que un escenario sea tecnicamente valido.
+
+Para benchmarks operativos, el escenario debe ser tambien suficientemente denso como para producir oportunidades reales de swap.
+
+---
+
+## checkpoint-v40-benchmark-safe-builder-v2
+Fecha: 2026-04-28
+
+---
+
+### Estado general
+
+Se incorpora `benchmark_safe_builder v2` en `tools/` para generar escenarios `NORMAL_DENSO`.
+
+El objetivo es disponer de escenarios tecnicamente validos y suficientemente densos para benchmarks de performance operativa, evitando medir sobre rosters contaminados o demasiado pobres.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo builder denso benchmark-safe
+
+Se agrega:
+
+- `tools/benchmark_safe_builder_v2.py`
+
+El builder genera escenarios sinteticos en modo:
+
+- `NORMAL_DENSO`
+
+---
+
+#### 2. Escenarios tecnicamente validos
+
+El builder valida los escenarios usando la logica existente del sistema.
+
+Resultados obtenidos:
+
+- `benchmark_safe=True`
+- `valido_original=True`
+- `hard_original=0`
+- `soft_original=0`
+- `score_original=100`
+
+para las escalas medidas.
+
+---
+
+#### 3. Escenarios utiles para benchmark
+
+A diferencia del builder v1, el builder v2 genera escenarios con densidad suficiente para producir candidatos.
+
+Metadata reportada:
+
+- `modo`
+- `benchmark_safe`
+- `benchmark_useful`
+- `controladores`
+- `asignaciones`
+- `hard_original`
+- `soft_original`
+- `score_original`
+- `valido_original`
+- `candidate_count`
+- `simulable_count`
+- `origenes_con_candidatos`
+- `densidad_promedio`
+
+---
+
+#### 4. Escalas verificadas
+
+Resultados observados:
+
+- 80 controladores:
+  - asignaciones: 240
+  - hard: 0
+  - soft: 0
+  - score: 100
+  - candidates: 6910
+  - simulables: 2370
+  - origenes con candidatos: 30
+  - densidad: 3.0
+
+- 120 controladores:
+  - asignaciones: 360
+  - hard: 0
+  - soft: 0
+  - score: 100
+  - candidates: 10710
+  - simulables: 3570
+  - origenes con candidatos: 30
+  - densidad: 3.0
+
+- 180 controladores:
+  - asignaciones: 540
+  - hard: 0
+  - soft: 0
+  - score: 100
+  - candidates: 16110
+  - simulables: 5370
+  - origenes con candidatos: 30
+  - densidad: 3.0
+
+---
+
+### Decisiones de diseno reforzadas
+
+- los benchmarks `NORMAL` deben partir de rosters hard-clean
+- los escenarios benchmark-safe tambien deben ser utiles, no solo validos
+- el builder sigue viviendo en `tools/`, no en `src/`
+- el engine/scoring existente certifica validez
+- el builder no reemplaza un generador real de roster operativo
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- el builder sigue siendo sintetico
+- no representa aun un roster operativo real completo
+- no modela dotaciones reales por sector
+- no modela reglas humanas de armado de lista
+- no se integro aun a benchmarks de performance completos
+
+---
+
+### Proximos pasos naturales
+
+- usar `NORMAL_DENSO` en benchmarks comparativos
+- medir flujo acotado + prefiltro + simulator sobre base valida
+- comparar resultados contra modo `RECUPERACION`
+- evaluar si aparecen transiciones `VV_*` en lugar de `II_*`
+- despues, recien despues, analizar performance real
+
+---
+
+### Notas
+
+Este checkpoint corrige la limitacion principal del builder v1.
+
+El sistema ya puede generar escenarios de benchmark que son al mismo tiempo validos y con actividad suficiente para medir swaps.
