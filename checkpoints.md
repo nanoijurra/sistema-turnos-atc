@@ -4851,3 +4851,253 @@ Resultados observados:
 Este checkpoint corrige la limitacion principal del builder v1.
 
 El sistema ya puede generar escenarios de benchmark que son al mismo tiempo validos y con actividad suficiente para medir swaps.
+
+---
+
+## checkpoint-v41-tools-bootstrap-path
+Fecha: 2026-04-28
+
+---
+
+### Estado general
+
+Se normaliza el manejo de path en los scripts dentro de `tools/`.
+
+El objetivo es permitir que los benchmarks y utilidades puedan ejecutarse tanto como modulo como script directo desde la raiz del proyecto.
+
+---
+
+### Problema detectado
+
+Algunos scripts fallaban al ejecutarse con:
+
+`python tools/nombre_script.py`
+
+porque Python tomaba `tools/` como raiz de importacion y no encontraba el paquete `src`.
+
+En cambio, funcionaban usando:
+
+`python -m tools.nombre_script`
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo helper de bootstrap
+
+Se agrega:
+
+- `tools/bootstrap_path.py`
+
+con funcion:
+
+- `ensure_project_root_on_path()`
+
+La funcion agrega la raiz del proyecto a `sys.path` si no esta presente.
+
+---
+
+#### 2. Normalizacion de imports en tools
+
+Se actualizan scripts de `tools/` que importan `src.*` para ejecutar el bootstrap antes de esos imports.
+
+Patron utilizado:
+
+()```python
+(try:
+    from tools.bootstrap_path import ensure_project_root_on_path
+except ModuleNotFoundError:
+    from bootstrap_path import ensure_project_root_on_path
+
+ensure_project_root_on_path() )
+
+---
+
+## checkpoint-v43-candidate-selection-v1
+Fecha: 2026-04-28
+
+---
+
+### Estado general
+
+Se implementa `candidate_selection v1` como nueva capa entre:
+
+- `technical_prefilter`
+- `simulator`
+
+El objetivo es reducir la cantidad de candidatos enviados a evaluacion tecnica completa, sin tocar el simulator ni modificar la semantica tecnica del sistema.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo modulo `candidate_selection`
+
+Se agrega:
+
+- `src/candidate_selection.py`
+
+con funcion principal:
+
+`seleccionar_candidatos(asignacion_origen, candidatos, asignaciones, top_n=50)`
+
+---
+
+#### 2. Responsabilidad de la nueva capa
+
+`candidate_selection` toma candidatos ya generados y prefiltrados, los ordena con criterios estructurales baratos y devuelve un subconjunto acotado.
+
+No:
+
+- llama a `engine`
+- llama a `scoring`
+- llama a `simulator`
+- clasifica
+- decide
+- persiste
+- crea `SwapRequest`
+- modifica candidatos
+
+---
+
+#### 3. Criterios de ordenamiento v1
+
+La seleccion es deterministica y usa criterios baratos:
+
+1. misma fecha que la asignacion origen primero
+2. menor distancia en dias
+3. turno distinto antes que mismo turno
+4. nombre de controlador como desempate
+5. fecha y codigo de turno como desempate final
+
+---
+
+#### 4. Testing
+
+Se agrega:
+
+- `tests/test_candidate_selection.py`
+
+Casos cubiertos:
+
+- devuelve lista
+- si candidatos <= `top_n`, devuelve todos
+- si candidatos > `top_n`, recorta
+- prioriza mismo dia
+- prioriza menor distancia temporal
+- resultado deterministico
+- no devuelve `SwapRequest`
+- no clasifica
+- no decide
+- no modifica candidatos
+
+Validacion:
+
+- tests nuevos: `10 passed`
+- suite completa: `155 passed`
+
+---
+
+#### 5. Benchmark NORMAL_DENSO con seleccion
+
+Se agrega:
+
+- `tools/benchmark_normal_denso_selection.py`
+
+El benchmark mide:
+
+`candidate_generation -> technical_prefilter -> candidate_selection -> simulator`
+
+sobre escenarios `NORMAL_DENSO`.
+
+---
+
+### Resultados observados
+
+Con `top_n=50` y 3 origenes por escala:
+
+#### 80 controladores
+
+- generados: 711
+- prefiltrados: 237
+- seleccionados: 150
+- simulados: 150
+- clasificacion final: `ACEPTABLE=150`
+- transicion diagnostica: `VV_IGUAL=150`
+
+#### 120 controladores
+
+- generados: 1071
+- prefiltrados: 357
+- seleccionados: 150
+- simulados: 150
+- clasificacion final: `ACEPTABLE=150`
+- transicion diagnostica: `VV_IGUAL=150`
+
+#### 180 controladores
+
+- generados: 1611
+- prefiltrados: 537
+- seleccionados: 150
+- simulados: 150
+- clasificacion final: `ACEPTABLE=150`
+- transicion diagnostica: `VV_IGUAL=150`
+
+---
+
+### Comparacion contra baseline
+
+Cantidad de simulados por origen:
+
+- 80 controladores:
+  - antes: 79
+  - ahora: 50
+
+- 120 controladores:
+  - antes: 119
+  - ahora: 50
+
+- 180 controladores:
+  - antes: 179
+  - ahora: 50
+
+---
+
+### Decisiones de diseno reforzadas
+
+- no es necesario simular todos los candidatos prefiltrados para una primera oferta
+- la reduccion de volumen puede hacerse antes del simulator
+- `candidate_selection` no reemplaza scoring tecnico ni clasificacion
+- el simulator sigue siendo la fuente de verdad tecnica
+- la seleccion es estructural y barata, no tecnica
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- `top_n=50` es una decision inicial y configurable
+- los criterios son simples y no incorporan preferencias reales del usuario
+- no hay aun diversidad avanzada por controlador
+- no se mide todavia calidad de candidatos descartados
+- no se optimizo internamente `evaluar_swap`
+
+---
+
+### Proximos pasos naturales
+
+- medir tiempos comparativos antes/despues con `candidate_selection`
+- evaluar valores alternativos de `top_n`
+- estudiar diversidad por controlador o turno
+- integrar esta capa como camino preferente solo cuando el contrato operativo lo apruebe
+- mantener disponible el flujo sin seleccion para diagnostico completo
+
+---
+
+### Notas
+
+Este checkpoint introduce una palanca estructural importante de performance.
+
+El sistema reduce la carga sobre `simulator` sin alterar la evaluacion tecnica ni la taxonomia del dominio.
+
+
+
