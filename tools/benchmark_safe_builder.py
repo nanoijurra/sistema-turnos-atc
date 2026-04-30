@@ -3,6 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
+try:
+    from tools.bootstrap_path import ensure_project_root_on_path
+except ModuleNotFoundError:
+    from bootstrap_path import ensure_project_root_on_path
+
+ensure_project_root_on_path()
+
 from src.engine import validar_todo
 from src.models import Asignacion, Controlador, crear_esquema_8h
 from src.scoring import calcular_score, es_roster_valido

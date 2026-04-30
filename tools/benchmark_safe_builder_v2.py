@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, timedelta
-from pathlib import Path
-import sys
 
+try:
+    from tools.bootstrap_path import ensure_project_root_on_path
+except ModuleNotFoundError:
+    from bootstrap_path import ensure_project_root_on_path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+ensure_project_root_on_path()
 
 from src.engine import validar_todo
 from src.models import Asignacion, Controlador, crear_esquema_8h

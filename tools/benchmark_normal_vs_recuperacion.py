@@ -5,6 +5,13 @@ from dataclasses import replace
 from datetime import date
 from typing import Iterable
 
+try:
+    from tools.bootstrap_path import ensure_project_root_on_path
+except ModuleNotFoundError:
+    from bootstrap_path import ensure_project_root_on_path
+
+ensure_project_root_on_path()
+
 from src.models import Asignacion, Controlador, crear_esquema_8h
 from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario
 from src.simulator import explorar_y_evaluar_candidatos_con_prefiltro

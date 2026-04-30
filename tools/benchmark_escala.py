@@ -6,6 +6,13 @@ from statistics import mean
 from time import perf_counter
 from typing import Iterable
 
+try:
+    from tools.bootstrap_path import ensure_project_root_on_path
+except ModuleNotFoundError:
+    from bootstrap_path import ensure_project_root_on_path
+
+ensure_project_root_on_path()
+
 from src.engine import crear_roster_version_inicial
 from src.roster_store import limpiar_rosters
 from src.scenarios.v5_controladores_beneficioso_mutuo import crear_escenario

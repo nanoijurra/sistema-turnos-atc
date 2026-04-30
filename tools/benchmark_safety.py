@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+try:
+    from tools.bootstrap_path import ensure_project_root_on_path
+except ModuleNotFoundError:
+    from bootstrap_path import ensure_project_root_on_path
+
+ensure_project_root_on_path()
+
 from src.engine import validar_todo
 from src.scoring import calcular_score, es_roster_valido
 
