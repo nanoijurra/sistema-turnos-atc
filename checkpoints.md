@@ -5919,3 +5919,197 @@ No cambia la clasificacion tecnica, no cambia el scoring base, no cambia la deci
 No toca `engine`, `scoring`, `simulator`, `swap_service`, `technical_prefilter`, `candidate_generation` ni `candidate_selection`.
 
 ---
+
+## checkpoint-v49-offer-reporting-output
+Fecha: 2026-05-06
+
+---
+
+### Estado general
+
+Se agrego una salida estructurada de oferta orientada a UI/reporting.
+
+El bloque toma el resultado de `exploration_flow` y lo transforma en una estructura presentable, con mensaje seguro, ofertas enumeradas y metadata visible.
+
+No modifica el flujo tecnico, no cambia clasificacion, no decide aprobacion/rechazo y no persiste resultados.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo modulo de reporting de oferta
+
+Se agrego el archivo:
+
+- `src/offer_reporting.py`
+
+Este modulo convierte un `ExplorationFlowResult` en una salida orientada a presentacion.
+
+---
+
+#### 2. Estructura OfertaEvaluada
+
+Se agrego la dataclass:
+
+- `OfertaEvaluada`
+
+Campos principales:
+
+- `posicion`
+- `clasificacion`
+- `delta_score`
+- `delta_hard`
+- `delta_soft`
+- `idx_a`
+- `idx_b`
+- `evaluacion`
+
+La estructura conserva la evaluacion tecnica original sin modificarla.
+
+---
+
+#### 3. Estructura OfferReport
+
+Se agrego la dataclass:
+
+- `OfferReport`
+
+Campos principales:
+
+- `mensaje`
+- `modo_exploracion`
+- `ofertas`
+- `metadata`
+
+Tambien se agrego:
+
+- propiedad `cantidad_ofertas`
+- metodo `to_dict()`
+
+---
+
+#### 4. Funcion publica de reporte
+
+Se agrego la funcion:
+
+- `generar_reporte_oferta`
+
+Responsabilidades:
+
+- recibir un `ExplorationFlowResult`
+- aplicar un limite opcional de resultados
+- enumerar ofertas desde posicion `1`
+- preservar el orden recibido desde `exploration_flow`
+- generar metadata visible para UI/reporting
+- devolver un `OfferReport`
+
+---
+
+#### 5. Mensaje seguro para UI/reporting
+
+El reporte usa el mensaje seguro definido previamente:
+
+    Mostrando mejores candidatos evaluados segun filtros actuales.
+
+Este mensaje evita afirmar que se muestran todos los swaps posibles.
+
+---
+
+#### 6. Metadata visible
+
+El reporte expone solo metadata prevista para presentacion:
+
+- `modo_exploracion`
+- `candidatos_generados`
+- `candidatos_prefiltrados`
+- `candidatos_seleccionados`
+- `candidatos_evaluados`
+- `top_n`
+- `criterio_seleccion`
+- `priorizacion_historica_aplicada`
+- `tiempos_por_etapa`
+
+No expone campos internos no previstos.
+
+---
+
+#### 7. Tests especificos
+
+Se agrego el archivo:
+
+- `tests/test_offer_reporting.py`
+
+Cobertura agregada:
+
+- el reporte incluye mensaje seguro
+- el reporte no dice "todos los swaps posibles"
+- el reporte conserva modo y cantidad
+- el reporte enumera posiciones
+- el reporte preserva el orden recibido desde el flujo
+- el reporte no modifica evaluacion tecnica
+- el reporte incluye metadata visible
+- el reporte no expone metadata interna no visible
+- el reporte respeta limite
+- el reporte rechaza limite invalido
+- `to_dict()` devuelve estructura serializable
+- el reporte tolera evaluaciones incompletas
+
+---
+
+### Resultados observados
+
+Suite completa:
+
+    186 passed
+
+---
+
+### Decisiones de diseno reforzadas
+
+- La salida de oferta queda separada del flujo tecnico.
+- `offer_reporting` no decide aprobacion ni rechazo.
+- `offer_reporting` no persiste resultados.
+- `offer_reporting` no modifica clasificacion tecnica.
+- `offer_reporting` no modifica ranking tecnico.
+- `offer_reporting` no modifica priorizacion historica.
+- `offer_reporting` preserva el orden recibido desde `exploration_flow`.
+- El mensaje visible no promete mostrar todos los swaps posibles.
+- La metadata visible queda controlada y explicita.
+- `swap_service` no se modifica en este checkpoint.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- Todavia no hay UI real.
+- Todavia no hay API.
+- Todavia no se integra `offer_reporting` con `swap_service`.
+- Todavia no se persisten reportes.
+- Todavia no se actualiza historial.
+- Todavia no se decide aprobacion/rechazo.
+- Todavia no hay formato final de exportacion.
+- Todavia no hay integracion con base de datos.
+
+---
+
+### Proximos pasos naturales
+
+- Crear una funcion de alto nivel que combine `exploration_flow` + `offer_reporting`.
+- Mantener esa funcion fuera de `swap_service` inicialmente.
+- Agregar tests de integracion liviana entre flujo y reporte.
+- Evaluar luego si esa capa sera consumida por UI, API o por una capa operativa intermedia.
+- Mantener `swap_service` sin cambios hasta definir contrato de consumo.
+
+---
+
+### Notas
+
+Este checkpoint crea la primera salida presentable de ofertas evaluadas.
+
+No cambia el comportamiento tecnico del sistema.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `technical_prefilter`, `candidate_generation`, `candidate_selection` ni `exploration_flow`.
+
+---
