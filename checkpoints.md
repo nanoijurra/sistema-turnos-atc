@@ -5499,3 +5499,423 @@ No modifica contratos tecnicos ni cambia decisiones operativas.
 No toca `engine`, `scoring`, `simulator`, `swap_service`, `technical_prefilter` ni `candidate_selection`.
 
 ---
+
+## checkpoint-v47-exploration-flow-oferta-rapida
+Fecha: 2026-05-06
+
+---
+
+### Estado general
+
+Se agrego un flujo estructurado de exploracion para soportar `OFERTA_RAPIDA` como camino operativo preferente y `DIAGNOSTICO_COMPLETO` como camino alternativo de auditoria, diagnostico y benchmark.
+
+El bloque no integra todavia `swap_service` ni modifica decisiones operativas. Solo crea una capa de flujo tecnico-operativo para explorar candidatos, evaluar swaps y devolver resultados con metadata.
+
+La suite de tests quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo modulo de flujo de exploracion
+
+Se agrego el archivo:
+
+- `src/exploration_flow.py`
+
+Este modulo concentra el flujo:
+
+    candidate_generation -> technical_prefilter -> candidate_selection -> simulator -> ranking tecnico
+
+para el modo `OFERTA_RAPIDA`.
+
+Tambien concentra el flujo:
+
+    candidate_generation -> technical_prefilter -> simulator -> ranking tecnico
+
+para el modo `DIAGNOSTICO_COMPLETO`.
+
+---
+
+#### 2. Resultado estructurado del flujo
+
+Se agrego la dataclass:
+
+- `ExplorationFlowResult`
+
+Campos principales:
+
+- `modo_exploracion`
+- `evaluaciones`
+- `metadata`
+
+Tambien se agrego la propiedad:
+
+- `cantidad_evaluaciones`
+
+---
+
+#### 3. Default operativo de oferta rapida
+
+Se agrego la constante:
+
+- `DEFAULT_TOP_N_OFERTA_RAPIDA = 50`
+
+Esto deja `top_n=50` como default inicial operativo, sin convertirlo en una constante rigida interna del algoritmo.
+
+---
+
+#### 4. Flujo OFERTA_RAPIDA
+
+Se agrego la funcion:
+
+- `explorar_oferta_rapida`
+
+Responsabilidades:
+
+- construir `roster_index`
+- generar candidatos con `candidate_generation`
+- aplicar `technical_prefilter`
+- aplicar `candidate_selection`
+- evaluar candidatos seleccionados con `simulator`
+- ordenar resultados por ranking tecnico
+- devolver evaluaciones y metadata
+
+Este flujo usa `candidate_selection` antes de simular.
+
+---
+
+#### 5. Flujo DIAGNOSTICO_COMPLETO
+
+Se agrego la funcion:
+
+- `explorar_diagnostico_completo`
+
+Responsabilidades:
+
+- construir `roster_index`
+- generar candidatos con `candidate_generation`
+- aplicar `technical_prefilter`
+- evaluar todos los candidatos prefiltrados con `simulator`
+- ordenar resultados por ranking tecnico
+- devolver evaluaciones y metadata
+
+Este flujo no usa `candidate_selection`.
+
+---
+
+#### 6. Funcion publica de seleccion de modo
+
+Se agrego la funcion:
+
+- `explorar_candidatos_para_oferta`
+
+Modos soportados:
+
+- `OFERTA_RAPIDA`
+- `DIAGNOSTICO_COMPLETO`
+
+El modo default es:
+
+- `OFERTA_RAPIDA`
+
+El modo `EXHAUSTIVO` no se integra todavia al flujo operativo.
+
+---
+
+#### 7. Ranking tecnico posterior a simulator
+
+Se agrego ordenamiento tecnico interno posterior a la simulacion.
+
+Criterio aplicado:
+
+- `BENEFICIOSO`
+- `ACEPTABLE`
+- `RECHAZABLE`
+- mejor `delta_score`
+- menor `delta_hard`
+- menor `delta_soft`
+
+Este ranking ocurre despues de `simulator`, por lo que no cambia el contrato de `candidate_selection`.
+
+---
+
+#### 8. Metadata por ejecucion
+
+El flujo devuelve metadata compatible con `ExplorationMetadata`.
+
+Campos incluidos:
+
+- `modo_exploracion`
+- `candidatos_generados`
+- `candidatos_prefiltrados`
+- `candidatos_seleccionados`
+- `candidatos_evaluados`
+- `top_n`
+- `criterio_seleccion`
+- `tiempos_por_etapa`
+
+Tiempos registrados:
+
+- `roster_index_ms`
+- `candidate_generation_ms`
+- `technical_prefilter_ms`
+- `candidate_selection_ms` en `OFERTA_RAPIDA`
+- `simulator_ms`
+- `technical_ranking_ms`
+- `total_ms`
+
+---
+
+#### 9. Tests especificos
+
+Se agrego el archivo:
+
+- `tests/test_exploration_flow.py`
+
+Cobertura agregada:
+
+- `OFERTA_RAPIDA` usa `candidate_selection` antes de simular.
+- `OFERTA_RAPIDA` respeta `top_n`.
+- `OFERTA_RAPIDA` usa `top_n=50` como default.
+- `DIAGNOSTICO_COMPLETO` no usa `candidate_selection`.
+- El flujo operativo default es `OFERTA_RAPIDA`.
+- El flujo permite `DIAGNOSTICO_COMPLETO`.
+- El flujo rechaza modos no soportados.
+- `OFERTA_RAPIDA` rechaza `top_n` invalido.
+- El ranking tecnico ocurre despues de `simulator`.
+
+---
+
+### Resultados observados
+
+Tests especificos:
+
+    tests/test_exploration_flow.py passed
+
+Suite completa:
+
+    passed
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `candidate_selection` queda integrado solo como reduccion de universo previa a simulacion.
+- `candidate_selection` no clasifica.
+- `candidate_selection` no puntua tecnicamente.
+- `candidate_selection` no decide.
+- `candidate_selection` no persiste.
+- `candidate_selection` no llama `engine`, `scoring` ni `simulator`.
+- `simulator` sigue siendo la fuente de verdad tecnica.
+- El ranking tecnico ocurre despues de `simulator`.
+- `OFERTA_RAPIDA` queda como camino default del flujo de oferta.
+- `DIAGNOSTICO_COMPLETO` se mantiene como camino alternativo para auditoria, diagnostico y benchmark.
+- `EXHAUSTIVO` queda fuera del flujo operativo por ahora.
+- `swap_service` no se modifica en este checkpoint.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- El flujo todavia no esta integrado a `swap_service`.
+- El flujo todavia no persiste resultados.
+- El flujo todavia no aplica priorizacion historica.
+- El flujo todavia no genera reporte final para UI.
+- No se agrego cache.
+- No se agrego paralelizacion.
+- No se optimizo internamente `simulator`.
+- No se agrego seleccion inteligente avanzada.
+- No se elimino `DIAGNOSTICO_COMPLETO`.
+
+---
+
+### Proximos pasos naturales
+
+- Integrar priorizacion historica despues del ranking tecnico.
+- Mantener separada la clasificacion tecnica de la priorizacion historica.
+- Agregar tests para verificar que la priorizacion historica no cambia clasificacion, validez ni impacto tecnico.
+- Preparar salida de oferta con texto seguro para UI/reporting.
+- Evaluar luego si el flujo debe ser consumido por `swap_service` o por una capa intermedia de reporting/oferta.
+
+---
+
+### Notas
+
+Este checkpoint crea la primera capa operativa concreta para `OFERTA_RAPIDA`, sin romper los contratos tecnicos existentes.
+
+No modifica `engine`, `scoring`, `simulator`, `swap_service`, `technical_prefilter`, `candidate_generation` ni `candidate_selection`.
+
+---
+
+## checkpoint-v48-historical-prioritization-flow
+Fecha: 2026-05-06
+
+---
+
+### Estado general
+
+Se integro la priorizacion historica dentro del flujo de exploracion de `OFERTA_RAPIDA`.
+
+La priorizacion historica se aplica despues del ranking tecnico y solo si el flujo recibe historial de controladores.
+
+El bloque no modifica `swap_service`, no persiste resultados y no cambia decisiones operativas.
+
+La suite de tests quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Priorizacion historica en exploration_flow
+
+Se modifico el archivo:
+
+- `src/exploration_flow.py`
+
+Se agrego integracion con:
+
+- `priorizar_por_equidad_historica`
+
+La priorizacion se aplica dentro de `OFERTA_RAPIDA`, despues de:
+
+    candidate_generation -> technical_prefilter -> candidate_selection -> simulator -> ranking tecnico
+
+---
+
+#### 2. Helper interno de priorizacion
+
+Se agrego el helper interno:
+
+- `_aplicar_priorizacion_historica`
+
+Comportamiento:
+
+- si `historial_controladores` es `None`, no prioriza
+- si recibe historial, llama a `priorizar_por_equidad_historica`
+- devuelve las evaluaciones finales
+- devuelve un flag booleano indicando si se aplico priorizacion historica
+
+---
+
+#### 3. Parametro historial_controladores
+
+Se agrego el parametro opcional:
+
+- `historial_controladores`
+
+En las funciones:
+
+- `explorar_oferta_rapida`
+- `explorar_candidatos_para_oferta`
+
+El parametro permite aplicar priorizacion historica sin acoplar el flujo a persistencia ni a stores.
+
+---
+
+#### 4. Metadata extendida
+
+Se agrego en la metadata el campo:
+
+- `priorizacion_historica_aplicada`
+
+Valores esperados:
+
+- `True` cuando `OFERTA_RAPIDA` recibe historial y aplica priorizacion
+- `False` cuando no recibe historial
+- `False` en `DIAGNOSTICO_COMPLETO`
+
+Tambien se agrega el tiempo de etapa:
+
+- `historical_prioritization_ms`
+
+---
+
+#### 5. DIAGNOSTICO_COMPLETO sin priorizacion historica
+
+Se dejo explicito que `DIAGNOSTICO_COMPLETO` no aplica priorizacion historica.
+
+Esto mantiene al modo completo como herramienta de auditoria, diagnostico y benchmark tecnico.
+
+---
+
+#### 6. Tests especificos agregados
+
+Se modifico el archivo:
+
+- `tests/test_exploration_flow.py`
+
+Cobertura agregada:
+
+- `OFERTA_RAPIDA` aplica priorizacion historica despues del ranking tecnico.
+- `OFERTA_RAPIDA` sin historial no aplica priorizacion historica.
+- `DIAGNOSTICO_COMPLETO` no aplica priorizacion historica.
+- `explorar_candidatos_para_oferta` pasa el historial a `OFERTA_RAPIDA`.
+- La priorizacion historica puede reordenar evaluaciones.
+- La priorizacion historica no modifica campos tecnicos de las evaluaciones.
+
+---
+
+### Resultados observados
+
+Tests especificos:
+
+    tests/test_exploration_flow.py passed
+
+Suite completa:
+
+    passed
+
+---
+
+### Decisiones de diseno reforzadas
+
+- La priorizacion historica ocurre despues del ranking tecnico.
+- La priorizacion historica no modifica clasificacion tecnica.
+- La priorizacion historica no modifica validez tecnica.
+- La priorizacion historica no modifica impacto tecnico.
+- La priorizacion historica no modifica deltas tecnicos.
+- `candidate_selection` sigue reduciendo universo antes de simular.
+- `candidate_selection` no clasifica.
+- `candidate_selection` no puntua tecnicamente.
+- `candidate_selection` no decide.
+- `simulator` sigue siendo la fuente de verdad tecnica.
+- `DIAGNOSTICO_COMPLETO` se mantiene sin priorizacion historica.
+- `swap_service` no se modifica en este checkpoint.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- El flujo todavia no esta integrado a `swap_service`.
+- El flujo no persiste resultados.
+- El flujo no actualiza historial.
+- El flujo no decide aprobacion ni rechazo.
+- El flujo no genera todavia una salida final de UI/reporting.
+- No se agrego cache.
+- No se agrego paralelizacion.
+- No se optimizo internamente `simulator`.
+- No se agrego seleccion inteligente avanzada.
+- No se elimino `DIAGNOSTICO_COMPLETO`.
+
+---
+
+### Proximos pasos naturales
+
+- Crear una salida de oferta para UI/reporting.
+- Incluir mensaje seguro: "Mostrando mejores candidatos evaluados segun filtros actuales."
+- Separar claramente evaluacion tecnica, ranking tecnico y priorizacion historica.
+- Agregar metadata visible para cantidad de candidatos generados, prefiltrados, seleccionados y evaluados.
+- Evaluar luego si el flujo debe ser consumido por una capa intermedia de oferta o por `swap_service`.
+
+---
+
+### Notas
+
+Este checkpoint integra equidad historica como priorizacion posterior a la evaluacion tecnica.
+
+No cambia la clasificacion tecnica, no cambia el scoring base, no cambia la decision operativa y no modifica la aplicacion de swaps.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `technical_prefilter`, `candidate_generation` ni `candidate_selection`.
+
+---

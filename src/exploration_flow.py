@@ -11,6 +11,7 @@ from src.exploration_modes import (
     construir_metadata_diagnostico_completo,
     construir_metadata_oferta_rapida,
 )
+from src.historical_prioritization import priorizar_por_equidad_historica
 from src.roster_index import build_roster_index
 from src.simulator import evaluar_swap
 from src.technical_prefilter import filter_technically_plausible_candidates
@@ -74,6 +75,20 @@ def _ordenar_evaluaciones_por_ranking_tecnico(
 
     return sorted(evaluaciones, key=clave)
 
+def _aplicar_priorizacion_historica(
+    *,
+    evaluaciones: list[dict[str, Any]],
+    historial_controladores: dict[str, Any] | None,
+) -> tuple[list[dict[str, Any]], bool]:
+    if historial_controladores is None:
+        return evaluaciones, False
+
+    evaluaciones_priorizadas = priorizar_por_equidad_historica(
+        evaluaciones,
+        historial_controladores=historial_controladores,
+    )
+
+    return evaluaciones_priorizadas, True
 
 def _evaluar_candidatos(
     *,
@@ -105,6 +120,7 @@ def explorar_oferta_rapida(
     asignaciones: list[Any],
     config_file: str,
     top_n: int = DEFAULT_TOP_N_OFERTA_RAPIDA,
+    historial_controladores: dict[str, Any] | None = None,
 ) -> ExplorationFlowResult:
     if top_n <= 0:
         raise ValueError("top_n debe ser mayor que cero.")
@@ -155,21 +171,33 @@ def explorar_oferta_rapida(
     evaluaciones_ordenadas = _ordenar_evaluaciones_por_ranking_tecnico(evaluaciones)
     tiempos_por_etapa["technical_ranking_ms"] = (time.perf_counter() - inicio) * 1000
 
+    inicio = time.perf_counter()
+    evaluaciones_finales, priorizacion_historica_aplicada = _aplicar_priorizacion_historica(
+        evaluaciones=evaluaciones_ordenadas,
+        historial_controladores=historial_controladores,
+    )
+    tiempos_por_etapa["historical_prioritization_ms"] = (
+        time.perf_counter() - inicio
+    ) * 1000
+
     tiempos_por_etapa["total_ms"] = (time.perf_counter() - inicio_total) * 1000
 
     metadata = construir_metadata_oferta_rapida(
         candidatos_generados=len(candidatos_generados),
         candidatos_prefiltrados=len(candidatos_prefiltrados),
         candidatos_seleccionados=len(candidatos_seleccionados),
-        candidatos_evaluados=len(evaluaciones_ordenadas),
+        candidatos_evaluados=len(evaluaciones_finales),
         top_n=top_n,
         tiempos_por_etapa=tiempos_por_etapa,
     )
 
+    metadata_dict = metadata.to_dict()
+    metadata_dict["priorizacion_historica_aplicada"] = priorizacion_historica_aplicada
+
     return ExplorationFlowResult(
         modo_exploracion=ModoExploracion.OFERTA_RAPIDA.value,
-        evaluaciones=evaluaciones_ordenadas,
-        metadata=metadata.to_dict(),
+        evaluaciones=evaluaciones_finales,
+        metadata=metadata_dict,
     )
 
 
@@ -225,10 +253,13 @@ def explorar_diagnostico_completo(
         tiempos_por_etapa=tiempos_por_etapa,
     )
 
+    metadata_dict = metadata.to_dict()
+    metadata_dict["priorizacion_historica_aplicada"] = False
+
     return ExplorationFlowResult(
         modo_exploracion=ModoExploracion.DIAGNOSTICO_COMPLETO.value,
         evaluaciones=evaluaciones_ordenadas,
-        metadata=metadata.to_dict(),
+        metadata=metadata_dict,
     )
 
 
@@ -239,6 +270,7 @@ def explorar_candidatos_para_oferta(
     config_file: str,
     modo_exploracion: str = ModoExploracion.OFERTA_RAPIDA.value,
     top_n: int = DEFAULT_TOP_N_OFERTA_RAPIDA,
+    historial_controladores: dict[str, Any] | None = None,
 ) -> ExplorationFlowResult:
     if modo_exploracion == ModoExploracion.OFERTA_RAPIDA.value:
         return explorar_oferta_rapida(
@@ -246,6 +278,7 @@ def explorar_candidatos_para_oferta(
             asignaciones=asignaciones,
             config_file=config_file,
             top_n=top_n,
+            historial_controladores=historial_controladores,
         )
 
     if modo_exploracion == ModoExploracion.DIAGNOSTICO_COMPLETO.value:
