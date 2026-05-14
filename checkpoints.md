@@ -5099,5 +5099,403 @@ Este checkpoint introduce una palanca estructural importante de performance.
 
 El sistema reduce la carga sobre `simulator` sin alterar la evaluacion tecnica ni la taxonomia del dominio.
 
+---
+
+## checkpoint-v44-candidate-selection-comparative-benchmark
+Fecha: 2026-04-28
+
+---
+
+### Estado general
+
+Se incorpora un benchmark comparativo para medir el impacto de `candidate_selection` sobre el flujo `NORMAL_DENSO`.
+
+El objetivo es comparar el costo de evaluar todos los candidatos prefiltrados contra evaluar solo un subconjunto `top_n`.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nuevo benchmark comparativo
+
+Se agrega:
+
+- `tools/benchmark_selection_comparativo.py`
+
+El benchmark compara:
+
+- flujo sin seleccion
+- flujo con `candidate_selection`
+
+sobre escenario `NORMAL_DENSO`.
+
+---
+
+#### 2. Flujo medido
+
+Sin seleccion:
+
+`candidate_generation -> technical_prefilter -> simulator`
+
+Con seleccion:
+
+`candidate_generation -> technical_prefilter -> candidate_selection -> simulator`
+
+---
+
+#### 3. Configuracion del benchmark
+
+- `top_n = 50`
+- `origenes_por_escala = 3`
+- escalas:
+  - 80 controladores
+  - 120 controladores
+  - 180 controladores
+
+---
+
+### Resultados observados
+
+#### 80 controladores
+
+- sin seleccion:
+  - evaluados: 237
+  - tiempo: ~16766 ms
+
+- con seleccion:
+  - evaluados: 150
+  - tiempo: ~10607 ms
+
+- ahorro:
+  - ~6159 ms
+  - ~36.7%
+
+---
+
+#### 120 controladores
+
+- sin seleccion:
+  - evaluados: 357
+  - tiempo: ~36220 ms
+
+- con seleccion:
+  - evaluados: 150
+  - tiempo: ~15236 ms
+
+- ahorro:
+  - ~20984 ms
+  - ~57.9%
+
+---
+
+#### 180 controladores
+
+- sin seleccion:
+  - evaluados: 537
+  - tiempo: ~81631 ms
+
+- con seleccion:
+  - evaluados: 150
+  - tiempo: ~22774 ms
+
+- ahorro:
+  - ~58857 ms
+  - ~72.1%
+
+---
+
+### Resultado funcional
+
+Con seleccion, el resultado tecnico se mantiene coherente:
+
+- clasificacion tecnica:
+  - `ACEPTABLE=150` en cada escala
+
+- transicion diagnostica:
+  - `VV_IGUAL=150` en cada escala
+
+Esto confirma que `candidate_selection` reduce carga sin alterar la semantica tecnica.
+
+---
+
+### Decisiones de diseno reforzadas
+
+- no es necesario enviar todos los candidatos prefiltrados al simulator en la primera pasada
+- la seleccion estructural top-N es una palanca efectiva de performance
+- `candidate_selection` puede reducir costo sin tocar engine, scoring ni simulator
+- el simulator sigue siendo fuente de verdad tecnica
+- la seleccion no clasifica, no decide y no puntua tecnicamente
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- `top_n=50` es un valor inicial
+- no se mide aun calidad relativa de candidatos descartados
+- no hay diversidad avanzada por controlador
+- no se incorporan preferencias explicitas del usuario
+- todos los resultados observados son `ACEPTABLE + VV_IGUAL`, por lo que falta generar escenarios con mayor variedad tecnica
+
+---
+
+### Proximos pasos naturales
+
+- evaluar distintos valores de `top_n`
+- medir trade-off entre costo y cobertura
+- agregar diversidad simple por controlador si se justifica
+- decidir si `candidate_selection` pasa a ser camino preferente
+- mantener flujo sin seleccion para diagnostico completo
+
+---
+
+### Notas
+
+Este checkpoint confirma que la estrategia de seleccion previa a simulacion reduce sustancialmente el costo del flujo `NORMAL_DENSO`, especialmente a mayor escala.
+
+---
+
+## checkpoint-v45-exploration-modes-metadata
+Fecha: 2026-05-06
+
+---
+
+### Estado general
+
+Se formalizaron los modos oficiales de exploracion y el contrato minimo de metadata para integrar `candidate_selection` como camino preferente de oferta rapida sin alterar los contratos tecnicos existentes.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Modos oficiales de exploracion
+
+Se agrego el archivo:
+
+ `src/exploration_modes.py`
+
+Con los modos oficiales:
+
+ `OFERTA_RAPIDA`
+ `DIAGNOSTICO_COMPLETO`
+ `EXHAUSTIVO`
+
+#### 2. Metadata obligatoria por ejecucion
+
+Se agrego la dataclass:
+
+ `ExplorationMetadata`
+
+Campos incluidos:
+
+ `modo_exploracion`
+ `candidatos_generados`
+ `candidatos_prefiltrados`
+ `candidatos_seleccionados`
+ `candidatos_evaluados`
+ `top_n`
+ `criterio_seleccion`
+ `tiempos_por_etapa`
+
+#### 3. Builders de metadata
+
+Se agregaron funciones para construir metadata segun modo:
+
+ `construir_metadata_oferta_rapida`
+ `construir_metadata_diagnostico_completo`
+ `construir_metadata_exhaustivo`
+
+#### 4. Criterio de seleccion documentado en codigo
+
+Se agrego la constante:
+
+ `CRITERIO_SELECCION_CANDIDATE_SELECTION_V1`
+
+El criterio queda explicitado como estructural y barato, sin evaluacion tecnica.
+
+#### 5. Mensaje seguro para UI/reporting
+
+Se agrego la constante:
+
+ `MENSAJE_REPORTING_OFERTA_RAPIDA`
+
+Texto:
+
+```text
+Mostrando mejores candidatos evaluados segun filtros actuales.
+
+```
+
+---
 
 
+## checkpoint-v46-oferta-rapida-topn-benchmark
+Fecha: 2026-05-06
+
+---
+
+### Estado general
+
+Se agrego un benchmark comparativo para medir `OFERTA_RAPIDA` contra `DIAGNOSTICO_COMPLETO` usando una matriz de valores `top_n`.
+
+El bloque no modifica el comportamiento tecnico del sistema. Solo agrega una herramienta de medicion en `tools/`.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Benchmark top-N de oferta rapida
+
+Se agrego el archivo:
+
+- `tools/benchmark_oferta_rapida_topn.py`
+
+El benchmark compara dos modos oficiales:
+
+- `DIAGNOSTICO_COMPLETO`
+- `OFERTA_RAPIDA`
+
+---
+
+#### 2. Matriz de top_n
+
+Se mide `OFERTA_RAPIDA` con los siguientes valores:
+
+- `top_n=20`
+- `top_n=40`
+- `top_n=50`
+- `top_n=80`
+- `top_n=100`
+
+---
+
+#### 3. Flujo medido
+
+`DIAGNOSTICO_COMPLETO` mide el flujo:
+
+    candidate_generation -> technical_prefilter -> simulator
+
+`OFERTA_RAPIDA` mide el flujo:
+
+    candidate_generation -> technical_prefilter -> candidate_selection -> simulator
+
+---
+
+#### 4. Metadata por ejecucion
+
+El benchmark reporta metadata compatible con `ExplorationMetadata`.
+
+Campos reportados:
+
+- `modo_exploracion`
+- `candidatos_generados`
+- `candidatos_prefiltrados`
+- `candidatos_seleccionados`
+- `candidatos_evaluados`
+- `top_n`
+- `criterio_seleccion`
+- `tiempos_por_etapa`
+
+---
+
+#### 5. Comparacion contra diagnostico completo
+
+Para cada escala se calcula:
+
+- tiempo total
+- candidatos evaluados
+- candidatos seleccionados
+- ahorro en milisegundos
+- ahorro porcentual
+- clasificacion tecnica
+- transicion diagnostica
+- diversidad de controladores
+
+---
+
+#### 6. Compatibilidad con contratos reales existentes
+
+El benchmark se adapto a los contratos reales del codigo actual:
+
+- `generate_candidates(asignacion_origen, roster_index, mode)`
+- `filter_technically_plausible_candidates(..., config_file)`
+- `evaluar_swap(asignaciones, idx_a, idx_b, config_file)`
+
+Esto mantiene el benchmark alineado con los modulos existentes sin modificar `src/`.
+
+---
+
+### Resultados observados
+
+Suite completa:
+
+    162 passed
+
+Resultados principales del benchmark:
+
+- `DIAGNOSTICO_COMPLETO` evalua todos los candidatos prefiltrados.
+- `OFERTA_RAPIDA` evalua solo los candidatos seleccionados por `candidate_selection`.
+- `top_n=50` mantiene el patron esperado del checkpoint anterior.
+- La clasificacion tecnica observada se mantiene como `ACEPTABLE`.
+- La transicion diagnostica observada se mantiene como `VV_IGUAL`.
+
+Lectura operativa:
+
+- `top_n=20` ofrece el mayor ahorro, pero puede ser demasiado restrictivo para oferta real.
+- `top_n=40` aparece como opcion razonable para una oferta mas liviana.
+- `top_n=50` queda sostenido como default inicial operativo.
+- `top_n=80` y `top_n=100` se acercan mas al diagnostico completo y pierden parte de la ventaja de costo.
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `candidate_selection` reduce universo antes de simular.
+- `candidate_selection` no clasifica.
+- `candidate_selection` no puntua tecnicamente.
+- `candidate_selection` no decide.
+- `candidate_selection` no persiste.
+- `candidate_selection` no llama `engine`, `scoring` ni `simulator`.
+- `simulator` sigue siendo la fuente de verdad tecnica.
+- El ranking tecnico debe ocurrir despues de la simulacion.
+- `DIAGNOSTICO_COMPLETO` se conserva como camino de auditoria, diagnostico y benchmark.
+- `OFERTA_RAPIDA` queda validado como camino operativo preferente medible.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- El benchmark todavia es una herramienta en `tools/`, no un flujo operativo integrado.
+- No se integro `OFERTA_RAPIDA` en `swap_service`.
+- No se agrego cache.
+- No se agrego paralelizacion.
+- No se optimizo internamente `simulator`.
+- No se implemento seleccion basada en score tecnico.
+- No se implemento candidate_selection inteligente avanzada.
+- No se elimino el modo completo.
+
+---
+
+### Proximos pasos naturales
+
+- Crear un flujo de exploracion/oferta que use explicitamente `ModoExploracion`.
+- Mantener `DIAGNOSTICO_COMPLETO` disponible para auditoria.
+- Integrar metadata de exploracion en una salida estructurada.
+- Preparar una funcion operativa de oferta rapida sin tocar aun `swap_service`.
+- Definir luego si esa funcion sera consumida por reporting, UI o servicio operativo.
+- Mantener `top_n=50` como default inicial operativo, salvo nueva evidencia.
+
+---
+
+### Notas
+
+Este checkpoint aporta evidencia empirica para sostener `OFERTA_RAPIDA` como camino preferente.
+
+No modifica contratos tecnicos ni cambia decisiones operativas.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `technical_prefilter` ni `candidate_selection`.
+
+---
