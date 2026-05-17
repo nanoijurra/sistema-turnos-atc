@@ -113,6 +113,7 @@ class SwapRequest:
     history: list[str] = field(default_factory=list)
     roster_hash: str | None = None
     roster_version_id: str | None = None
+    offer_origin: dict | None = None
 
     def add_history_entry(self, mensaje: str) -> None:
         self.history.append(mensaje)
