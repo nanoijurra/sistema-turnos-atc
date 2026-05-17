@@ -305,3 +305,99 @@ def test_resumen_requests_cuenta_correctamente():
     assert resumen["EVALUADO"] == 1
     assert resumen["APROBADO"] == 1
     assert resumen["TOTAL"] == 4
+
+
+def test_guardar_y_obtener_request_preserva_offer_origin() -> None:
+    from datetime import datetime
+
+    from src.models import SwapRequest
+    from src.request_store import guardar_request, obtener_request
+
+    offer_origin = {
+        "created_from_offer": True,
+        "source_type": "OFERTA_EVALUADA",
+        "modo_exploracion": "OFERTA_RAPIDA",
+        "top_n": 50,
+        "criterio_seleccion": "candidate_selection_v1",
+        "priorizacion_historica_aplicada": True,
+        "candidatos_generados": 100,
+        "candidatos_prefiltrados": 80,
+        "candidatos_seleccionados": 50,
+        "candidatos_evaluados": 50,
+        "offer_rank_observado": 2,
+        "clasificacion_observada": "ACEPTABLE",
+        "delta_score_observado": 0.0,
+        "delta_hard_observado": 0,
+        "delta_soft_observado": 0,
+        "roster_version_id_origen": "rv-1",
+        "roster_hash_origen": "hash-origen",
+        "config_file_origen": "config_equilibrado.json",
+        "created_from_offer_at": "2026-05-06T10:30:00",
+    }
+
+    request = SwapRequest(
+        id="req-offer-origin-roundtrip",
+        controlador_a="ATC_A",
+        controlador_b="ATC_B",
+        idx_a=1,
+        idx_b=2,
+        estado="PENDIENTE",
+        fecha_creacion=datetime(2026, 5, 6, 10, 30, 0),
+        motivo="CREADO_DESDE_OFERTA",
+        history=[
+            "CREADO_DESDE_OFERTA: source_type=OFERTA_EVALUADA",
+        ],
+        roster_hash="hash-vigente",
+        roster_version_id="rv-1",
+        offer_origin=offer_origin,
+    )
+
+    guardar_request(request)
+
+    recuperado = obtener_request(request.id)
+
+    assert recuperado is not None
+    assert recuperado.offer_origin == offer_origin
+    assert recuperado.estado == "PENDIENTE"
+    assert recuperado.decision_sugerida is None
+
+
+def test_guardar_y_obtener_request_sin_offer_origin_devuelve_none() -> None:
+    from datetime import datetime
+
+    from src.models import SwapRequest
+    from src.request_store import guardar_request, obtener_request
+
+    request = SwapRequest(
+        id="req-sin-offer-origin",
+        controlador_a="ATC_A",
+        controlador_b="ATC_B",
+        idx_a=1,
+        idx_b=2,
+        estado="PENDIENTE",
+        fecha_creacion=datetime(2026, 5, 6, 10, 30, 0),
+    )
+
+    guardar_request(request)
+
+    recuperado = obtener_request(request.id)
+
+    assert recuperado is not None
+    assert recuperado.offer_origin is None
+
+
+def test_init_db_agrega_columna_offer_origin_si_no_existia() -> None:
+    from src.db import get_connection
+    from src.request_store import init_db
+
+    init_db()
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("PRAGMA table_info(swap_requests)")
+    columnas = [row[1] for row in cursor.fetchall()]
+
+    conn.close()
+
+    assert "offer_origin" in columnas

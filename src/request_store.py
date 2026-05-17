@@ -5,6 +5,17 @@ from src.db import get_connection
 from src.models import SwapRequest
 
 
+def _column_exists(cursor, table_name: str, column_name: str) -> bool:
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    columns = cursor.fetchall()
+    return any(column[1] == column_name for column in columns)
+
+
+def _ensure_offer_origin_column(cursor) -> None:
+    if not _column_exists(cursor, "swap_requests", "offer_origin"):
+        cursor.execute("ALTER TABLE swap_requests ADD COLUMN offer_origin TEXT")
+
+
 def init_db() -> None:
     conn = get_connection()
     cursor = conn.cursor()
@@ -23,9 +34,12 @@ def init_db() -> None:
         motivo TEXT,
         history TEXT,
         roster_hash TEXT,
-        roster_version_id TEXT
+        roster_version_id TEXT,
+        offer_origin TEXT
     )
     """)
+
+    _ensure_offer_origin_column(cursor)
 
     conn.commit()
     conn.close()
@@ -46,6 +60,7 @@ def serialize_request(request: SwapRequest) -> tuple:
         json.dumps(request.history or []),
         request.roster_hash,
         request.roster_version_id,
+        json.dumps(request.offer_origin) if request.offer_origin is not None else None,
     )
 
 
@@ -63,13 +78,16 @@ def deserialize_request(row) -> SwapRequest:
         motivo=row[9],
         history=json.loads(row[10]) if row[10] else [],
         roster_hash=row[11],
-        roster_version_id=row[12],  # 🔴 asegurado
+        roster_version_id=row[12],
+        offer_origin=json.loads(row[13]) if len(row) > 13 and row[13] else None,
     )
 
 
 def guardar_request(request: SwapRequest) -> SwapRequest:
     conn = get_connection()
     cursor = conn.cursor()
+
+    init_db()
 
     cursor.execute("""
     INSERT OR REPLACE INTO swap_requests (
@@ -85,8 +103,9 @@ def guardar_request(request: SwapRequest) -> SwapRequest:
         motivo,
         history,
         roster_hash,
-        roster_version_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        roster_version_id,
+        offer_origin
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, serialize_request(request))
 
     conn.commit()
@@ -97,6 +116,8 @@ def guardar_request(request: SwapRequest) -> SwapRequest:
 def obtener_request(request_id: str) -> SwapRequest | None:
     conn = get_connection()
     cursor = conn.cursor()
+
+    init_db()
 
     cursor.execute("SELECT * FROM swap_requests WHERE id = ?", (request_id,))
     row = cursor.fetchone()
@@ -110,6 +131,8 @@ def listar_requests() -> list[SwapRequest]:
     conn = get_connection()
     cursor = conn.cursor()
 
+    init_db()
+
     cursor.execute("SELECT * FROM swap_requests")
     rows = cursor.fetchall()
 
@@ -121,6 +144,8 @@ def listar_requests() -> list[SwapRequest]:
 def limpiar_requests() -> None:
     conn = get_connection()
     cursor = conn.cursor()
+
+    init_db()
 
     cursor.execute("DELETE FROM swap_requests")
 
