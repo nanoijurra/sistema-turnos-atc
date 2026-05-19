@@ -165,6 +165,9 @@ def test_generar_oferta_y_crear_request_combina_servicios(
         config_file: str,
         roster_version_id_vigente: str | None,
         roster_hash_vigente: str | None,
+        selected_by: str | None = None,
+        selection_reason: str | None = None,
+        selection_note: str | None = None,
     ) -> SwapRequest:
         llamadas_request.append(
             {
@@ -174,6 +177,9 @@ def test_generar_oferta_y_crear_request_combina_servicios(
                 "config_file": config_file,
                 "roster_version_id_vigente": roster_version_id_vigente,
                 "roster_hash_vigente": roster_hash_vigente,
+                "selected_by": selected_by,
+                "selection_reason": selection_reason,
+                "selection_note": selection_note,
             }
         )
         return request
@@ -218,6 +224,9 @@ def test_generar_oferta_y_crear_request_combina_servicios(
             "config_file": "config_equilibrado.json",
             "roster_version_id_vigente": "rv-1",
             "roster_hash_vigente": "hash-1",
+            "selected_by": None,
+            "selection_reason": None,
+            "selection_note": None,
         }
     ]
 
@@ -366,3 +375,45 @@ def test_generar_oferta_y_crear_request_propaga_error_de_roster_obsoleto(
             roster_version_id_vigente="rv-2",
             roster_hash_vigente="hash-1",
         )
+
+def test_generar_oferta_y_crear_request_propaga_metadata_de_seleccion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import src.offer_workflow_service as modulo
+
+    asignaciones = _crear_asignaciones_fake()
+    reporte = _crear_reporte_fake()
+    request = _crear_request_fake()
+
+    monkeypatch.setattr(
+        modulo,
+        "generar_oferta_para_asignacion",
+        lambda **kwargs: reporte,
+    )
+
+    parametros_request = []
+
+    def crear_request_fake(**kwargs: Any) -> SwapRequest:
+        parametros_request.append(kwargs)
+        return request
+
+    monkeypatch.setattr(
+        modulo,
+        "crear_request_formal_desde_reporte_oferta",
+        crear_request_fake,
+    )
+
+    resultado = generar_oferta_y_crear_request(
+        asignacion_origen=asignaciones[0],
+        asignaciones=asignaciones,
+        config_file="config_equilibrado.json",
+        posicion_oferta=1,
+        selected_by="SUP_ACC_CBA",
+        selection_reason="Mejor alternativa disponible",
+        selection_note="Seleccion validada por supervisor",
+    )
+
+    assert resultado.request is request
+    assert parametros_request[0]["selected_by"] == "SUP_ACC_CBA"
+    assert parametros_request[0]["selection_reason"] == "Mejor alternativa disponible"
+    assert parametros_request[0]["selection_note"] == "Seleccion validada por supervisor"

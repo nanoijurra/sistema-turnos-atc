@@ -106,6 +106,9 @@ def _construir_offer_origin(
     roster_version_id_origen: str | None,
     roster_hash_origen: str | None,
     config_file_origen: str,
+    selected_by: str | None = None,
+    selection_reason: str | None = None,
+    selection_note: str | None = None,
 ) -> dict[str, Any]:
     return {
         "created_from_offer": True,
@@ -129,6 +132,9 @@ def _construir_offer_origin(
         "roster_version_id_origen": roster_version_id_origen,
         "roster_hash_origen": roster_hash_origen,
         "config_file_origen": config_file_origen,
+        "selected_by": selected_by,
+        "selection_reason": selection_reason,
+        "selection_note": selection_note,
         "created_from_offer_at": datetime.now().isoformat(),
     }
 
@@ -141,6 +147,9 @@ def crear_request_formal_desde_oferta(
     config_file: str = "config_equilibrado.json",
     roster_version_id_vigente: str | None = None,
     roster_hash_vigente: str | None = None,
+    selected_by: str | None = None,
+    selection_reason: str | None = None,
+    selection_note: str | None = None,
 ) -> Any:
     _validar_indices_en_roster(
         oferta=oferta,
@@ -195,7 +204,12 @@ def crear_request_formal_desde_oferta(
         roster_version_id_origen=roster_version_id_origen,
         roster_hash_origen=roster_hash_origen,
         config_file_origen=config_file,
+        selected_by=selected_by,
+        selection_reason=selection_reason,
+        selection_note=selection_note,
     )
+
+    seleccion_usuario = f", selected_by={selected_by}" if selected_by else ""
 
     request.add_history_entry(
         (
@@ -203,6 +217,7 @@ def crear_request_formal_desde_oferta(
             f"source_type={SOURCE_TYPE_OFERTA_EVALUADA}, "
             f"offer_rank_observado={oferta.posicion}, "
             f"clasificacion_observada={oferta.clasificacion}"
+            f"{seleccion_usuario}"
         )
     )
 
@@ -233,6 +248,9 @@ def crear_request_formal_desde_reporte_oferta(
     config_file: str = "config_equilibrado.json",
     roster_version_id_vigente: str | None = None,
     roster_hash_vigente: str | None = None,
+    selected_by: str | None = None,
+    selection_reason: str | None = None,
+    selection_note: str | None = None,
 ) -> Any:
     oferta = obtener_oferta_por_posicion(
         reporte=reporte,
@@ -246,4 +264,7 @@ def crear_request_formal_desde_reporte_oferta(
         config_file=config_file,
         roster_version_id_vigente=roster_version_id_vigente,
         roster_hash_vigente=roster_hash_vigente,
+        selected_by=selected_by,
+        selection_reason=selection_reason,
+        selection_note=selection_note,
     )

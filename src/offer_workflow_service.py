@@ -35,6 +35,9 @@ def generar_oferta_y_crear_request(
     limite_reporte: int | None = None,
     roster_version_id_vigente: str | None = None,
     roster_hash_vigente: str | None = None,
+    selected_by: str | None = None,
+    selection_reason: str | None = None,
+    selection_note: str | None = None,
 ) -> OfferSelectionResult:
     reporte = generar_oferta_para_asignacion(
         asignacion_origen=asignacion_origen,
@@ -53,6 +56,9 @@ def generar_oferta_y_crear_request(
         config_file=config_file,
         roster_version_id_vigente=roster_version_id_vigente,
         roster_hash_vigente=roster_hash_vigente,
+        selected_by=selected_by,
+        selection_reason=selection_reason,
+        selection_note=selection_note,
     )
 
     return OfferSelectionResult(
