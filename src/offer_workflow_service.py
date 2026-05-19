@@ -7,6 +7,7 @@ from src.models import SwapRequest
 from src.offer_reporting import OfferReport
 from src.offer_service import generar_oferta_para_asignacion
 from src.offer_to_request_service import crear_request_formal_desde_reporte_oferta
+from src.request_store import guardar_request
 
 
 @dataclass(frozen=True)
@@ -65,3 +66,24 @@ def generar_oferta_y_crear_request(
         reporte=reporte,
         request=request,
     )
+
+def persistir_request_creado_desde_oferta(
+    *,
+    request: SwapRequest,
+) -> SwapRequest:
+    if request.estado != "PENDIENTE":
+        raise ValueError(
+            "Solo se puede persistir desde oferta un request en estado PENDIENTE."
+        )
+
+    if request.decision_sugerida is not None:
+        raise ValueError(
+            "No se puede persistir desde oferta un request que ya tiene decision_sugerida."
+        )
+
+    if request.offer_origin is None:
+        raise ValueError(
+            "No se puede persistir como request desde oferta sin offer_origin."
+        )
+
+    return guardar_request(request)
