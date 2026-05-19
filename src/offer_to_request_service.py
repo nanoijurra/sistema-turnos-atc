@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from src.engine import calcular_roster_hash
-from src.offer_reporting import OfertaEvaluada
+from src.offer_reporting import OfertaEvaluada, OfferReport
 from src.swap_service import crear_swap_request
 
 
@@ -207,3 +207,43 @@ def crear_request_formal_desde_oferta(
     )
 
     return request
+
+def obtener_oferta_por_posicion(
+    *,
+    reporte: OfferReport,
+    posicion: int,
+) -> OfertaEvaluada:
+    if posicion <= 0:
+        raise ValueError("La posicion de oferta debe ser mayor que cero.")
+
+    for oferta in reporte.ofertas:
+        if oferta.posicion == posicion:
+            return oferta
+
+    raise ValueError(
+        f"No existe una oferta con posicion {posicion} en el reporte."
+    )
+
+
+def crear_request_formal_desde_reporte_oferta(
+    *,
+    reporte: OfferReport,
+    posicion_oferta: int,
+    asignaciones: list[Any],
+    config_file: str = "config_equilibrado.json",
+    roster_version_id_vigente: str | None = None,
+    roster_hash_vigente: str | None = None,
+) -> Any:
+    oferta = obtener_oferta_por_posicion(
+        reporte=reporte,
+        posicion=posicion_oferta,
+    )
+
+    return crear_request_formal_desde_oferta(
+        oferta=oferta,
+        asignaciones=asignaciones,
+        metadata=reporte.metadata,
+        config_file=config_file,
+        roster_version_id_vigente=roster_version_id_vigente,
+        roster_hash_vigente=roster_hash_vigente,
+    )
