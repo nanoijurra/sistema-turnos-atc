@@ -87,3 +87,44 @@ def persistir_request_creado_desde_oferta(
         )
 
     return guardar_request(request)
+
+def generar_oferta_crear_y_persistir_request(
+    *,
+    asignacion_origen: Any,
+    asignaciones: list[Any],
+    config_file: str,
+    posicion_oferta: int,
+    modo_exploracion: str = "OFERTA_RAPIDA",
+    top_n: int = 50,
+    historial_controladores: dict[str, Any] | None = None,
+    limite_reporte: int | None = None,
+    roster_version_id_vigente: str | None = None,
+    roster_hash_vigente: str | None = None,
+    selected_by: str | None = None,
+    selection_reason: str | None = None,
+    selection_note: str | None = None,
+) -> OfferSelectionResult:
+    resultado = generar_oferta_y_crear_request(
+        asignacion_origen=asignacion_origen,
+        asignaciones=asignaciones,
+        config_file=config_file,
+        posicion_oferta=posicion_oferta,
+        modo_exploracion=modo_exploracion,
+        top_n=top_n,
+        historial_controladores=historial_controladores,
+        limite_reporte=limite_reporte,
+        roster_version_id_vigente=roster_version_id_vigente,
+        roster_hash_vigente=roster_hash_vigente,
+        selected_by=selected_by,
+        selection_reason=selection_reason,
+        selection_note=selection_note,
+    )
+
+    request_persistido = persistir_request_creado_desde_oferta(
+        request=resultado.request,
+    )
+
+    return OfferSelectionResult(
+        reporte=resultado.reporte,
+        request=request_persistido,
+    )
