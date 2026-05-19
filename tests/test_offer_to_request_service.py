@@ -462,3 +462,5 @@ def test_request_creado_desde_oferta_puede_ser_evaluado_formalmente_despues(
     assert request.decision_sugerida == "OBSERVAR"
     assert resultado["clasificacion"] == "ACEPTABLE"
     assert resultado["decision"] == "OBSERVAR"
+
+    
