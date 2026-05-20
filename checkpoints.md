@@ -7853,3 +7853,361 @@ Este checkpoint agrega persistencia explicita de request creada desde oferta sin
 No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
 
 ---
+
+## checkpoint-v60-offer-workflow-persist-facade
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se agrego una fachada superior para generar ofertas, seleccionar una oferta visible, crear una `SwapRequest` formal y persistirla explicitamente.
+
+El bloque combina funciones ya existentes de `offer_workflow_service`, manteniendo separadas las responsabilidades de generacion de oferta, seleccion, creacion formal de request y persistencia.
+
+No evalua, no decide, no aprueba, no rechaza y no aplica swaps.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Funcion generar_oferta_crear_y_persistir_request
+
+Se modifico el archivo:
+
+- `src/offer_workflow_service.py`
+
+Se agrego la funcion:
+
+- `generar_oferta_crear_y_persistir_request`
+
+Responsabilidad:
+
+- generar un `OfferReport`
+- seleccionar una oferta por posicion
+- crear una `SwapRequest` formal
+- persistir explicitamente la request creada
+- devolver un `OfferSelectionResult`
+
+---
+
+#### 2. Reutilizacion de funciones existentes
+
+La nueva funcion reutiliza:
+
+- `generar_oferta_y_crear_request`
+- `persistir_request_creado_desde_oferta`
+
+Esto evita duplicar logica y mantiene la separacion de responsabilidades.
+
+---
+
+#### 3. Parametros soportados
+
+La funcion soporta:
+
+- `asignacion_origen`
+- `asignaciones`
+- `config_file`
+- `posicion_oferta`
+- `modo_exploracion`
+- `top_n`
+- `historial_controladores`
+- `limite_reporte`
+- `roster_version_id_vigente`
+- `roster_hash_vigente`
+- `selected_by`
+- `selection_reason`
+- `selection_note`
+
+Defaults operativos:
+
+- `modo_exploracion = OFERTA_RAPIDA`
+- `top_n = 50`
+- `historial_controladores = None`
+- `limite_reporte = None`
+
+---
+
+#### 4. Persistencia explicita
+
+La funcion persiste la request solo mediante:
+
+- `persistir_request_creado_desde_oferta`
+
+Por lo tanto conserva las validaciones ya definidas:
+
+- request en estado `PENDIENTE`
+- sin `decision_sugerida`
+- con `offer_origin`
+
+---
+
+#### 5. Tests unitarios
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_persist_facade.py`
+
+Cobertura agregada:
+
+- combina creacion y persistencia
+- pasa todos los parametros esperados
+- usa defaults operativos
+- no evalua
+- no decide
+- no aplica
+- propaga error de creacion
+- propaga error de persistencia
+
+---
+
+#### 6. Tests de integracion
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_persist_facade_integration.py`
+
+Cobertura agregada:
+
+- genera reporte desde fachada mockeada
+- crea request formal desde oferta seleccionada
+- persiste la request
+- recupera la request desde `request_store`
+- conserva `offer_origin`
+- conserva metadata de seleccion
+- conserva `history`
+- conserva estado `PENDIENTE`
+- conserva `decision_sugerida is None`
+- valida que no reemplaza evaluacion formal
+
+---
+
+### Resultados observados
+
+Tests focalizados:
+
+    tests/test_offer_workflow_persist_facade.py tests/test_offer_workflow_persist_facade_integration.py passed
+
+Suite completa:
+
+    passed
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Generar ofertas no equivale a crear una solicitud operativa.
+- Seleccionar una oferta no equivale a aprobar un swap.
+- Crear una request desde oferta no evalua formalmente.
+- Persistir una request desde oferta no evalua formalmente.
+- La request creada y persistida sigue naciendo `PENDIENTE`.
+- La evaluacion formal sigue perteneciendo a `swap_service.evaluar_swap_request`.
+- La decision formal sigue perteneciendo a `swap_service.resolver_swap_request`.
+- La aplicacion sigue perteneciendo a `swap_service.aplicar_swap_request`.
+- `offer_origin` sigue siendo evidencia observada, no decision formal.
+- La fachada superior no crea workflow paralelo.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- Todavia no se evalua automaticamente la request persistida.
+- Todavia no se decide automaticamente.
+- Todavia no hay aprobacion automatica.
+- Todavia no hay aplicacion automatica.
+- Todavia no hay UI real.
+- Todavia no hay API.
+- Todavia no hay permisos.
+- Todavia no hay auditoria avanzada de usuario.
+- Todavia no hay bloqueo temporal multiusuario.
+- Todavia no hay concurrencia avanzada.
+
+---
+
+### Proximos pasos naturales
+
+- Volver a arquitectura antes de decidir si corresponde una fachada que tambien evalue formalmente.
+- Si se implementa evaluacion formal posterior, mantenerla como paso separado y explicito.
+- Definir si `offer_workflow_service` debe seguir siendo solo coordinador de oferta/request o si debe existir una capa de aplicacion superior.
+- Evaluar integracion futura con UI/API.
+- Mantener `swap_service` como dueño de evaluacion, resolucion y aplicacion.
+
+---
+
+### Notas
+
+Este checkpoint completa el flujo hasta request formal persistida desde oferta seleccionada.
+
+No cambia el workflow formal de swaps.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
+
+---
+
+## checkpoint-v61-offer-request-listing
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se agrego soporte para consultar explicitamente las `SwapRequest` creadas desde una oferta evaluada.
+
+El bloque permite listar requests cuyo origen esta marcado en `offer_origin` como `OFERTA_EVALUADA`, sin modificar el workflow formal de swaps.
+
+No evalua, no decide, no aprueba, no rechaza y no aplica swaps.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Funcion es_request_creado_desde_oferta
+
+Se modifico el archivo:
+
+- `src/offer_workflow_service.py`
+
+Se agrego la funcion:
+
+- `es_request_creado_desde_oferta`
+
+Responsabilidad:
+
+- recibir una `SwapRequest`
+- verificar que tenga `offer_origin`
+- validar que `created_from_offer` sea `True`
+- validar que `source_type` sea `OFERTA_EVALUADA`
+- devolver `True` solo si cumple el contrato de origen de oferta
+
+---
+
+#### 2. Funcion listar_requests_creados_desde_oferta
+
+Se agrego la funcion:
+
+- `listar_requests_creados_desde_oferta`
+
+Responsabilidad:
+
+- obtener requests desde `request_store.listar_requests`
+- filtrar solo requests creadas desde oferta evaluada
+- devolver la lista filtrada
+
+---
+
+#### 3. Criterio de filtrado
+
+El criterio se basa exclusivamente en `offer_origin`:
+
+- `created_from_offer is True`
+- `source_type == "OFERTA_EVALUADA"`
+
+No se usa estado, decision, clasificacion ni otros campos formales del request.
+
+---
+
+#### 4. Tests unitarios
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_listing.py`
+
+Cobertura agregada:
+
+- identifica correctamente request creada desde oferta
+- devuelve `False` si no hay `offer_origin`
+- devuelve `False` si `created_from_offer` no es `True`
+- devuelve `False` si `source_type` no corresponde
+- lista solo requests creadas desde oferta
+- no evalua
+- no resuelve
+- no aplica
+
+---
+
+#### 5. Test de integracion con SQLite
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_listing_integration.py`
+
+Cobertura agregada:
+
+- persiste requests en `request_store`
+- recupera y filtra requests creadas desde oferta
+- excluye requests manuales sin `offer_origin`
+- excluye requests con otro `source_type`
+- conserva metadata de origen como `selected_by`
+
+---
+
+### Resultados observados
+
+Tests focalizados:
+
+    tests/test_offer_workflow_listing.py tests/test_offer_workflow_listing_integration.py passed
+
+Suite completa:
+
+    passed
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `offer_origin` es el criterio oficial para identificar requests creadas desde oferta.
+- Una request creada desde oferta no se identifica por estado.
+- Una request creada desde oferta no se identifica por decision.
+- Una request creada desde oferta no se identifica por clasificacion tecnica.
+- Listar requests creadas desde oferta es una operacion de consulta.
+- La consulta no altera workflow.
+- La consulta no evalua.
+- La consulta no decide.
+- La consulta no aplica.
+- `swap_service` no se modifica.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- No hay paginacion.
+- No hay filtros por estado.
+- No hay filtros por usuario seleccionante.
+- No hay filtros por fecha.
+- No hay filtros por `modo_exploracion`.
+- No hay filtros por `clasificacion_observada`.
+- No hay ordenamiento explicito.
+- No hay API.
+- No hay UI real.
+- No hay permisos.
+- No hay auditoria avanzada.
+
+---
+
+### Proximos pasos naturales
+
+- Agregar filtros opcionales para requests creadas desde oferta:
+  - estado
+  - selected_by
+  - modo_exploracion
+  - clasificacion_observada
+- Mantener los filtros como consulta, sin modificar workflow.
+- Evaluar si corresponde devolver un resumen/reporting en vez de requests crudas.
+- Volver a arquitectura antes de automatizar evaluacion formal posterior.
+
+---
+
+### Notas
+
+Este checkpoint agrega capacidad de consulta sobre requests creadas desde oferta evaluada.
+
+No cambia el workflow formal de swaps.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
+
+---
