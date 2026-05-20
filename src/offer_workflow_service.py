@@ -7,7 +7,7 @@ from src.models import SwapRequest
 from src.offer_reporting import OfferReport
 from src.offer_service import generar_oferta_para_asignacion
 from src.offer_to_request_service import crear_request_formal_desde_reporte_oferta
-from src.request_store import guardar_request
+from src.request_store import guardar_request, listar_requests
 
 
 @dataclass(frozen=True)
@@ -128,3 +128,25 @@ def generar_oferta_crear_y_persistir_request(
         reporte=resultado.reporte,
         request=request_persistido,
     )
+
+def es_request_creado_desde_oferta(
+    *,
+    request: SwapRequest,
+) -> bool:
+    offer_origin = request.offer_origin
+
+    if not isinstance(offer_origin, dict):
+        return False
+
+    return (
+        offer_origin.get("created_from_offer") is True
+        and offer_origin.get("source_type") == "OFERTA_EVALUADA"
+    )
+
+
+def listar_requests_creados_desde_oferta() -> list[SwapRequest]:
+    return [
+        request
+        for request in listar_requests()
+        if es_request_creado_desde_oferta(request=request)
+    ]
