@@ -8924,3 +8924,256 @@ No cambia el workflow formal de swaps.
 No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
 
 ---
+
+## checkpoint-v65-offer-request-detail-report
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se agrego un reporte presentable de listado detallado para `SwapRequest` creadas desde ofertas evaluadas.
+
+El bloque permite transformar requests filtradas en filas serializables para UI/API/reporting futuro, manteniendo separado el listado detallado del resumen agregado y del workflow formal de swaps.
+
+No evalua, no decide, no aprueba, no rechaza y no aplica swaps.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Dataclass OfferRequestDetail
+
+Se modifico el archivo:
+
+- `src/offer_workflow_service.py`
+
+Se agrego la dataclass:
+
+- `OfferRequestDetail`
+
+Campos incluidos:
+
+- `request_id`
+- `estado`
+- `controlador_a`
+- `controlador_b`
+- `idx_a`
+- `idx_b`
+- `roster_version_id`
+- `fecha_creacion`
+- `selected_by`
+- `selection_reason`
+- `selection_note`
+- `modo_exploracion`
+- `clasificacion_observada`
+- `offer_rank_observado`
+
+---
+
+#### 2. Serializacion de detalle
+
+Se agrego el metodo:
+
+- `to_dict`
+
+Responsabilidad:
+
+- devolver una fila serializable
+- preservar datos formales basicos del request
+- preservar metadata observada de `offer_origin`
+- facilitar salida futura para UI/API/reporting
+
+---
+
+#### 3. Dataclass OfferRequestDetailReport
+
+Se agrego la dataclass:
+
+- `OfferRequestDetailReport`
+
+Campos incluidos:
+
+- `mensaje`
+- `filtros`
+- `total`
+- `detalles`
+
+Responsabilidad:
+
+- encapsular un listado presentable
+- conservar filtros aplicados
+- incluir cantidad total de filas
+- incluir detalles serializables de requests creadas desde oferta
+
+---
+
+#### 4. Mensaje de reporte detallado
+
+Se agrego la constante:
+
+- `MENSAJE_DETALLE_REQUESTS_DESDE_OFERTA`
+
+Texto:
+
+```text
+Listado de solicitudes creadas desde ofertas evaluadas.
+```
+
+---
+
+#### 5. Construccion de detalle desde request
+
+Se agrego la funcion:
+
+- `construir_detalle_request_creado_desde_oferta`
+
+Responsabilidad:
+
+- recibir una `SwapRequest`
+- leer datos formales del request
+- leer metadata observada desde `offer_origin`
+- tolerar metadata incompleta
+- devolver `OfferRequestDetail`
+
+---
+
+#### 6. Helpers internos
+
+Se agregaron helpers:
+
+- `_serializar_fecha_creacion_request`
+- `_obtener_offer_origin_dict`
+
+Responsabilidades:
+
+- serializar `fecha_creacion` de forma segura
+- obtener `offer_origin` como dict
+- tolerar `offer_origin` ausente o incompleto
+
+---
+
+#### 7. Funcion generar_reporte_detalle_requests_creados_desde_oferta
+
+Se agrego la funcion:
+
+- `generar_reporte_detalle_requests_creados_desde_oferta`
+
+Responsabilidad:
+
+- recibir filtros opcionales
+- partir de `listar_requests_creados_desde_oferta_filtrados`
+- construir detalles presentables
+- conservar filtros aplicados
+- devolver `OfferRequestDetailReport`
+
+Filtros soportados:
+
+- `estado`
+- `selected_by`
+- `modo_exploracion`
+- `clasificacion_observada`
+
+---
+
+#### 8. Tests unitarios
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_detail_report.py`
+
+Cobertura agregada:
+
+- mapea campos formales del request
+- mapea metadata de `offer_origin`
+- tolera `offer_origin` incompleto
+- `OfferRequestDetail.to_dict()` devuelve estructura serializable
+- `OfferRequestDetailReport.to_dict()` devuelve estructura presentable
+- respeta filtros recibidos
+- no evalua
+- no resuelve
+- no aplica
+
+---
+
+#### 9. Tests de integracion con SQLite
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_detail_report_integration.py`
+
+Cobertura agregada:
+
+- persiste requests creadas desde oferta en `request_store`
+- genera reporte detallado desde store
+- conserva datos formales
+- conserva metadata observada
+- aplica filtros antes de construir detalles
+- `to_dict()` funciona con datos reales recuperados desde SQLite
+
+---
+
+### Resultados observados
+
+Tests focalizados:
+
+    tests/test_offer_workflow_detail_report.py tests/test_offer_workflow_detail_report_integration.py passed
+
+Suite completa:
+
+    294 passed
+
+---
+
+### Decisiones de diseno reforzadas
+
+- El reporte detallado es lectura pura.
+- El detalle no modifica requests.
+- El detalle no evalua.
+- El detalle no decide.
+- El detalle no aplica.
+- `clasificacion_observada` sigue siendo evidencia previa.
+- `selected_by` sigue siendo seleccionante, no aprobador.
+- `selection_reason` sigue siendo motivo de seleccion, no resolucion.
+- La salida presentable queda separada del workflow formal.
+- `swap_service` no se modifica.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- No hay paginacion.
+- No hay ordenamiento explicito.
+- No hay filtros por fecha.
+- No hay filtros por controlador.
+- No hay filtros por `roster_version_id_origen`.
+- No hay filtros por `top_n`.
+- No hay API.
+- No hay UI real.
+- No hay permisos.
+- No hay auditoria avanzada.
+- No hay exportacion a archivo.
+
+---
+
+### Proximos pasos naturales
+
+- Agregar ordenamiento opcional del listado detallado.
+- Agregar filtros por fecha/controlador si aparece necesidad real.
+- Evaluar salida API futura separada del workflow formal.
+- Mantener reporting como lectura pura.
+- Volver a arquitectura antes de automatizar evaluacion formal posterior.
+
+---
+
+### Notas
+
+Este checkpoint agrega reporte presentable de listado detallado para requests creadas desde oferta evaluada.
+
+No cambia el workflow formal de swaps.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
+
+---

@@ -55,6 +55,60 @@ class OfferRequestSummaryReport:
             "filtros": dict(self.filtros),
             "resumen": self.resumen.to_dict(),
         }
+    
+@dataclass(frozen=True)
+class OfferRequestDetail:
+    request_id: str
+    estado: str
+    controlador_a: str
+    controlador_b: str
+    idx_a: int
+    idx_b: int
+    roster_version_id: str | None
+    fecha_creacion: str | None
+    selected_by: str | None
+    selection_reason: str | None
+    selection_note: str | None
+    modo_exploracion: str | None
+    clasificacion_observada: str | None
+    offer_rank_observado: int | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "request_id": self.request_id,
+            "estado": self.estado,
+            "controlador_a": self.controlador_a,
+            "controlador_b": self.controlador_b,
+            "idx_a": self.idx_a,
+            "idx_b": self.idx_b,
+            "roster_version_id": self.roster_version_id,
+            "fecha_creacion": self.fecha_creacion,
+            "selected_by": self.selected_by,
+            "selection_reason": self.selection_reason,
+            "selection_note": self.selection_note,
+            "modo_exploracion": self.modo_exploracion,
+            "clasificacion_observada": self.clasificacion_observada,
+            "offer_rank_observado": self.offer_rank_observado,
+        }
+
+
+@dataclass(frozen=True)
+class OfferRequestDetailReport:
+    mensaje: str
+    filtros: dict[str, Any]
+    total: int
+    detalles: list[OfferRequestDetail]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "mensaje": self.mensaje,
+            "filtros": dict(self.filtros),
+            "total": self.total,
+            "detalles": [
+                detalle.to_dict()
+                for detalle in self.detalles
+            ],
+        }
 
 def generar_oferta_y_crear_request(
     *,
@@ -323,4 +377,85 @@ def generar_reporte_resumen_requests_creados_desde_oferta(
         mensaje=MENSAJE_RESUMEN_REQUESTS_DESDE_OFERTA,
         filtros=filtros,
         resumen=resumen,
+    )
+
+MENSAJE_DETALLE_REQUESTS_DESDE_OFERTA = (
+    "Listado de solicitudes creadas desde ofertas evaluadas."
+)
+
+
+def _serializar_fecha_creacion_request(request: SwapRequest) -> str | None:
+    fecha_creacion = request.fecha_creacion
+
+    if fecha_creacion is None:
+        return None
+
+    if hasattr(fecha_creacion, "isoformat"):
+        return fecha_creacion.isoformat()
+
+    return str(fecha_creacion)
+
+
+def _obtener_offer_origin_dict(request: SwapRequest) -> dict[str, Any]:
+    if isinstance(request.offer_origin, dict):
+        return request.offer_origin
+
+    return {}
+
+
+def construir_detalle_request_creado_desde_oferta(
+    *,
+    request: SwapRequest,
+) -> OfferRequestDetail:
+    offer_origin = _obtener_offer_origin_dict(request)
+
+    return OfferRequestDetail(
+        request_id=request.id,
+        estado=request.estado,
+        controlador_a=request.controlador_a,
+        controlador_b=request.controlador_b,
+        idx_a=request.idx_a,
+        idx_b=request.idx_b,
+        roster_version_id=request.roster_version_id,
+        fecha_creacion=_serializar_fecha_creacion_request(request),
+        selected_by=offer_origin.get("selected_by"),
+        selection_reason=offer_origin.get("selection_reason"),
+        selection_note=offer_origin.get("selection_note"),
+        modo_exploracion=offer_origin.get("modo_exploracion"),
+        clasificacion_observada=offer_origin.get("clasificacion_observada"),
+        offer_rank_observado=offer_origin.get("offer_rank_observado"),
+    )
+
+
+def generar_reporte_detalle_requests_creados_desde_oferta(
+    *,
+    estado: str | None = None,
+    selected_by: str | None = None,
+    modo_exploracion: str | None = None,
+    clasificacion_observada: str | None = None,
+) -> OfferRequestDetailReport:
+    requests = listar_requests_creados_desde_oferta_filtrados(
+        estado=estado,
+        selected_by=selected_by,
+        modo_exploracion=modo_exploracion,
+        clasificacion_observada=clasificacion_observada,
+    )
+
+    detalles = [
+        construir_detalle_request_creado_desde_oferta(request=request)
+        for request in requests
+    ]
+
+    filtros = _construir_filtros_resumen_requests_desde_oferta(
+        estado=estado,
+        selected_by=selected_by,
+        modo_exploracion=modo_exploracion,
+        clasificacion_observada=clasificacion_observada,
+    )
+
+    return OfferRequestDetailReport(
+        mensaje=MENSAJE_DETALLE_REQUESTS_DESDE_OFERTA,
+        filtros=filtros,
+        total=len(detalles),
+        detalles=detalles,
     )
