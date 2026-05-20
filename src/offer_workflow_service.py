@@ -150,3 +150,46 @@ def listar_requests_creados_desde_oferta() -> list[SwapRequest]:
         for request in listar_requests()
         if es_request_creado_desde_oferta(request=request)
     ]
+
+def listar_requests_creados_desde_oferta_filtrados(
+    *,
+    estado: str | None = None,
+    selected_by: str | None = None,
+    modo_exploracion: str | None = None,
+    clasificacion_observada: str | None = None,
+) -> list[SwapRequest]:
+    requests = listar_requests_creados_desde_oferta()
+
+    if estado is not None:
+        requests = [
+            request
+            for request in requests
+            if request.estado == estado
+        ]
+
+    if selected_by is not None:
+        requests = [
+            request
+            for request in requests
+            if isinstance(request.offer_origin, dict)
+            and request.offer_origin.get("selected_by") == selected_by
+        ]
+
+    if modo_exploracion is not None:
+        requests = [
+            request
+            for request in requests
+            if isinstance(request.offer_origin, dict)
+            and request.offer_origin.get("modo_exploracion") == modo_exploracion
+        ]
+
+    if clasificacion_observada is not None:
+        requests = [
+            request
+            for request in requests
+            if isinstance(request.offer_origin, dict)
+            and request.offer_origin.get("clasificacion_observada")
+            == clasificacion_observada
+        ]
+
+    return requests
