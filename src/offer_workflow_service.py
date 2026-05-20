@@ -10,6 +10,7 @@ from src.offer_to_request_service import crear_request_formal_desde_reporte_ofer
 from src.request_store import guardar_request, listar_requests
 
 
+
 @dataclass(frozen=True)
 class OfferSelectionResult:
     reporte: OfferReport
@@ -41,14 +42,19 @@ class OfferRequestSummary:
             "por_modo_exploracion": dict(self.por_modo_exploracion),
         }
 
-    @property
-    def request_id(self) -> str:
-        return self.request.id
 
-    @property
-    def cantidad_ofertas(self) -> int:
-        return self.reporte.cantidad_ofertas
+@dataclass(frozen=True)
+class OfferRequestSummaryReport:
+    mensaje: str
+    filtros: dict[str, Any]
+    resumen: OfferRequestSummary
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "mensaje": self.mensaje,
+            "filtros": dict(self.filtros),
+            "resumen": self.resumen.to_dict(),
+        }
 
 def generar_oferta_y_crear_request(
     *,
@@ -270,4 +276,51 @@ def resumir_requests_creados_desde_oferta(
         por_clasificacion_observada=por_clasificacion_observada,
         por_selected_by=por_selected_by,
         por_modo_exploracion=por_modo_exploracion,
+    )
+
+MENSAJE_RESUMEN_REQUESTS_DESDE_OFERTA = (
+    "Resumen de solicitudes creadas desde ofertas evaluadas."
+)
+
+
+def _construir_filtros_resumen_requests_desde_oferta(
+    *,
+    estado: str | None = None,
+    selected_by: str | None = None,
+    modo_exploracion: str | None = None,
+    clasificacion_observada: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "estado": estado,
+        "selected_by": selected_by,
+        "modo_exploracion": modo_exploracion,
+        "clasificacion_observada": clasificacion_observada,
+    }
+
+
+def generar_reporte_resumen_requests_creados_desde_oferta(
+    *,
+    estado: str | None = None,
+    selected_by: str | None = None,
+    modo_exploracion: str | None = None,
+    clasificacion_observada: str | None = None,
+) -> OfferRequestSummaryReport:
+    resumen = resumir_requests_creados_desde_oferta(
+        estado=estado,
+        selected_by=selected_by,
+        modo_exploracion=modo_exploracion,
+        clasificacion_observada=clasificacion_observada,
+    )
+
+    filtros = _construir_filtros_resumen_requests_desde_oferta(
+        estado=estado,
+        selected_by=selected_by,
+        modo_exploracion=modo_exploracion,
+        clasificacion_observada=clasificacion_observada,
+    )
+
+    return OfferRequestSummaryReport(
+        mensaje=MENSAJE_RESUMEN_REQUESTS_DESDE_OFERTA,
+        filtros=filtros,
+        resumen=resumen,
     )

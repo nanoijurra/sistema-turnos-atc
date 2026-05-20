@@ -8704,3 +8704,223 @@ No cambia el workflow formal de swaps.
 No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
 
 ---
+
+## checkpoint-v64-offer-request-summary-report
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se agrego un reporte presentable para el resumen de requests creadas desde ofertas evaluadas.
+
+El bloque separa la estructura cruda de resumen (`OfferRequestSummary`) de una salida presentable (`OfferRequestSummaryReport`) apta para UI/API/reporting futuro.
+
+Tambien se corrigio una regresion semantica donde `OfferRequestSummary` habia heredado accidentalmente propiedades que correspondian a `OfferSelectionResult`.
+
+No evalua, no decide, no aprueba, no rechaza y no aplica swaps.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Correccion de OfferRequestSummary
+
+Se modifico el archivo:
+
+- `src/offer_workflow_service.py`
+
+Se removieron de `OfferRequestSummary` las propiedades que no correspondian:
+
+- `request_id`
+- `cantidad_ofertas`
+
+Estas propiedades pertenecen a `OfferSelectionResult`, no al resumen de requests creadas desde oferta.
+
+---
+
+#### 2. Dataclass OfferRequestSummaryReport
+
+Se agrego la dataclass:
+
+- `OfferRequestSummaryReport`
+
+Campos incluidos:
+
+- `mensaje`
+- `filtros`
+- `resumen`
+
+Responsabilidad:
+
+- encapsular una salida presentable del resumen
+- conservar filtros aplicados
+- contener el resumen tecnico-operativo
+- facilitar salida futura para UI/API/reporting
+
+---
+
+#### 3. Serializacion del reporte
+
+Se agrego el metodo:
+
+- `to_dict`
+
+Responsabilidad:
+
+- devolver una estructura serializable
+- incluir mensaje
+- incluir filtros aplicados
+- incluir `resumen.to_dict()`
+
+---
+
+#### 4. Mensaje de reporte
+
+Se agrego la constante:
+
+- `MENSAJE_RESUMEN_REQUESTS_DESDE_OFERTA`
+
+Texto:
+
+```text
+Resumen de solicitudes creadas desde ofertas evaluadas.
+```
+
+---
+
+#### 5. Construccion de filtros visibles
+
+Se agrego el helper:
+
+- `_construir_filtros_resumen_requests_desde_oferta`
+
+Responsabilidad:
+
+- centralizar los filtros aplicados al reporte
+- preservar valores `None` cuando no se aplica filtro
+- evitar mezclar filtros con logica de resumen
+
+---
+
+#### 6. Funcion generar_reporte_resumen_requests_creados_desde_oferta
+
+Se agrego la funcion:
+
+- `generar_reporte_resumen_requests_creados_desde_oferta`
+
+Responsabilidad:
+
+- recibir filtros opcionales
+- delegar calculo a `resumir_requests_creados_desde_oferta`
+- construir filtros visibles
+- devolver `OfferRequestSummaryReport`
+
+Filtros soportados:
+
+- `estado`
+- `selected_by`
+- `modo_exploracion`
+- `clasificacion_observada`
+
+---
+
+#### 7. Tests unitarios
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_summary_report.py`
+
+Cobertura agregada:
+
+- `OfferRequestSummary` no expone propiedades de `OfferSelectionResult`
+- `OfferRequestSummaryReport.to_dict()` devuelve estructura presentable
+- el reporte combina filtros y resumen
+- el reporte funciona sin filtros
+- el reporte no evalua
+- el reporte no decide
+- el reporte no aplica
+
+---
+
+#### 8. Tests de integracion con SQLite
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_summary_report_integration.py`
+
+Cobertura agregada:
+
+- genera reporte desde requests persistidas en `request_store`
+- conserva mensaje de reporte
+- conserva filtros aplicados
+- resume conteos desde store
+- aplica filtros antes de construir reporte
+- `to_dict()` funciona con datos reales recuperados desde SQLite
+
+---
+
+### Resultados observados
+
+Tests focalizados:
+
+    tests/test_offer_workflow_summary_report.py tests/test_offer_workflow_summary_report_integration.py passed
+
+Suite completa:
+
+    passed
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `OfferSelectionResult` representa una seleccion de oferta y request.
+- `OfferRequestSummary` representa conteos agregados.
+- `OfferRequestSummaryReport` representa salida presentable.
+- El resumen no conoce request individual.
+- El reporte no modifica requests.
+- El reporte no evalua.
+- El reporte no decide.
+- El reporte no aplica.
+- `swap_service` no se modifica.
+- La salida presentable queda separada del workflow formal.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- No hay paginacion.
+- No hay ordenamiento.
+- No hay filtros por fecha.
+- No hay filtros por controlador.
+- No hay filtros por `roster_version_id_origen`.
+- No hay filtros por `top_n`.
+- No hay API.
+- No hay UI real.
+- No hay permisos.
+- No hay auditoria avanzada.
+- No hay exportacion a archivo.
+
+---
+
+### Proximos pasos naturales
+
+- Agregar reporte presentable de listado detallado de requests creadas desde oferta.
+- Agregar filtros por fecha o controlador si aparece necesidad real.
+- Evaluar una salida API futura separada del workflow formal.
+- Volver a arquitectura antes de automatizar evaluacion formal posterior.
+- Mantener reporting como lectura pura.
+
+---
+
+### Notas
+
+Este checkpoint agrega reporte presentable para resumen de requests creadas desde oferta evaluada.
+
+No cambia el workflow formal de swaps.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
+
+---
