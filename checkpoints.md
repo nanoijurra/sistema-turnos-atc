@@ -9840,3 +9840,195 @@ No cambia el workflow formal de swaps.
 No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
 
 ---
+
+## checkpoint-v69-offer-request-controller-detail-report
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se agrego un reporte presentable de listado detallado para `SwapRequest` creadas desde ofertas evaluadas donde participa un controlador determinado.
+
+El bloque reutiliza la consulta por controlador de v68 y construye una salida presentable con detalle, ordenamiento y paginacion, sin modificar requests, sin modificar persistencia y sin alterar el workflow formal de swaps.
+
+No evalua, no decide, no aprueba, no rechaza y no aplica swaps.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Mensaje de reporte por controlador
+
+Se modifico el archivo:
+
+- `src/offer_workflow_service.py`
+
+Se agrego la constante:
+
+- `MENSAJE_DETALLE_REQUESTS_DESDE_OFERTA_POR_CONTROLADOR`
+
+Texto:
+
+```text
+Listado de solicitudes creadas desde ofertas evaluadas por controlador.
+```
+
+---
+
+#### 2. Funcion generar_reporte_detalle_requests_creados_desde_oferta_por_controlador
+
+Se agrego la funcion:
+
+- `generar_reporte_detalle_requests_creados_desde_oferta_por_controlador`
+
+Responsabilidad:
+
+- recibir un controlador
+- listar requests creadas desde oferta donde participa ese controlador
+- construir detalles presentables
+- aplicar ordenamiento opcional
+- aplicar paginacion opcional
+- devolver `OfferRequestDetailReport`
+
+---
+
+#### 3. Criterio de participacion reutilizado
+
+La funcion reutiliza:
+
+- `listar_requests_creados_desde_oferta_por_controlador`
+
+Por lo tanto mantiene el criterio de v68:
+
+- participa si coincide con `controlador_a`
+- participa si coincide con `controlador_b`
+
+---
+
+#### 4. Reutilizacion de helpers existentes
+
+La funcion reutiliza:
+
+- `construir_detalle_request_creado_desde_oferta`
+- `ordenar_detalles_requests_desde_oferta`
+- `paginar_detalles_requests_desde_oferta`
+
+Esto evita duplicar logica y mantiene el reporte por controlador alineado con el reporte detallado general.
+
+---
+
+#### 5. Filtros visibles del reporte
+
+El reporte por controlador incluye en `filtros`:
+
+- `controlador`
+- `ordenar_por`
+- `direccion`
+- `limit`
+- `offset`
+
+Esto deja explicito el controlador consultado y la configuracion de presentacion aplicada.
+
+---
+
+#### 6. Tests unitarios
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_controller_detail_report.py`
+
+Cobertura agregada:
+
+- construye salida presentable por controlador
+- conserva filtros visibles
+- ordena por `request_id`
+- pagina resultados
+- `to_dict()` devuelve estructura serializable
+- propaga error de controlador vacio
+- no evalua
+- no resuelve
+- no aplica
+
+---
+
+#### 7. Tests de integracion con SQLite
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_controller_detail_report_integration.py`
+
+Cobertura agregada:
+
+- persiste requests creadas desde oferta en `request_store`
+- genera reporte por controlador desde store
+- incluye requests donde el controlador participa como `controlador_a`
+- incluye requests donde el controlador participa como `controlador_b`
+- excluye requests donde el controlador no participa
+- aplica ordenamiento desde store
+- aplica paginacion desde store
+- devuelve reporte vacio si no hay coincidencias
+
+---
+
+### Resultados observados
+
+Tests focalizados:
+
+    tests/test_offer_workflow_controller_detail_report.py tests/test_offer_workflow_controller_detail_report_integration.py passed
+
+Suite completa:
+
+    336 passed
+
+---
+
+### Decisiones de diseno reforzadas
+
+- El reporte por controlador es lectura pura.
+- El reporte por controlador no modifica requests.
+- El reporte por controlador no modifica persistencia.
+- El reporte por controlador no evalua.
+- El reporte por controlador no decide.
+- El reporte por controlador no aplica.
+- `controlador_a` y `controlador_b` son la fuente formal de participacion.
+- `offer_origin` sigue siendo origen/evidencia, no fuente principal de participacion.
+- La salida presentable queda separada del workflow formal.
+- `swap_service` no se modifica.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- No hay busqueda parcial por controlador.
+- No hay normalizacion de mayusculas/minusculas.
+- No hay filtros combinados por estado/selected_by en este reporte especifico.
+- No hay filtro por fecha.
+- No hay API.
+- No hay UI real.
+- No hay permisos.
+- No hay exportacion a archivo.
+
+---
+
+### Proximos pasos naturales
+
+- Evaluar filtro por fecha si aparece necesidad real.
+- Evaluar normalizacion de nombres si aparece necesidad real.
+- Evaluar salida API futura separada del workflow formal.
+- Mantener reporting como lectura pura.
+- Volver a arquitectura antes de automatizar evaluacion formal posterior.
+
+---
+
+### Notas
+
+Este checkpoint agrega reporte detallado por controlador para requests creadas desde oferta evaluada.
+
+No cambia el workflow formal de swaps.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
+
+---

@@ -639,3 +639,55 @@ def listar_requests_creados_desde_oferta_por_controlador(
             controlador=controlador,
         )
     ]
+
+MENSAJE_DETALLE_REQUESTS_DESDE_OFERTA_POR_CONTROLADOR = (
+    "Listado de solicitudes creadas desde ofertas evaluadas por controlador."
+)
+
+
+def generar_reporte_detalle_requests_creados_desde_oferta_por_controlador(
+    *,
+    controlador: str,
+    ordenar_por: str | None = None,
+    direccion: str = "asc",
+    limit: int | None = None,
+    offset: int = 0,
+) -> OfferRequestDetailReport:
+    requests = listar_requests_creados_desde_oferta_por_controlador(
+        controlador=controlador,
+    )
+
+    detalles = [
+        construir_detalle_request_creado_desde_oferta(request=request)
+        for request in requests
+    ]
+
+    detalles = ordenar_detalles_requests_desde_oferta(
+        detalles=detalles,
+        ordenar_por=ordenar_por,
+        direccion=direccion,
+    )
+
+    total_detalles = len(detalles)
+
+    detalles, paginacion = paginar_detalles_requests_desde_oferta(
+        detalles=detalles,
+        limit=limit,
+        offset=offset,
+    )
+
+    filtros = {
+        "controlador": controlador,
+        "ordenar_por": ordenar_por,
+        "direccion": direccion,
+        "limit": limit,
+        "offset": offset,
+    }
+
+    return OfferRequestDetailReport(
+        mensaje=MENSAJE_DETALLE_REQUESTS_DESDE_OFERTA_POR_CONTROLADOR,
+        filtros=filtros,
+        total=total_detalles,
+        detalles=detalles,
+        paginacion=paginacion,
+    )
