@@ -186,6 +186,8 @@ def test_generar_reporte_detalle_requests_creados_desde_oferta_respeta_filtros(
         "selected_by": "SUP_ACC_CBA",
         "modo_exploracion": "OFERTA_RAPIDA",
         "clasificacion_observada": "ACEPTABLE",
+        "ordenar_por": None,
+        "direccion": "asc",
     }
     assert reporte.total == 1
     assert len(reporte.detalles) == 1

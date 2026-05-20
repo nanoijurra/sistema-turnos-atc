@@ -9177,3 +9177,225 @@ No cambia el workflow formal de swaps.
 No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
 
 ---
+
+## checkpoint-v66-offer-request-detail-report-ordering
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se agrego ordenamiento opcional al reporte detallado de requests creadas desde ofertas evaluadas.
+
+El bloque permite ordenar solamente la salida presentable del listado detallado, sin modificar requests, sin modificar persistencia y sin alterar el workflow formal de swaps.
+
+No evalua, no decide, no aprueba, no rechaza y no aplica swaps.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Criterios de ordenamiento soportados
+
+Se modifico el archivo:
+
+- `src/offer_workflow_service.py`
+
+Se agrego la constante:
+
+- `CRITERIOS_ORDEN_DETALLE_REQUESTS_DESDE_OFERTA`
+
+Criterios soportados:
+
+- `fecha_creacion`
+- `estado`
+- `selected_by`
+- `clasificacion_observada`
+- `modo_exploracion`
+- `request_id`
+
+---
+
+#### 2. Direcciones de ordenamiento soportadas
+
+Se agrego la constante:
+
+- `DIRECCIONES_ORDEN_DETALLE_REQUESTS_DESDE_OFERTA`
+
+Direcciones soportadas:
+
+- `asc`
+- `desc`
+
+---
+
+#### 3. Validacion de ordenamiento
+
+Se agrego el helper:
+
+- `_validar_orden_detalle_requests_desde_oferta`
+
+Responsabilidad:
+
+- rechazar criterios de ordenamiento no soportados
+- rechazar direcciones no soportadas
+- evitar ordenamientos ambiguos o silenciosos
+
+---
+
+#### 4. Ordenamiento de detalles
+
+Se agrego la funcion:
+
+- `ordenar_detalles_requests_desde_oferta`
+
+Responsabilidad:
+
+- recibir una lista de `OfferRequestDetail`
+- ordenar por el criterio indicado
+- aplicar direccion `asc` o `desc`
+- devolver una nueva lista
+- preservar el orden original cuando `ordenar_por` es `None`
+
+---
+
+#### 5. Integracion con reporte detallado
+
+Se actualizo la funcion:
+
+- `generar_reporte_detalle_requests_creados_desde_oferta`
+
+Ahora acepta:
+
+- `ordenar_por`
+- `direccion`
+
+El ordenamiento se aplica despues de construir los detalles y antes de devolver el reporte.
+
+---
+
+#### 6. Filtros visibles enriquecidos
+
+El reporte detallado ahora incluye tambien en `filtros`:
+
+- `ordenar_por`
+- `direccion`
+
+Defaults:
+
+- `ordenar_por = None`
+- `direccion = asc`
+
+Esto deja explicito si el reporte fue ordenado o si mantiene el orden original.
+
+---
+
+#### 7. Actualizacion de tests previos
+
+Se actualizaron tests de v65 que verificaban `reporte.filtros`, porque desde v66 los filtros visibles incluyen tambien:
+
+- `ordenar_por`
+- `direccion`
+
+Esto evita regresiones de contrato y documenta el nuevo comportamiento.
+
+---
+
+#### 8. Tests unitarios
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_detail_report_ordering.py`
+
+Cobertura agregada:
+
+- ordena por `request_id` ascendente
+- ordena por `fecha_creacion` descendente
+- ordena por `estado`
+- preserva orden si no hay criterio
+- rechaza criterio no soportado
+- rechaza direccion no soportada
+- el reporte aplica ordenamiento
+- el reporte no evalua
+- el reporte no resuelve
+- el reporte no aplica
+
+---
+
+#### 9. Tests de integracion con SQLite
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_detail_report_ordering_integration.py`
+
+Cobertura agregada:
+
+- ordena por `fecha_creacion` descendente desde store
+- ordena por `clasificacion_observada` ascendente desde store
+- combina filtro y ordenamiento desde store
+
+---
+
+### Resultados observados
+
+Tests focalizados:
+
+    tests/test_offer_workflow_detail_report.py tests/test_offer_workflow_detail_report_integration.py tests/test_offer_workflow_detail_report_ordering.py tests/test_offer_workflow_detail_report_ordering_integration.py passed
+
+Suite completa:
+
+    passed
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Ordenar es una operacion de presentacion.
+- Ordenar no modifica requests.
+- Ordenar no modifica persistencia.
+- Ordenar no evalua.
+- Ordenar no decide.
+- Ordenar no aplica.
+- El ordenamiento queda visible en `reporte.filtros`.
+- Los criterios soportados son explicitos.
+- Los criterios no soportados fallan de forma clara.
+- `swap_service` no se modifica.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- El ordenamiento es simple y lexicografico.
+- No hay ordenamiento compuesto.
+- No hay paginacion.
+- No hay ordenamiento por controlador.
+- No hay ordenamiento por `roster_version_id`.
+- No hay ordenamiento por `top_n`.
+- No hay API.
+- No hay UI real.
+- No hay permisos.
+- No hay exportacion a archivo.
+
+---
+
+### Proximos pasos naturales
+
+- Agregar paginacion opcional del reporte detallado.
+- Agregar filtros por fecha/controlador si aparece necesidad real.
+- Evaluar salida API futura separada del workflow formal.
+- Mantener reporting como lectura pura.
+- Volver a arquitectura antes de automatizar evaluacion formal posterior.
+
+---
+
+### Notas
+
+Este checkpoint agrega ordenamiento opcional al reporte detallado de requests creadas desde oferta evaluada.
+
+No cambia el workflow formal de swaps.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
+
+---

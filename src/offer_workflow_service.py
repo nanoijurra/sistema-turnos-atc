@@ -426,6 +426,72 @@ def construir_detalle_request_creado_desde_oferta(
         offer_rank_observado=offer_origin.get("offer_rank_observado"),
     )
 
+CRITERIOS_ORDEN_DETALLE_REQUESTS_DESDE_OFERTA = {
+    "fecha_creacion",
+    "estado",
+    "selected_by",
+    "clasificacion_observada",
+    "modo_exploracion",
+    "request_id",
+}
+
+DIRECCIONES_ORDEN_DETALLE_REQUESTS_DESDE_OFERTA = {
+    "asc",
+    "desc",
+}
+
+
+def _validar_orden_detalle_requests_desde_oferta(
+    *,
+    ordenar_por: str | None,
+    direccion: str,
+) -> None:
+    if ordenar_por is not None and ordenar_por not in CRITERIOS_ORDEN_DETALLE_REQUESTS_DESDE_OFERTA:
+        raise ValueError(
+            f"Criterio de ordenamiento no soportado: {ordenar_por}"
+        )
+
+    if direccion not in DIRECCIONES_ORDEN_DETALLE_REQUESTS_DESDE_OFERTA:
+        raise ValueError(
+            f"Direccion de ordenamiento no soportada: {direccion}"
+        )
+
+
+def _valor_orden_detalle_request(
+    *,
+    detalle: OfferRequestDetail,
+    ordenar_por: str,
+) -> str:
+    valor = getattr(detalle, ordenar_por)
+
+    if valor is None:
+        return ""
+
+    return str(valor)
+
+
+def ordenar_detalles_requests_desde_oferta(
+    *,
+    detalles: list[OfferRequestDetail],
+    ordenar_por: str | None = None,
+    direccion: str = "asc",
+) -> list[OfferRequestDetail]:
+    _validar_orden_detalle_requests_desde_oferta(
+        ordenar_por=ordenar_por,
+        direccion=direccion,
+    )
+
+    if ordenar_por is None:
+        return list(detalles)
+
+    return sorted(
+        detalles,
+        key=lambda detalle: _valor_orden_detalle_request(
+            detalle=detalle,
+            ordenar_por=ordenar_por,
+        ),
+        reverse=direccion == "desc",
+    )
 
 def generar_reporte_detalle_requests_creados_desde_oferta(
     *,
@@ -433,6 +499,8 @@ def generar_reporte_detalle_requests_creados_desde_oferta(
     selected_by: str | None = None,
     modo_exploracion: str | None = None,
     clasificacion_observada: str | None = None,
+    ordenar_por: str | None = None,
+    direccion: str = "asc",
 ) -> OfferRequestDetailReport:
     requests = listar_requests_creados_desde_oferta_filtrados(
         estado=estado,
@@ -446,12 +514,20 @@ def generar_reporte_detalle_requests_creados_desde_oferta(
         for request in requests
     ]
 
+    detalles = ordenar_detalles_requests_desde_oferta(
+        detalles=detalles,
+        ordenar_por=ordenar_por,
+        direccion=direccion,
+    )
+
     filtros = _construir_filtros_resumen_requests_desde_oferta(
         estado=estado,
         selected_by=selected_by,
         modo_exploracion=modo_exploracion,
         clasificacion_observada=clasificacion_observada,
     )
+    filtros["ordenar_por"] = ordenar_por
+    filtros["direccion"] = direccion
 
     return OfferRequestDetailReport(
         mensaje=MENSAJE_DETALLE_REQUESTS_DESDE_OFERTA,
