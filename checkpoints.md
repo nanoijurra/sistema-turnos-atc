@@ -9664,3 +9664,179 @@ No cambia el workflow formal de swaps.
 No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
 
 ---
+
+## checkpoint-v68-offer-request-controller-listing
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se agrego una consulta especifica para listar `SwapRequest` creadas desde ofertas evaluadas donde participa un controlador determinado.
+
+El bloque permite consultar requests por controlador participante, considerando tanto `controlador_a` como `controlador_b`, sin modificar requests, sin modificar persistencia y sin alterar el workflow formal de swaps.
+
+No evalua, no decide, no aprueba, no rechaza y no aplica swaps.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Funcion request_creado_desde_oferta_involucra_controlador
+
+Se modifico el archivo:
+
+- `src/offer_workflow_service.py`
+
+Se agrego la funcion:
+
+- `request_creado_desde_oferta_involucra_controlador`
+
+Responsabilidad:
+
+- recibir una `SwapRequest`
+- recibir un nombre de controlador
+- validar que el controlador no este vacio
+- devolver `True` si el controlador participa como `controlador_a`
+- devolver `True` si el controlador participa como `controlador_b`
+- devolver `False` si no participa
+
+---
+
+#### 2. Funcion listar_requests_creados_desde_oferta_por_controlador
+
+Se agrego la funcion:
+
+- `listar_requests_creados_desde_oferta_por_controlador`
+
+Responsabilidad:
+
+- recibir un controlador
+- validar que el controlador no este vacio
+- partir de `listar_requests_creados_desde_oferta`
+- filtrar requests donde participe el controlador
+- devolver la lista filtrada
+
+---
+
+#### 3. Criterio de participacion
+
+Una request creada desde oferta involucra a un controlador si el nombre coincide con:
+
+- `request.controlador_a`
+- `request.controlador_b`
+
+No se consulta `offer_origin` para determinar participacion, porque los campos formales del request son la fuente directa de los controladores involucrados.
+
+---
+
+#### 4. Separacion con filtros generales
+
+La consulta por controlador se implemento como funcion especifica y no como nuevo filtro dentro de `listar_requests_creados_desde_oferta_filtrados`.
+
+Motivo:
+
+- evitar romper contratos existentes de filtros visibles
+- evitar modificar reportes ya estabilizados
+- mantener el paso v68 chico y seguro
+
+---
+
+#### 5. Tests unitarios
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_controller_listing.py`
+
+Cobertura agregada:
+
+- detecta participacion como `controlador_a`
+- detecta participacion como `controlador_b`
+- devuelve `False` si el controlador no participa
+- rechaza controlador vacio
+- lista requests creadas desde oferta por controlador
+- no evalua
+- no resuelve
+- no aplica
+
+---
+
+#### 6. Tests de integracion con SQLite
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_controller_listing_integration.py`
+
+Cobertura agregada:
+
+- persiste requests creadas desde oferta en `request_store`
+- lista desde store por controlador participante
+- incluye matches como `controlador_a`
+- incluye matches como `controlador_b`
+- excluye requests donde el controlador no participa
+- excluye requests que no fueron creadas desde oferta evaluada
+- devuelve lista vacia si no hay coincidencias
+
+---
+
+### Resultados observados
+
+Tests focalizados:
+
+    tests/test_offer_workflow_controller_listing.py tests/test_offer_workflow_controller_listing_integration.py passed
+
+Suite completa:
+
+    327 passed
+
+---
+
+### Decisiones de diseno reforzadas
+
+- La consulta por controlador es lectura pura.
+- La consulta por controlador no modifica requests.
+- La consulta por controlador no modifica persistencia.
+- La consulta por controlador no evalua.
+- La consulta por controlador no decide.
+- La consulta por controlador no aplica.
+- `controlador_a` y `controlador_b` son la fuente formal para participacion.
+- `offer_origin` sigue siendo origen/evidencia, no fuente principal de participacion.
+- `swap_service` no se modifica.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- No hay busqueda parcial por controlador.
+- No hay normalizacion de mayusculas/minusculas.
+- No hay filtro combinado con estado o selected_by en esta funcion especifica.
+- No hay paginacion en esta consulta especifica.
+- No hay ordenamiento en esta consulta especifica.
+- No hay API.
+- No hay UI real.
+- No hay permisos.
+- No hay exportacion a archivo.
+
+---
+
+### Proximos pasos naturales
+
+- Integrar filtro por controlador en el reporte detallado, si se decide ampliar los filtros visibles.
+- Agregar reporte presentable de requests creadas desde oferta por controlador.
+- Evaluar normalizacion de nombres si aparece necesidad real.
+- Mantener reporting como lectura pura.
+- Volver a arquitectura antes de automatizar evaluacion formal posterior.
+
+---
+
+### Notas
+
+Este checkpoint agrega consulta por controlador para requests creadas desde oferta evaluada.
+
+No cambia el workflow formal de swaps.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
+
+---

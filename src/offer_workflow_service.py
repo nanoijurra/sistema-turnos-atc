@@ -609,3 +609,33 @@ def generar_reporte_detalle_requests_creados_desde_oferta(
         detalles=detalles,
         paginacion=paginacion,
     )
+
+def request_creado_desde_oferta_involucra_controlador(
+    *,
+    request: SwapRequest,
+    controlador: str,
+) -> bool:
+    if not controlador:
+        raise ValueError("El controlador no puede estar vacio.")
+
+    return (
+        request.controlador_a == controlador
+        or request.controlador_b == controlador
+    )
+
+
+def listar_requests_creados_desde_oferta_por_controlador(
+    *,
+    controlador: str,
+) -> list[SwapRequest]:
+    if not controlador:
+        raise ValueError("El controlador no puede estar vacio.")
+
+    return [
+        request
+        for request in listar_requests_creados_desde_oferta()
+        if request_creado_desde_oferta_involucra_controlador(
+            request=request,
+            controlador=controlador,
+        )
+    ]
