@@ -24,6 +24,32 @@ class OfferSelectionResult:
         return self.reporte.cantidad_ofertas
 
 
+@dataclass(frozen=True)
+class OfferRequestSummary:
+    total: int
+    por_estado: dict[str, int]
+    por_clasificacion_observada: dict[str, int]
+    por_selected_by: dict[str, int]
+    por_modo_exploracion: dict[str, int]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "total": self.total,
+            "por_estado": dict(self.por_estado),
+            "por_clasificacion_observada": dict(self.por_clasificacion_observada),
+            "por_selected_by": dict(self.por_selected_by),
+            "por_modo_exploracion": dict(self.por_modo_exploracion),
+        }
+
+    @property
+    def request_id(self) -> str:
+        return self.request.id
+
+    @property
+    def cantidad_ofertas(self) -> int:
+        return self.reporte.cantidad_ofertas
+
+
 def generar_oferta_y_crear_request(
     *,
     asignacion_origen: Any,
@@ -193,3 +219,55 @@ def listar_requests_creados_desde_oferta_filtrados(
         ]
 
     return requests
+
+def _incrementar_conteo(
+    conteos: dict[str, int],
+    clave: str | None,
+) -> None:
+    clave_normalizada = clave if clave else "SIN_DATO"
+    conteos[clave_normalizada] = conteos.get(clave_normalizada, 0) + 1
+
+
+def resumir_requests_creados_desde_oferta(
+    *,
+    estado: str | None = None,
+    selected_by: str | None = None,
+    modo_exploracion: str | None = None,
+    clasificacion_observada: str | None = None,
+) -> OfferRequestSummary:
+    requests = listar_requests_creados_desde_oferta_filtrados(
+        estado=estado,
+        selected_by=selected_by,
+        modo_exploracion=modo_exploracion,
+        clasificacion_observada=clasificacion_observada,
+    )
+
+    por_estado: dict[str, int] = {}
+    por_clasificacion_observada: dict[str, int] = {}
+    por_selected_by: dict[str, int] = {}
+    por_modo_exploracion: dict[str, int] = {}
+
+    for request in requests:
+        offer_origin = request.offer_origin if isinstance(request.offer_origin, dict) else {}
+
+        _incrementar_conteo(por_estado, request.estado)
+        _incrementar_conteo(
+            por_clasificacion_observada,
+            offer_origin.get("clasificacion_observada"),
+        )
+        _incrementar_conteo(
+            por_selected_by,
+            offer_origin.get("selected_by"),
+        )
+        _incrementar_conteo(
+            por_modo_exploracion,
+            offer_origin.get("modo_exploracion"),
+        )
+
+    return OfferRequestSummary(
+        total=len(requests),
+        por_estado=por_estado,
+        por_clasificacion_observada=por_clasificacion_observada,
+        por_selected_by=por_selected_by,
+        por_modo_exploracion=por_modo_exploracion,
+    )
