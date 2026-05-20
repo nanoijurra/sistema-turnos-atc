@@ -72,6 +72,8 @@ def test_reporte_detalle_ordena_por_fecha_creacion_desc_desde_store() -> None:
     ]
     assert reporte.filtros["ordenar_por"] == "fecha_creacion"
     assert reporte.filtros["direccion"] == "desc"
+    assert reporte.filtros["limit"] is None
+    assert reporte.filtros["offset"] == 0
 
 
 def test_reporte_detalle_ordena_por_clasificacion_observada_asc_desde_store() -> None:
@@ -105,6 +107,8 @@ def test_reporte_detalle_ordena_por_clasificacion_observada_asc_desde_store() ->
     ]
     assert reporte.filtros["ordenar_por"] == "clasificacion_observada"
     assert reporte.filtros["direccion"] == "asc"
+    assert reporte.filtros["limit"] is None
+    assert reporte.filtros["offset"] == 0
 
 
 def test_reporte_detalle_filtra_y_ordena_desde_store() -> None:
@@ -149,3 +153,5 @@ def test_reporte_detalle_filtra_y_ordena_desde_store() -> None:
     assert reporte.filtros["selected_by"] == "SUP_ACC_CBA"
     assert reporte.filtros["ordenar_por"] == "request_id"
     assert reporte.filtros["direccion"] == "asc"
+    assert reporte.filtros["limit"] is None
+    assert reporte.filtros["offset"] == 0

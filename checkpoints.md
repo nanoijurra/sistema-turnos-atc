@@ -9399,3 +9399,268 @@ No cambia el workflow formal de swaps.
 No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
 
 ---
+
+## checkpoint-v67-offer-request-detail-report-pagination
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se agrego paginacion opcional al reporte detallado de requests creadas desde ofertas evaluadas.
+
+El bloque permite paginar solamente la salida presentable del listado detallado, aplicando la paginacion despues de filtrar y ordenar, sin modificar requests, sin modificar persistencia y sin alterar el workflow formal de swaps.
+
+No evalua, no decide, no aprueba, no rechaza y no aplica swaps.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Dataclass OfferRequestPagination
+
+Se modifico el archivo:
+
+- `src/offer_workflow_service.py`
+
+Se agrego la dataclass:
+
+- `OfferRequestPagination`
+
+Campos incluidos:
+
+- `limit`
+- `offset`
+- `total`
+- `returned`
+- `has_more`
+
+---
+
+#### 2. Serializacion de paginacion
+
+Se agrego el metodo:
+
+- `to_dict`
+
+Responsabilidad:
+
+- devolver metadata de paginacion serializable
+- facilitar salida futura para UI/API/reporting
+
+---
+
+#### 3. OfferRequestDetailReport enriquecido
+
+Se actualizo la dataclass:
+
+- `OfferRequestDetailReport`
+
+Ahora incluye:
+
+- `paginacion`
+
+Y su metodo `to_dict()` ahora serializa:
+
+- `mensaje`
+- `filtros`
+- `total`
+- `paginacion`
+- `detalles`
+
+---
+
+#### 4. Validacion de paginacion
+
+Se agrego el helper:
+
+- `_validar_paginacion_detalle_requests_desde_oferta`
+
+Responsabilidad:
+
+- rechazar `limit <= 0`
+- rechazar `offset < 0`
+
+Esto evita paginacion silenciosamente invalida.
+
+---
+
+#### 5. Paginacion de detalles
+
+Se agrego la funcion:
+
+- `paginar_detalles_requests_desde_oferta`
+
+Responsabilidad:
+
+- recibir una lista de `OfferRequestDetail`
+- aplicar `limit` y `offset`
+- devolver detalles paginados
+- devolver metadata `OfferRequestPagination`
+
+---
+
+#### 6. Integracion con reporte detallado
+
+Se actualizo la funcion:
+
+- `generar_reporte_detalle_requests_creados_desde_oferta`
+
+Ahora acepta:
+
+- `limit`
+- `offset`
+
+La secuencia queda:
+
+```text
+listar requests filtradas
+-> construir detalles
+-> ordenar detalles
+-> paginar detalles
+-> construir reporte
+```
+
+La paginacion se aplica despues de filtrar y ordenar.
+
+---
+
+#### 7. Total del reporte
+
+El campo:
+
+- `total`
+
+del `OfferRequestDetailReport` mantiene el total de detalles antes de paginar.
+
+El total de registros devueltos en la pagina queda en:
+
+- `paginacion.returned`
+
+---
+
+#### 8. Filtros visibles enriquecidos
+
+El reporte detallado ahora incluye tambien en `filtros`:
+
+- `limit`
+- `offset`
+
+Defaults:
+
+- `limit = None`
+- `offset = 0`
+
+Esto deja explicita la paginacion aplicada o la ausencia de paginacion limitada.
+
+---
+
+#### 9. Actualizacion de tests previos
+
+Se actualizaron tests de v65/v66 que verificaban `reporte.filtros`, porque desde v67 los filtros visibles incluyen tambien:
+
+- `limit`
+- `offset`
+
+Tambien se actualizaron instancias manuales de `OfferRequestDetailReport` para incluir `OfferRequestPagination`.
+
+---
+
+#### 10. Tests unitarios
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_detail_report_pagination.py`
+
+Cobertura agregada:
+
+- `OfferRequestPagination.to_dict()`
+- pagina con `limit` y `offset`
+- pagina sin `limit` desde `offset`
+- offset fuera de rango devuelve lista vacia
+- rechaza `limit` invalido
+- rechaza `offset` negativo
+- el reporte aplica paginacion
+- la paginacion ocurre despues del ordenamiento
+- el reporte no evalua
+- el reporte no resuelve
+- el reporte no aplica
+
+---
+
+#### 11. Tests de integracion con SQLite
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_detail_report_pagination_integration.py`
+
+Cobertura agregada:
+
+- pagina desde store
+- detecta pagina final sin `has_more`
+- `to_dict()` incluye metadata de paginacion con datos reales recuperados desde SQLite
+
+---
+
+### Resultados observados
+
+Tests focalizados:
+
+    tests/test_offer_workflow_detail_report.py tests/test_offer_workflow_detail_report_integration.py tests/test_offer_workflow_detail_report_ordering.py tests/test_offer_workflow_detail_report_ordering_integration.py tests/test_offer_workflow_detail_report_pagination.py tests/test_offer_workflow_detail_report_pagination_integration.py passed
+
+Suite completa:
+
+    passed
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Paginar es una operacion de presentacion.
+- Paginar no modifica requests.
+- Paginar no modifica persistencia.
+- Paginar no evalua.
+- Paginar no decide.
+- Paginar no aplica.
+- La paginacion se aplica despues de filtrar y ordenar.
+- El total conserva el total previo a paginacion.
+- La metadata de paginacion queda visible en el reporte.
+- `swap_service` no se modifica.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- No hay paginacion por cursor.
+- No hay ordenamiento compuesto.
+- No hay filtros por fecha.
+- No hay filtros por controlador.
+- No hay API.
+- No hay UI real.
+- No hay permisos.
+- No hay exportacion a archivo.
+- No hay conteo optimizado desde SQL; el conteo ocurre en memoria.
+
+---
+
+### Proximos pasos naturales
+
+- Agregar filtros por fecha/controlador si aparece necesidad real.
+- Evaluar salida API futura separada del workflow formal.
+- Evaluar exportacion del reporte detallado si aparece necesidad real.
+- Mantener reporting como lectura pura.
+- Volver a arquitectura antes de automatizar evaluacion formal posterior.
+
+---
+
+### Notas
+
+Este checkpoint agrega paginacion opcional al reporte detallado de requests creadas desde oferta evaluada.
+
+No cambia el workflow formal de swaps.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
+
+---

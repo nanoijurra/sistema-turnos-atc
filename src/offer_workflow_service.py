@@ -91,6 +91,22 @@ class OfferRequestDetail:
             "offer_rank_observado": self.offer_rank_observado,
         }
 
+@dataclass(frozen=True)
+class OfferRequestPagination:
+    limit: int | None
+    offset: int
+    total: int
+    returned: int
+    has_more: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "limit": self.limit,
+            "offset": self.offset,
+            "total": self.total,
+            "returned": self.returned,
+            "has_more": self.has_more,
+        }
 
 @dataclass(frozen=True)
 class OfferRequestDetailReport:
@@ -98,12 +114,14 @@ class OfferRequestDetailReport:
     filtros: dict[str, Any]
     total: int
     detalles: list[OfferRequestDetail]
+    paginacion: OfferRequestPagination
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "mensaje": self.mensaje,
             "filtros": dict(self.filtros),
             "total": self.total,
+            "paginacion": self.paginacion.to_dict(),
             "detalles": [
                 detalle.to_dict()
                 for detalle in self.detalles
@@ -493,6 +511,49 @@ def ordenar_detalles_requests_desde_oferta(
         reverse=direccion == "desc",
     )
 
+def _validar_paginacion_detalle_requests_desde_oferta(
+    *,
+    limit: int | None,
+    offset: int,
+) -> None:
+    if limit is not None and limit <= 0:
+        raise ValueError("El limite de paginacion debe ser mayor que cero.")
+
+    if offset < 0:
+        raise ValueError("El offset de paginacion no puede ser negativo.")
+
+
+def paginar_detalles_requests_desde_oferta(
+    *,
+    detalles: list[OfferRequestDetail],
+    limit: int | None = None,
+    offset: int = 0,
+) -> tuple[list[OfferRequestDetail], OfferRequestPagination]:
+    _validar_paginacion_detalle_requests_desde_oferta(
+        limit=limit,
+        offset=offset,
+    )
+
+    total = len(detalles)
+
+    if limit is None:
+        detalles_paginados = list(detalles[offset:])
+    else:
+        detalles_paginados = list(detalles[offset:offset + limit])
+
+    has_more = offset + len(detalles_paginados) < total
+
+    return (
+        detalles_paginados,
+        OfferRequestPagination(
+            limit=limit,
+            offset=offset,
+            total=total,
+            returned=len(detalles_paginados),
+            has_more=has_more,
+        ),
+    )
+
 def generar_reporte_detalle_requests_creados_desde_oferta(
     *,
     estado: str | None = None,
@@ -501,6 +562,8 @@ def generar_reporte_detalle_requests_creados_desde_oferta(
     clasificacion_observada: str | None = None,
     ordenar_por: str | None = None,
     direccion: str = "asc",
+    limit: int | None = None,
+    offset: int = 0,
 ) -> OfferRequestDetailReport:
     requests = listar_requests_creados_desde_oferta_filtrados(
         estado=estado,
@@ -520,6 +583,14 @@ def generar_reporte_detalle_requests_creados_desde_oferta(
         direccion=direccion,
     )
 
+    total_detalles = len(detalles)
+
+    detalles, paginacion = paginar_detalles_requests_desde_oferta(
+        detalles=detalles,
+        limit=limit,
+        offset=offset,
+    )
+
     filtros = _construir_filtros_resumen_requests_desde_oferta(
         estado=estado,
         selected_by=selected_by,
@@ -528,10 +599,13 @@ def generar_reporte_detalle_requests_creados_desde_oferta(
     )
     filtros["ordenar_por"] = ordenar_por
     filtros["direccion"] = direccion
+    filtros["limit"] = limit
+    filtros["offset"] = offset
 
     return OfferRequestDetailReport(
         mensaje=MENSAJE_DETALLE_REQUESTS_DESDE_OFERTA,
         filtros=filtros,
-        total=len(detalles),
+        total=total_detalles,
         detalles=detalles,
+        paginacion=paginacion,
     )

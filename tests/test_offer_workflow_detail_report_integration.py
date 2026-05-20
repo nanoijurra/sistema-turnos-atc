@@ -129,6 +129,8 @@ def test_generar_reporte_detalle_requests_creados_desde_oferta_desde_store_con_f
         "clasificacion_observada": "ACEPTABLE",
         "ordenar_por": None,
         "direccion": "asc",
+        "limit": None,
+        "offset": 0,
     }
     assert reporte.total == 1
     assert len(reporte.detalles) == 1

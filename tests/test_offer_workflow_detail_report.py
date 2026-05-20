@@ -8,6 +8,7 @@ from src.offer_workflow_service import (
     MENSAJE_DETALLE_REQUESTS_DESDE_OFERTA,
     OfferRequestDetail,
     OfferRequestDetailReport,
+    OfferRequestPagination,
     construir_detalle_request_creado_desde_oferta,
     generar_reporte_detalle_requests_creados_desde_oferta,
 )
@@ -133,6 +134,13 @@ def test_offer_request_detail_report_to_dict_devuelve_estructura_presentable() -
         },
         total=1,
         detalles=[detalle],
+        paginacion=OfferRequestPagination(
+            limit=None,
+            offset=0,
+            total=1,
+            returned=1,
+            has_more=False,
+        ),
     )
 
     datos = reporte.to_dict()
@@ -144,6 +152,13 @@ def test_offer_request_detail_report_to_dict_devuelve_estructura_presentable() -
     }
     assert datos["total"] == 1
     assert datos["detalles"] == [detalle.to_dict()]
+    assert datos["paginacion"] == {
+        "limit": None,
+        "offset": 0,
+        "total": 1,
+        "returned": 1,
+        "has_more": False,
+    }
 
 
 def test_generar_reporte_detalle_requests_creados_desde_oferta_respeta_filtros(
@@ -188,6 +203,8 @@ def test_generar_reporte_detalle_requests_creados_desde_oferta_respeta_filtros(
         "clasificacion_observada": "ACEPTABLE",
         "ordenar_por": None,
         "direccion": "asc",
+        "limit": None,
+        "offset": 0,
     }
     assert reporte.total == 1
     assert len(reporte.detalles) == 1
