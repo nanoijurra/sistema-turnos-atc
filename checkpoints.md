@@ -8211,3 +8211,496 @@ No cambia el workflow formal de swaps.
 No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
 
 ---
+
+## checkpoint-v62-offer-request-listing-filters
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se agregaron filtros opcionales para consultar `SwapRequest` creadas desde ofertas evaluadas.
+
+El bloque extiende la capacidad de consulta sobre requests cuyo origen esta marcado en `offer_origin` como `OFERTA_EVALUADA`, sin modificar el workflow formal de swaps.
+
+No evalua, no decide, no aprueba, no rechaza y no aplica swaps.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Funcion listar_requests_creados_desde_oferta_filtrados
+
+Se modifico el archivo:
+
+- `src/offer_workflow_service.py`
+
+Se agrego la funcion:
+
+- `listar_requests_creados_desde_oferta_filtrados`
+
+Responsabilidad:
+
+- partir de `listar_requests_creados_desde_oferta`
+- aplicar filtros opcionales
+- devolver solo requests que coincidan con los criterios indicados
+
+---
+
+#### 2. Filtro por estado
+
+Se agrego filtro opcional:
+
+- `estado`
+
+Ejemplos:
+
+- `PENDIENTE`
+- `EVALUADO`
+- `APROBADO`
+- `RECHAZADO`
+- `CANCELADO`
+- `APLICADO`
+
+Este filtro consulta el estado formal de la request, pero no lo modifica.
+
+---
+
+#### 3. Filtro por selected_by
+
+Se agrego filtro opcional:
+
+- `selected_by`
+
+Este campo se lee desde:
+
+- `request.offer_origin["selected_by"]`
+
+Permite consultar requests creadas desde oferta segun quien selecciono la oferta.
+
+---
+
+#### 4. Filtro por modo_exploracion
+
+Se agrego filtro opcional:
+
+- `modo_exploracion`
+
+Este campo se lee desde:
+
+- `request.offer_origin["modo_exploracion"]`
+
+Permite diferenciar requests originadas desde:
+
+- `OFERTA_RAPIDA`
+- `DIAGNOSTICO_COMPLETO`
+
+---
+
+#### 5. Filtro por clasificacion_observada
+
+Se agrego filtro opcional:
+
+- `clasificacion_observada`
+
+Este campo se lee desde:
+
+- `request.offer_origin["clasificacion_observada"]`
+
+Permite consultar requests segun la clasificacion tecnica observada al momento de generar la oferta:
+
+- `BENEFICIOSO`
+- `ACEPTABLE`
+- `RECHAZABLE`
+
+Importante:
+
+- `clasificacion_observada` no es decision operativa.
+- `clasificacion_observada` no reemplaza la evaluacion formal posterior.
+
+---
+
+#### 6. Combinacion de filtros
+
+Los filtros pueden combinarse.
+
+Ejemplo conceptual:
+
+```text
+estado=PENDIENTE
+selected_by=SUP_ACC_CBA
+modo_exploracion=OFERTA_RAPIDA
+clasificacion_observada=ACEPTABLE
+```
+
+La funcion devuelve solo requests que cumplen todos los criterios informados.
+
+---
+
+#### 7. Tests unitarios
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_listing_filters.py`
+
+Cobertura agregada:
+
+- filtra por `estado`
+- filtra por `selected_by`
+- filtra por `modo_exploracion`
+- filtra por `clasificacion_observada`
+- filtra por multiples criterios combinados
+- sin filtros devuelve todas las requests creadas desde oferta
+- no evalua
+- no resuelve
+- no aplica
+
+---
+
+#### 8. Tests de integracion con SQLite
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_listing_filters_integration.py`
+
+Cobertura agregada:
+
+- persiste requests creadas desde oferta en `request_store`
+- filtra desde store por `estado`
+- filtra desde store por `selected_by`
+- filtra desde store por multiples criterios combinados
+
+---
+
+### Resultados observados
+
+Tests focalizados:
+
+    tests/test_offer_workflow_listing_filters.py tests/test_offer_workflow_listing_filters_integration.py passed
+
+Suite completa:
+
+    passed
+
+---
+
+### Decisiones de diseno reforzadas
+
+- Los filtros son consulta, no workflow.
+- Filtrar por estado no modifica estado.
+- Filtrar por `selected_by` no implica autorizacion ni decision.
+- Filtrar por `clasificacion_observada` no reemplaza clasificacion formal.
+- Filtrar por `modo_exploracion` no modifica estrategia del sistema.
+- La consulta no evalua.
+- La consulta no decide.
+- La consulta no aplica.
+- `swap_service` no se modifica.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- No hay paginacion.
+- No hay ordenamiento explicito.
+- No hay filtros por fecha.
+- No hay filtros por controlador.
+- No hay filtros por `roster_version_id_origen`.
+- No hay filtros por `roster_hash_origen`.
+- No hay filtros por `top_n`.
+- No hay filtros por `selection_reason`.
+- No hay API.
+- No hay UI real.
+- No hay permisos.
+- No hay auditoria avanzada.
+
+---
+
+### Proximos pasos naturales
+
+- Agregar resumen/reporting de requests creadas desde oferta.
+- Agregar conteos por estado.
+- Agregar conteos por clasificacion observada.
+- Agregar conteos por usuario seleccionante.
+- Mantener reporting como lectura, sin workflow.
+- Volver a arquitectura antes de automatizar evaluacion formal posterior.
+
+---
+
+### Notas
+
+Este checkpoint agrega filtros de consulta sobre requests creadas desde oferta evaluada.
+
+No cambia el workflow formal de swaps.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
+
+---
+
+## checkpoint-v63-offer-request-summary
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se agrego un resumen/reporting de requests creadas desde ofertas evaluadas.
+
+El bloque permite obtener conteos operativos sobre requests cuyo origen esta marcado en `offer_origin` como `OFERTA_EVALUADA`, usando como base la consulta filtrada de v62.
+
+No evalua, no decide, no aprueba, no rechaza y no aplica swaps.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Dataclass OfferRequestSummary
+
+Se modifico el archivo:
+
+- `src/offer_workflow_service.py`
+
+Se agrego la dataclass:
+
+- `OfferRequestSummary`
+
+Campos incluidos:
+
+- `total`
+- `por_estado`
+- `por_clasificacion_observada`
+- `por_selected_by`
+- `por_modo_exploracion`
+
+---
+
+#### 2. Serializacion del resumen
+
+Se agrego el metodo:
+
+- `to_dict`
+
+Responsabilidad:
+
+- devolver una estructura serializable
+- preservar los conteos del resumen
+- facilitar uso futuro en UI/API/reporting
+
+---
+
+#### 3. Funcion resumir_requests_creados_desde_oferta
+
+Se agrego la funcion:
+
+- `resumir_requests_creados_desde_oferta`
+
+Responsabilidad:
+
+- partir de `listar_requests_creados_desde_oferta_filtrados`
+- aplicar filtros opcionales
+- calcular conteos por estado
+- calcular conteos por clasificacion observada
+- calcular conteos por usuario seleccionante
+- calcular conteos por modo de exploracion
+- devolver `OfferRequestSummary`
+
+---
+
+#### 4. Filtros heredados de v62
+
+La funcion acepta los mismos filtros opcionales de consulta:
+
+- `estado`
+- `selected_by`
+- `modo_exploracion`
+- `clasificacion_observada`
+
+Estos filtros solo restringen la consulta previa al resumen.
+
+No modifican workflow ni estado.
+
+---
+
+#### 5. Conteo por estado
+
+Se calcula:
+
+- `por_estado`
+
+Ejemplos:
+
+- `PENDIENTE`
+- `EVALUADO`
+- `APROBADO`
+- `RECHAZADO`
+- `CANCELADO`
+- `APLICADO`
+
+---
+
+#### 6. Conteo por clasificacion observada
+
+Se calcula:
+
+- `por_clasificacion_observada`
+
+Este campo se lee desde:
+
+- `request.offer_origin["clasificacion_observada"]`
+
+Importante:
+
+- es clasificacion observada al momento de generar la oferta
+- no reemplaza la evaluacion formal
+- no es decision operativa
+
+---
+
+#### 7. Conteo por usuario seleccionante
+
+Se calcula:
+
+- `por_selected_by`
+
+Este campo se lee desde:
+
+- `request.offer_origin["selected_by"]`
+
+Importante:
+
+- identifica quien selecciono la oferta
+- no identifica quien aprobo o rechazo el swap
+
+---
+
+#### 8. Conteo por modo de exploracion
+
+Se calcula:
+
+- `por_modo_exploracion`
+
+Este campo se lee desde:
+
+- `request.offer_origin["modo_exploracion"]`
+
+Permite distinguir, por ejemplo:
+
+- `OFERTA_RAPIDA`
+- `DIAGNOSTICO_COMPLETO`
+
+---
+
+#### 9. Manejo de datos faltantes
+
+Cuando falta metadata en `offer_origin`, el resumen usa:
+
+- `SIN_DATO`
+
+Esto evita errores y permite reporting robusto ante registros incompletos.
+
+---
+
+#### 10. Tests unitarios
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_summary.py`
+
+Cobertura agregada:
+
+- calcula conteos correctamente
+- `to_dict` devuelve estructura serializable
+- respeta filtros recibidos
+- usa `SIN_DATO` si falta metadata
+- no evalua
+- no resuelve
+- no aplica
+
+---
+
+#### 11. Tests de integracion con SQLite
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_summary_integration.py`
+
+Cobertura agregada:
+
+- persiste requests creadas desde oferta en `request_store`
+- resume requests desde store
+- calcula conteos reales desde SQLite
+- aplica filtros antes de resumir
+- valida conteos por estado
+- valida conteos por clasificacion observada
+- valida conteos por selected_by
+- valida conteos por modo de exploracion
+
+---
+
+### Resultados observados
+
+Tests focalizados:
+
+    tests/test_offer_workflow_summary.py tests/test_offer_workflow_summary_integration.py passed
+
+Suite completa:
+
+    passed
+
+---
+
+### Decisiones de diseno reforzadas
+
+- El resumen es reporting, no workflow.
+- Contar por estado no modifica estado.
+- Contar por clasificacion observada no reemplaza evaluacion formal.
+- Contar por selected_by no implica aprobacion ni rechazo.
+- Contar por modo de exploracion no modifica estrategia del sistema.
+- `SIN_DATO` permite tolerar metadata incompleta.
+- El resumen no evalua.
+- El resumen no decide.
+- El resumen no aplica.
+- `swap_service` no se modifica.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- No hay paginacion.
+- No hay ordenamiento.
+- No hay filtros por fecha.
+- No hay filtros por controlador.
+- No hay filtros por `roster_version_id_origen`.
+- No hay filtros por `roster_hash_origen`.
+- No hay filtros por `top_n`.
+- No hay filtros por `selection_reason`.
+- No hay agrupacion por fecha.
+- No hay API.
+- No hay UI real.
+- No hay permisos.
+- No hay auditoria avanzada.
+
+---
+
+### Proximos pasos naturales
+
+- Agregar formato de reporte presentable para resumen de requests creadas desde oferta.
+- Separar salida presentable de datos crudos si se avanza hacia UI/API.
+- Evaluar filtros por fecha/controlador si aparecen necesidades reales.
+- Volver a arquitectura antes de automatizar evaluacion formal posterior.
+- Mantener reporting como lectura pura.
+
+---
+
+### Notas
+
+Este checkpoint agrega resumen/reporting de requests creadas desde oferta evaluada.
+
+No cambia el workflow formal de swaps.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
+
+---
