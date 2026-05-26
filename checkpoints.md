@@ -10032,3 +10032,284 @@ No cambia el workflow formal de swaps.
 No toca `engine`, `scoring`, `simulator`, `swap_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store` ni `aplicar_swap_request`.
 
 ---
+
+## checkpoint-v70-offer-to-request-scope-audit
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se realizo un control de scope de la linea de trabajo `oferta -> request`.
+
+La revision confirma que la integracion principal quedo funcionalmente cerrada: una oferta evaluada puede seleccionarse, convertirse en una `SwapRequest` formal, persistirse explicitamente y conservar trazabilidad de origen mediante `offer_origin`.
+
+Tambien se detecto que desde v61 hasta v69 se avanzo en una rama auxiliar de consulta/reporting. Esa rama no rompe contratos, pero ya no conviene seguir expandiendola sin volver antes a arquitectura.
+
+No se implemento codigo productivo en este checkpoint.
+
+---
+
+### Linea principal cerrada
+
+La linea core implementada quedo:
+
+```text
+OfertaEvaluada
+-> seleccion de oferta
+-> SwapRequest formal PENDIENTE
+-> offer_origin como evidencia observada
+-> persistencia explicita
+-> posterior evaluacion formal por swap_service
+```
+
+---
+
+### Checkpoints core de la linea oferta -> request
+
+Se consideran parte del nucleo principal:
+
+- `v52 - offer_to_request_service`
+- `v53 - pruebas de conversion oferta -> request`
+- `v54 - validacion de version/hash/origen`
+- `v55 - seleccion desde OfferReport`
+- `v56 - fachada generar oferta y crear request`
+- `v57 - metadata de seleccion`
+- `v58 - persistencia de metadata de seleccion`
+- `v59 - persistencia explicita de request creada desde oferta`
+- `v60 - fachada generar -> seleccionar -> crear -> persistir`
+
+Conclusion:
+
+- hasta v60 se completo el puente operativo principal entre oferta evaluada y request formal persistida.
+
+---
+
+### Rama auxiliar de consulta/reporting
+
+Se consideran parte de una rama auxiliar util, pero no indispensable para cerrar el puente oferta -> request:
+
+- `v61 - listar requests creadas desde oferta`
+- `v62 - filtros`
+- `v63 - resumen`
+- `v64 - reporte presentable del resumen`
+- `v65 - detalle`
+- `v66 - ordenamiento`
+- `v67 - paginacion`
+- `v68 - consulta por controlador`
+- `v69 - reporte por controlador`
+
+Conclusion:
+
+- esta rama esta correctamente separada y testeada
+- no rompe contratos
+- prepara una futura UI/API
+- pero ya no conviene seguir expandiendola sin decision arquitectonica previa
+
+---
+
+### Contratos verificados
+
+#### 1. No se creo workflow paralelo
+
+La oferta evaluada sigue siendo:
+
+```text
+resultado tecnico presentable
+```
+
+No es:
+
+```text
+solicitud formal
+estado operativo
+decision
+aprobacion
+rechazo
+aplicacion
+```
+
+La solicitud operativa sigue naciendo como `SwapRequest`.
+
+---
+
+#### 2. La request creada desde oferta nace PENDIENTE
+
+La conversion mantiene el contrato:
+
+```text
+OfertaEvaluada seleccionada -> SwapRequest PENDIENTE
+```
+
+No nace:
+
+```text
+EVALUADO
+APROBADO
+RECHAZADO
+APLICADO
+```
+
+---
+
+#### 3. La evaluacion formal sigue en swap_service
+
+La evaluacion observada de la oferta no reemplaza la evaluacion formal.
+
+La evaluacion formal sigue perteneciendo a:
+
+```text
+swap_service.evaluar_swap_request(...)
+```
+
+---
+
+#### 4. offer_origin queda separado de campos formales
+
+`offer_origin` queda como bloque semantico de origen/evidencia observada.
+
+Puede incluir:
+
+- `created_from_offer`
+- `source_type`
+- `modo_exploracion`
+- `top_n`
+- `criterio_seleccion`
+- `clasificacion_observada`
+- `delta_score_observado`
+- `delta_hard_observado`
+- `delta_soft_observado`
+- `selected_by`
+- `selection_reason`
+- `selection_note`
+- `roster_version_id_origen`
+- `roster_hash_origen`
+
+No reemplaza:
+
+- `estado`
+- `decision_sugerida`
+- evaluacion formal
+- resolucion
+- aprobacion
+- aplicacion
+
+---
+
+#### 5. candidate_selection mantiene su contrato
+
+La linea respeta la separacion:
+
+```text
+candidate_selection reduce universo
+simulator evalua tecnicamente
+swap_service decide workflow formal
+```
+
+`candidate_selection` no clasifica, no decide, no persiste y no reemplaza al simulator.
+
+---
+
+### Riesgo detectado
+
+El principal riesgo actual no es semantico ni de workflow.
+
+El riesgo es de acumulacion de responsabilidades en:
+
+- `src/offer_workflow_service.py`
+
+Este modulo contiene actualmente:
+
+- generacion de oferta
+- seleccion
+- creacion de request
+- persistencia explicita
+- listados
+- filtros
+- resumenes
+- reportes
+- ordenamiento
+- paginacion
+- consulta por controlador
+- reporte por controlador
+
+Todavia esta cubierto por tests, pero empieza a ser un modulo demasiado amplio.
+
+---
+
+### Decision de scope
+
+Se decide:
+
+```text
+Cerrar la linea oferta -> request como funcionalmente completa.
+Detener por ahora la expansion de consulta/reporting.
+Volver a arquitectura antes de seguir agregando funcionalidades.
+```
+
+No continuar por ahora con:
+
+- filtros por fecha
+- filtros por controlador dentro del reporte general
+- normalizacion de nombres
+- exportacion
+- API
+- UI
+- evaluacion automatica
+- aprobacion automatica
+- mas variantes de reporting
+
+---
+
+### Proximos pasos recomendados
+
+Volver a arquitectura para decidir:
+
+1. Si `offer_workflow_service.py` debe dividirse luego en:
+   - `offer_workflow_service`
+   - `offer_request_query_service`
+   - `offer_request_report_service`
+
+2. Si corresponde mantener la rama reporting como parte del mismo modulo hasta que exista UI/API.
+
+3. Si el siguiente avance debe ser:
+   - cierre documental
+   - refactor controlado
+   - evaluacion formal explicita posterior
+   - integracion futura con UI/API
+
+4. Si corresponde congelar esta linea y volver a prioridades operativas del sistema.
+
+---
+
+### Recomendacion tecnica
+
+La recomendacion actual es:
+
+```text
+Cerrar esta rama de implementacion.
+Volver a arquitectura.
+No agregar mas reporting por ahora.
+No automatizar evaluacion formal sin decision arquitectonica.
+No refactorizar aun sin contrato cerrado.
+```
+
+---
+
+### Estado final
+
+La linea `oferta -> request` queda funcionalmente cerrada.
+
+El sistema permite:
+
+- generar ofertas
+- seleccionar una oferta
+- crear una request formal desde oferta
+- conservar evidencia observada en `offer_origin`
+- persistir explicitamente la request
+- consultar y reportar requests creadas desde oferta
+
+La request creada desde oferta sigue entrando al workflow formal como `PENDIENTE`.
+
+---
+
