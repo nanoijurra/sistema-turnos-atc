@@ -271,3 +271,189 @@ Estos invariantes permiten:
 - mantener separación de responsabilidades
 - asegurar trazabilidad
 - soportar evolución del sistema sin degradar diseño
+
+---
+
+# Invariante 10 - Fachada de creacion y evaluacion formal desde oferta
+
+## TOC
+
+- [10.1 Regla principal](#101-regla-principal)
+- [10.2 La request nace PENDIENTE](#102-la-request-nace-pendiente)
+- [10.3 La evaluacion formal pertenece a swap_service](#103-la-evaluacion-formal-pertenece-a-swap_service)
+- [10.4 offer_origin es evidencia observada](#104-offer_origin-es-evidencia-observada)
+- [10.5 La fachada no decide](#105-la-fachada-no-decide)
+- [10.6 La fachada no resuelve](#106-la-fachada-no-resuelve)
+- [10.7 La fachada no aplica](#107-la-fachada-no-aplica)
+- [10.8 La fachada no evalua por cuenta propia](#108-la-fachada-no-evalua-por-cuenta-propia)
+- [10.9 La divergencia no es error automatico](#109-la-divergencia-no-es-error-automatico)
+- [10.10 La mejora de performance no es objetivo de la fachada](#1010-la-mejora-de-performance-no-es-objetivo-de-la-fachada)
+- [10.11 Regla corta](#1011-regla-corta)
+
+---
+
+## 10.1 Regla principal
+
+La fachada `crear_request_desde_oferta_y_evaluar_formalmente` no crea un workflow paralelo de ofertas.
+
+La unica entidad con workflow operativo formal sigue siendo:
+
+```text
+SwapRequest
+```
+
+La oferta evaluada sigue siendo solamente:
+
+```text
+resultado tecnico presentable y seleccionable
+```
+
+---
+
+## 10.2 La request nace PENDIENTE
+
+Toda `SwapRequest` creada desde una oferta debe nacer primero en estado:
+
+```text
+PENDIENTE
+```
+
+Aunque la fachada ejecute inmediatamente la evaluacion formal, la request no puede nacer directamente como `EVALUADO`.
+
+La transicion valida es:
+
+```text
+PENDIENTE -> EVALUADO
+```
+
+---
+
+## 10.3 La evaluacion formal pertenece a swap_service
+
+La evaluacion formal de una request creada desde oferta debe realizarse mediante:
+
+```text
+swap_service.evaluar_swap_request
+```
+
+Ninguna fachada puede reemplazar esa evaluacion usando directamente informacion de `offer_origin`.
+
+---
+
+## 10.4 offer_origin es evidencia observada
+
+`offer_origin` conserva informacion observada durante la generacion de la oferta.
+
+Esa informacion no reemplaza:
+
+- clasificacion formal;
+- decision operativa;
+- estado del workflow;
+- motivo de resolucion;
+- resultado formal de evaluacion;
+- aprobacion;
+- aplicacion.
+
+---
+
+## 10.5 La fachada no decide
+
+La fachada no puede decidir por cuenta propia:
+
+```text
+VIABLE
+OBSERVAR
+RECHAZAR
+```
+
+Si existe `decision_sugerida`, debe provenir del flujo formal de `swap_service`.
+
+---
+
+## 10.6 La fachada no resuelve
+
+La fachada no puede llevar una request a:
+
+```text
+APROBADO
+RECHAZADO
+CANCELADO
+APLICADO
+```
+
+Para este contrato, la fachada solo puede llegar hasta:
+
+```text
+EVALUADO
+```
+
+---
+
+## 10.7 La fachada no aplica
+
+La fachada no puede invocar ni reemplazar:
+
+```text
+swap_service.aplicar_swap_request
+```
+
+La aplicacion sigue siendo una operacion formal posterior y separada.
+
+---
+
+## 10.8 La fachada no evalua por cuenta propia
+
+La fachada no puede llamar directamente a:
+
+```text
+engine
+scoring
+simulator
+```
+
+Tampoco puede reconstruir clasificacion tecnica por fuera de `swap_service.evaluar_swap_request`.
+
+---
+
+## 10.9 La divergencia no es error automatico
+
+Una diferencia entre la clasificacion observada de la oferta y la clasificacion formal posterior no constituye automaticamente un error.
+
+Debe tratarse como:
+
+```text
+trazabilidad
+advertencia operativa
+evidencia de cambio de contexto
+```
+
+No debe tratarse automaticamente como violacion de contrato.
+
+---
+
+## 10.10 La mejora de performance no es objetivo de la fachada
+
+La fachada no existe para mejorar benchmarks de exploracion.
+
+La optimizacion de exploracion pertenece a:
+
+```text
+candidate_generation
+technical_prefilter
+candidate_selection
+exploration_flow
+```
+
+La fachada existe para mejorar:
+
+- consistencia operativa;
+- trazabilidad;
+- facilidad de integracion futura;
+- reduccion de requests creadas desde oferta que queden sin evaluacion formal.
+
+---
+
+## 10.11 Regla corta
+
+La fachada puede encadenar creacion y evaluacion formal, pero no puede convertir evidencia observada en decision operativa ni en aprobacion.
+

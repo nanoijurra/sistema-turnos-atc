@@ -10313,3 +10313,193 @@ La request creada desde oferta sigue entrando al workflow formal como `PENDIENTE
 
 ---
 
+---
+
+# Checkpoint v71 - Contrato documental para fachada crear request desde oferta y evaluar formalmente
+
+## Estado
+
+Documental / arquitectonico.
+
+## Objetivo
+
+Cerrar el contrato arquitectonico previo a la implementacion de la fachada:
+
+```text
+crear_request_desde_oferta_y_evaluar_formalmente
+```
+
+La fachada permitira coordinar en una sola operacion de alto nivel:
+
+```text
+OfertaEvaluada seleccionada
+-> SwapRequest formal PENDIENTE
+-> evaluacion formal mediante swap_service.evaluar_swap_request
+-> SwapRequest EVALUADO
+```
+
+## Documentos actualizados
+
+- `docs/contratos.md`
+- `docs/invariantes.md`
+- `docs/decisiones.md`
+- `docs/diccionario.md`
+
+## Cambios documentales realizados
+
+### contratos.md
+
+Se agrego:
+
+```text
+Contrato 18 - Fachada para crear request desde oferta y evaluar formalmente
+```
+
+Define:
+
+- proposito de la fachada;
+- flujo contractual;
+- responsabilidades permitidas;
+- responsabilidades prohibidas;
+- estado inicial obligatorio;
+- evaluacion formal;
+- separacion entre evidencia observada y evaluacion formal;
+- resultado esperado;
+- tratamiento de divergencias;
+- beneficio esperado;
+- relacion con otros contratos.
+
+### invariantes.md
+
+Se agrego:
+
+```text
+Invariante 10 - Fachada de creacion y evaluacion formal desde oferta
+```
+
+Define que:
+
+- la fachada no crea workflow paralelo;
+- la request creada desde oferta nace `PENDIENTE`;
+- la evaluacion formal pertenece a `swap_service`;
+- `offer_origin` es evidencia observada;
+- la fachada no decide;
+- la fachada no resuelve;
+- la fachada no aplica;
+- la fachada no evalua por cuenta propia;
+- la divergencia no es error automatico;
+- la mejora de performance no es objetivo de la fachada.
+
+### decisiones.md
+
+Se agrego:
+
+```text
+Decision 45 - Fachada para crear request desde oferta y evaluar formalmente
+```
+
+Define la decision arquitectonica aceptada:
+
+```text
+crear request desde oferta
+-> evaluar formalmente
+```
+
+sin aprobar, rechazar, cancelar ni aplicar.
+
+### diccionario.md
+
+Se amplio el diccionario semantico del sistema incorporando conceptos de:
+
+- capas;
+- entidades;
+- taxonomias;
+- estados;
+- evidencia observada;
+- evaluacion formal;
+- offer_origin;
+- selection_metadata;
+- divergencia;
+- verbos reservados;
+- reglas de no confusion;
+- frases canonicas.
+
+## Contrato consolidado
+
+La fachada puede:
+
+- crear una `SwapRequest` formal desde una oferta seleccionada;
+- garantizar que nace en estado `PENDIENTE`;
+- preservar `offer_origin`;
+- persistir la request creada desde oferta si el flujo lo requiere;
+- invocar `swap_service.evaluar_swap_request`;
+- persistir el resultado formal;
+- devolver la request en estado `EVALUADO` o resultado equivalente.
+
+La fachada no puede:
+
+- llamar directamente a `engine`;
+- llamar directamente a `scoring`;
+- llamar directamente a `simulator`;
+- clasificar tecnicamente por cuenta propia;
+- decidir `VIABLE`, `OBSERVAR` o `RECHAZAR` por fuera de `swap_service`;
+- aprobar;
+- rechazar;
+- cancelar;
+- aplicar;
+- modificar roster;
+- crear estados propios de oferta;
+- crear un workflow paralelo de ofertas;
+- reemplazar la evaluacion formal usando datos de `offer_origin`.
+
+## Regla semantica principal
+
+```text
+La fachada puede encadenar creacion y evaluacion formal,
+pero no puede convertir evidencia observada en decision operativa
+ni en aprobacion.
+```
+
+## Estado esperado antes de implementar
+
+El sistema queda preparado para implementar:
+
+```text
+v72 - Implementacion de crear_request_desde_oferta_y_evaluar_formalmente
+```
+
+o, si se prefiere mantener este numero como proximo codigo:
+
+```text
+v71 - Implementacion de crear_request_desde_oferta_y_evaluar_formalmente
+```
+
+## Alcance excluido
+
+No se implemento codigo.
+
+No se modificaron:
+
+- `engine`;
+- `scoring`;
+- `simulator`;
+- `candidate_selection`;
+- `swap_service.aplicar_swap_request`;
+- taxonomias;
+- estados formales;
+- flujo de aprobacion;
+- flujo de aplicacion;
+- UI;
+- API;
+- Excel;
+- contrapropuestas;
+- bloqueos multiusuario;
+- reporting adicional.
+
+## Resultado
+
+La documentacion queda alineada para avanzar a implementacion controlada de la fachada:
+
+```text
+crear_request_desde_oferta_y_evaluar_formalmente
+```

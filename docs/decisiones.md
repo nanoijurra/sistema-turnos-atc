@@ -1077,3 +1077,158 @@ La capa `candidate_generation` debe construir el universo elegible de swaps a pa
 #### Motivo
 
 Reducir drásticamente el espacio de búsqueda sin alterar la evaluación técnica ni introducir lógica de decisión en la generación de candidatos.
+
+---
+
+# Decision 45 - Fachada para crear request desde oferta y evaluar formalmente
+
+## TOC
+
+- [45.1 Estado](#451-estado)
+- [45.2 Contexto](#452-contexto)
+- [45.3 Decision](#453-decision)
+- [45.4 Alcance permitido](#454-alcance-permitido)
+- [45.5 Restricciones](#455-restricciones)
+- [45.6 Justificacion](#456-justificacion)
+- [45.7 Consecuencia](#457-consecuencia)
+- [45.8 Decision negativa explicita](#458-decision-negativa-explicita)
+- [45.9 Regla corta](#459-regla-corta)
+
+---
+
+## 45.1 Estado
+
+Aceptada.
+
+---
+
+## 45.2 Contexto
+
+El sistema ya permite generar ofertas evaluadas, presentarlas al usuario, seleccionar una oferta y convertirla en una `SwapRequest` formal en estado `PENDIENTE`.
+
+La oferta evaluada conserva informacion tecnica observada en `offer_origin`, pero esa informacion no constituye evaluacion formal del request.
+
+La evaluacion formal sigue siendo responsabilidad de:
+
+```text
+swap_service.evaluar_swap_request
+```
+
+La linea oferta -> request formal quedo consolidada con la siguiente separacion:
+
+```text
+OfertaEvaluada
+-> seleccion de oferta
+-> SwapRequest formal PENDIENTE
+-> offer_origin como evidencia observada
+-> persistencia explicita
+-> evaluacion formal posterior por swap_service
+```
+
+---
+
+## 45.3 Decision
+
+Se acepta incorporar una fachada de alto nivel denominada conceptualmente:
+
+```text
+crear_request_desde_oferta_y_evaluar_formalmente
+```
+
+Esta fachada coordina en una sola operacion de alto nivel el flujo:
+
+```text
+OfertaEvaluada seleccionada
+-> SwapRequest formal PENDIENTE
+-> evaluacion formal mediante swap_service.evaluar_swap_request
+-> SwapRequest EVALUADO
+```
+
+---
+
+## 45.4 Alcance permitido
+
+La fachada puede:
+
+- recibir una oferta seleccionada;
+- crear una `SwapRequest` formal en estado `PENDIENTE`;
+- adjuntar `offer_origin` como evidencia observada;
+- persistir explicitamente la request si corresponde al flujo;
+- invocar `swap_service.evaluar_swap_request`;
+- persistir el resultado formal evaluado;
+- devolver la request evaluada o un resultado estructurado equivalente;
+- registrar trazabilidad de la evaluacion formal posterior;
+- permitir comparar evidencia observada contra evaluacion formal.
+
+---
+
+## 45.5 Restricciones
+
+La fachada no puede:
+
+- aprobar requests;
+- rechazar requests por decision operativa humana;
+- cancelar requests;
+- aplicar swaps;
+- modificar roster;
+- llamar directamente a `engine`;
+- llamar directamente a `scoring`;
+- llamar directamente a `simulator`;
+- clasificar tecnicamente por cuenta propia;
+- decidir `VIABLE`, `OBSERVAR` o `RECHAZAR` por fuera de `swap_service`;
+- reutilizar `clasificacion_observada` como clasificacion formal;
+- crear un workflow paralelo de ofertas.
+
+---
+
+## 45.6 Justificacion
+
+La fachada no se incorpora como optimizacion de benchmark.
+
+La mejora esperada es operativa:
+
+- reduce friccion para una futura UI/API;
+- evita que queden requests creadas desde oferta sin evaluacion formal;
+- concentra la trazabilidad del paso oferta -> request -> evaluacion formal;
+- permite comparar la evidencia observada de `offer_origin` con la evaluacion formal posterior;
+- mantiene a `swap_service` como responsable de la evaluacion formal y la decision operativa.
+
+---
+
+## 45.7 Consecuencia
+
+La request creada desde oferta sigue naciendo primero en estado:
+
+```text
+PENDIENTE
+```
+
+Si la fachada evalua inmediatamente, la transicion correcta es:
+
+```text
+PENDIENTE -> EVALUADO
+```
+
+La evaluacion formal debe quedar registrada como evento propio del workflow formal.
+
+La informacion de `offer_origin` permanece como snapshot historico observado y no debe ser pisada por la evaluacion formal.
+
+---
+
+## 45.8 Decision negativa explicita
+
+No se acepta que una request creada desde oferta nazca directamente como:
+
+```text
+EVALUADO
+```
+
+No se acepta que una clasificacion observada en oferta reemplace la evaluacion formal.
+
+No se acepta que la fachada apruebe, rechace, cancele o aplique swaps.
+
+---
+
+## 45.9 Regla corta
+
+La fachada automatiza el encadenamiento operativo de crear y evaluar formalmente, pero no automatiza la decision ni la aplicacion.

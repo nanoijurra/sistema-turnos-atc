@@ -1484,4 +1484,244 @@ Esto permite reducir el universo a asignaciones futuras relevantes sin explorar 
 
 Estas funciones no deben mezclarse.
 
+---
+
+# Contrato 18 - Fachada para crear request desde oferta y evaluar formalmente
+
+## TOC
+
+- [18.1 Proposito](#181-proposito)
+- [18.2 Contexto](#182-contexto)
+- [18.3 Flujo contractual](#183-flujo-contractual)
+- [18.4 Responsabilidades permitidas](#184-responsabilidades-permitidas)
+- [18.5 Responsabilidades prohibidas](#185-responsabilidades-prohibidas)
+- [18.6 Estado inicial obligatorio](#186-estado-inicial-obligatorio)
+- [18.7 Evaluacion formal](#187-evaluacion-formal)
+- [18.8 Separacion entre evidencia observada y evaluacion formal](#188-separacion-entre-evidencia-observada-y-evaluacion-formal)
+- [18.9 Resultado esperado](#189-resultado-esperado)
+- [18.10 Divergencia entre oferta y evaluacion formal](#1810-divergencia-entre-oferta-y-evaluacion-formal)
+- [18.11 Beneficio esperado](#1811-beneficio-esperado)
+- [18.12 Relacion con otros contratos](#1812-relacion-con-otros-contratos)
+- [18.13 Regla corta](#1813-regla-corta)
+
+---
+
+## 18.1 Proposito
+
+Definir el contrato arquitectonico de la fachada de alto nivel encargada de crear una `SwapRequest` formal desde una oferta evaluada seleccionada y ejecutar inmediatamente su evaluacion formal mediante `swap_service`.
+
+La fachada propuesta se denomina conceptualmente:
+
+```text
+crear_request_desde_oferta_y_evaluar_formalmente
+```
+
+---
+
+## 18.2 Contexto
+
+El sistema ya permite:
+
+```text
+OfertaEvaluada
+-> seleccion de oferta
+-> SwapRequest formal PENDIENTE
+-> offer_origin como evidencia observada
+-> persistencia explicita
+```
+
+La evaluacion tecnica observada durante la generacion de la oferta queda preservada en `offer_origin`, pero no constituye evaluacion formal del request.
+
+La evaluacion formal sigue perteneciendo a:
+
+```text
+swap_service.evaluar_swap_request
+```
+
+---
+
+## 18.3 Flujo contractual
+
+La fachada debe coordinar el siguiente flujo:
+
+```text
+OfertaEvaluada seleccionada
+-> crear SwapRequest formal PENDIENTE
+-> preservar offer_origin
+-> persistir request creada desde oferta
+-> evaluar formalmente mediante swap_service.evaluar_swap_request
+-> persistir resultado formal evaluado
+-> devolver SwapRequest EVALUADO o resultado equivalente
+```
+
+---
+
+## 18.4 Responsabilidades permitidas
+
+La fachada puede:
+
+1. Recibir una oferta evaluada seleccionada.
+2. Delegar la creacion formal de la request desde oferta.
+3. Garantizar que la request nace en estado `PENDIENTE`.
+4. Preservar `offer_origin` como evidencia observada.
+5. Persistir explicitamente la request creada desde oferta, si el flujo actual lo requiere.
+6. Invocar `swap_service.evaluar_swap_request`.
+7. Persistir el resultado formal de la evaluacion.
+8. Devolver una `SwapRequest` en estado `EVALUADO` o un resultado estructurado equivalente.
+9. Registrar trazabilidad del paso oferta -> request -> evaluacion formal.
+10. Comparar, si corresponde, la evidencia observada de `offer_origin` contra la evaluacion formal posterior.
+
+---
+
+## 18.5 Responsabilidades prohibidas
+
+La fachada no puede:
+
+- llamar directamente a `engine`;
+- llamar directamente a `scoring`;
+- llamar directamente a `simulator`;
+- clasificar tecnicamente por cuenta propia;
+- decidir `VIABLE`, `OBSERVAR` o `RECHAZAR` por fuera de `swap_service`;
+- aprobar requests;
+- rechazar requests como resolucion operativa;
+- cancelar requests;
+- aplicar swaps;
+- modificar roster;
+- reemplazar la evaluacion formal usando datos de `offer_origin`;
+- crear estados propios de oferta;
+- crear un workflow paralelo de ofertas.
+
+---
+
+## 18.6 Estado inicial obligatorio
+
+Toda `SwapRequest` creada desde una oferta debe nacer primero en estado:
+
+```text
+PENDIENTE
+```
+
+Aunque la fachada evalue inmediatamente despues, la transicion valida es:
+
+```text
+PENDIENTE -> EVALUADO
+```
+
+No se permite que una request creada desde oferta nazca directamente como:
+
+```text
+EVALUADO
+```
+
+---
+
+## 18.7 Evaluacion formal
+
+La evaluacion formal debe realizarse exclusivamente mediante:
+
+```text
+swap_service.evaluar_swap_request
+```
+
+La fachada puede invocar esa funcion, pero no puede reemplazarla ni simular su resultado.
+
+---
+
+## 18.8 Separacion entre evidencia observada y evaluacion formal
+
+La informacion contenida en `offer_origin` representa evidencia tecnica observada durante la generacion de la oferta.
+
+Por lo tanto:
+
+```text
+clasificacion_observada != clasificacion_formal
+delta_score_observado != delta_score_formal
+delta_hard_observado != delta_hard_formal
+delta_soft_observado != delta_soft_formal
+```
+
+Estos valores pueden coincidir, pero no son semanticamente equivalentes.
+
+---
+
+## 18.9 Resultado esperado
+
+El resultado exitoso de la fachada es una request formal evaluada, pero no resuelta:
+
+```text
+estado = EVALUADO
+decision_sugerida = definida por swap_service
+```
+
+El resultado de esta fachada no debe ser:
+
+```text
+APROBADO
+RECHAZADO
+CANCELADO
+APLICADO
+```
+
+---
+
+## 18.10 Divergencia entre oferta y evaluacion formal
+
+Si la clasificacion formal difiere de la clasificacion observada en `offer_origin`, la divergencia debe conservarse como informacion de trazabilidad o advertencia operativa.
+
+Ejemplo:
+
+```text
+offer_origin.clasificacion_observada = BENEFICIOSO
+evaluacion_formal.clasificacion = ACEPTABLE
+```
+
+Esto no implica error automatico. Indica que la evaluacion formal vigente no coincide con la evidencia observada al momento de generar la oferta.
+
+---
+
+## 18.11 Beneficio esperado
+
+El beneficio principal de esta fachada es operativo, no de performance.
+
+La fachada mejora:
+
+- consistencia del flujo;
+- reduccion de friccion para futura UI/API;
+- menor riesgo de requests creadas desde oferta sin evaluacion formal;
+- trazabilidad uniforme;
+- comparacion clara entre evidencia observada y evaluacion formal.
+
+No se espera una mejora significativa en benchmarks de exploracion, porque la reduccion fuerte de costo ocurre previamente en:
+
+```text
+candidate_generation
+-> technical_prefilter
+-> candidate_selection
+-> exploration_flow
+-> simulator
+```
+
+---
+
+## 18.12 Relacion con otros contratos
+
+Este contrato no modifica:
+
+- responsabilidad de `engine`;
+- responsabilidad de `scoring`;
+- responsabilidad de `simulator`;
+- responsabilidad de `candidate_selection`;
+- responsabilidad de `swap_service.aplicar_swap_request`;
+- taxonomia de clasificacion tecnica;
+- taxonomia de decision operativa;
+- estados formales de `SwapRequest`.
+
+---
+
+## 18.13 Regla corta
+
+La fachada puede crear y evaluar formalmente una request desde oferta, pero no puede resolverla ni aplicarla.
+
+
+
 
