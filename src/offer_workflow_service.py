@@ -8,7 +8,7 @@ from src.offer_reporting import OfferReport
 from src.offer_service import generar_oferta_para_asignacion
 from src.offer_to_request_service import crear_request_formal_desde_reporte_oferta
 from src.request_store import guardar_request, listar_requests
-
+from src.swap_service import evaluar_swap_request as evaluar_swap_request_formal
 
 
 @dataclass(frozen=True)
@@ -23,6 +23,24 @@ class OfferSelectionResult:
     @property
     def cantidad_ofertas(self) -> int:
         return self.reporte.cantidad_ofertas
+
+@dataclass(frozen=True)
+class OfferFormalEvaluationResult:
+    reporte: OfferReport
+    request: SwapRequest
+    evaluacion_formal: dict[str, Any]
+
+    @property
+    def request_id(self) -> str:
+        return self.request.id
+
+    @property
+    def estado(self) -> str:
+        return self.request.estado
+
+    @property
+    def decision_sugerida(self) -> str | None:
+        return self.request.decision_sugerida
 
 
 @dataclass(frozen=True)
@@ -231,6 +249,69 @@ def generar_oferta_crear_y_persistir_request(
     return OfferSelectionResult(
         reporte=resultado.reporte,
         request=request_persistido,
+    )
+
+def crear_request_desde_oferta_y_evaluar_formalmente(
+    *,
+    asignacion_origen: Any,
+    asignaciones: list[Any],
+    config_file: str,
+    posicion_oferta: int,
+    evaluar_swap_fn,
+    modo_exploracion: str = "OFERTA_RAPIDA",
+    top_n: int = 50,
+    historial_controladores: dict[str, Any] | None = None,
+    limite_reporte: int | None = None,
+    roster_version_id_vigente: str | None = None,
+    roster_hash_vigente: str | None = None,
+    selected_by: str | None = None,
+    selection_reason: str | None = None,
+    selection_note: str | None = None,
+) -> OfferFormalEvaluationResult:
+    resultado_creacion = generar_oferta_crear_y_persistir_request(
+        asignacion_origen=asignacion_origen,
+        asignaciones=asignaciones,
+        config_file=config_file,
+        posicion_oferta=posicion_oferta,
+        modo_exploracion=modo_exploracion,
+        top_n=top_n,
+        historial_controladores=historial_controladores,
+        limite_reporte=limite_reporte,
+        roster_version_id_vigente=roster_version_id_vigente,
+        roster_hash_vigente=roster_hash_vigente,
+        selected_by=selected_by,
+        selection_reason=selection_reason,
+        selection_note=selection_note,
+    )
+
+    request = resultado_creacion.request
+
+    if request.estado != "PENDIENTE":
+        raise ValueError(
+            "El request creado desde oferta debe estar PENDIENTE antes de la evaluacion formal."
+        )
+
+    if request.offer_origin is None:
+        raise ValueError(
+            "El request creado desde oferta debe conservar offer_origin antes de la evaluacion formal."
+        )
+
+    evaluacion_formal = evaluar_swap_request_formal(
+        asignaciones=asignaciones,
+        request=request,
+        evaluar_swap_fn=evaluar_swap_fn,
+        config_file=config_file,
+    )
+
+    if request.estado != "EVALUADO":
+        raise ValueError(
+            "La evaluacion formal debe dejar el request en estado EVALUADO."
+        )
+
+    return OfferFormalEvaluationResult(
+        reporte=resultado_creacion.reporte,
+        request=request,
+        evaluacion_formal=evaluacion_formal,
     )
 
 def es_request_creado_desde_oferta(

@@ -10503,3 +10503,286 @@ La documentacion queda alineada para avanzar a implementacion controlada de la f
 ```text
 crear_request_desde_oferta_y_evaluar_formalmente
 ```
+
+## checkpoint-v72-offer-request-formal-evaluation-facade
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se implemento la fachada de alto nivel para crear una `SwapRequest` formal desde una oferta seleccionada y evaluarla formalmente mediante `swap_service.evaluar_swap_request`.
+
+La fachada respeta el contrato definido en v71:
+
+```text
+OfertaEvaluada seleccionada
+-> SwapRequest formal PENDIENTE
+-> persistencia explicita
+-> evaluacion formal via swap_service
+-> SwapRequest EVALUADO
+```
+
+La request creada desde oferta no nace evaluada. Primero nace `PENDIENTE` y luego pasa formalmente a `EVALUADO` mediante `swap_service.evaluar_swap_request`.
+
+No aprueba, no rechaza, no cancela, no aplica y no modifica roster.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Dataclass OfferFormalEvaluationResult
+
+Se modifico el archivo:
+
+- `src/offer_workflow_service.py`
+
+Se agrego la dataclass:
+
+- `OfferFormalEvaluationResult`
+
+Campos incluidos:
+
+- `reporte`
+- `request`
+- `evaluacion_formal`
+
+Propiedades auxiliares:
+
+- `request_id`
+- `estado`
+- `decision_sugerida`
+
+Responsabilidad:
+
+- devolver en una estructura unica el `OfferReport`, la `SwapRequest` evaluada y el resultado formal devuelto por `swap_service.evaluar_swap_request`.
+
+---
+
+#### 2. Import formal de evaluar_swap_request
+
+Se agrego el import:
+
+```python
+from src.swap_service import evaluar_swap_request as evaluar_swap_request_formal
+```
+
+Motivo:
+
+- dejar explicitado que la evaluacion formal pertenece a `swap_service`
+- evitar que `offer_workflow_service` llame directamente a `engine`, `scoring` o `simulator`
+- mantener la evaluacion tecnica inyectada mediante `evaluar_swap_fn`
+
+---
+
+#### 3. Funcion crear_request_desde_oferta_y_evaluar_formalmente
+
+Se agrego la funcion:
+
+- `crear_request_desde_oferta_y_evaluar_formalmente`
+
+Responsabilidad:
+
+- generar oferta mediante el flujo existente
+- seleccionar oferta por posicion
+- crear `SwapRequest` formal desde oferta
+- persistir la request creada desde oferta
+- verificar que la request este `PENDIENTE` antes de evaluar
+- verificar que conserve `offer_origin`
+- invocar `swap_service.evaluar_swap_request`
+- verificar que la evaluacion formal deje la request en `EVALUADO`
+- devolver `OfferFormalEvaluationResult`
+
+---
+
+#### 4. Reutilizacion de flujo existente
+
+La nueva fachada reutiliza:
+
+- `generar_oferta_crear_y_persistir_request`
+- `persistir_request_creado_desde_oferta`
+- `swap_service.evaluar_swap_request`
+
+Esto evita duplicar logica y mantiene el flujo alineado con los contratos previos.
+
+---
+
+#### 5. Secuencia contractual protegida
+
+La secuencia protegida queda:
+
+```text
+crear desde oferta
+-> request PENDIENTE
+-> persistir PENDIENTE
+-> evaluar formalmente
+-> request EVALUADO
+```
+
+La fachada valida expresamente:
+
+- que antes de evaluar el request este `PENDIENTE`
+- que antes de evaluar exista `offer_origin`
+- que despues de evaluar el request quede `EVALUADO`
+
+---
+
+#### 6. Separacion entre evidencia observada y evaluacion formal
+
+Se preserva el contrato semantico:
+
+```text
+clasificacion_observada != clasificacion_formal
+delta_score_observado != delta_score_formal
+delta_hard_observado != delta_hard_formal
+delta_soft_observado != delta_soft_formal
+```
+
+`offer_origin` sigue siendo evidencia observada de origen.
+
+La evaluacion formal sigue siendo el resultado producido por:
+
+```text
+swap_service.evaluar_swap_request
+```
+
+---
+
+#### 7. Tests unitarios
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_formal_evaluation.py`
+
+Cobertura agregada:
+
+- crea request desde oferta y luego la evalua formalmente
+- verifica que la request pasa primero por `PENDIENTE`
+- verifica que termina `EVALUADO`
+- preserva `offer_origin`
+- no reemplaza `clasificacion_observada` con la clasificacion formal
+- invoca `evaluar_swap_request_formal`
+- no evalua si falla la creacion desde oferta
+- rechaza request que no nace `PENDIENTE`
+- rechaza request sin `offer_origin`
+- propaga errores de evaluacion formal
+- rechaza si la evaluacion formal no deja el request en `EVALUADO`
+- no aprueba
+- no rechaza
+- no cancela
+- no aplica
+
+---
+
+#### 8. Tests de integracion
+
+Se agrego el archivo:
+
+- `tests/test_offer_workflow_formal_evaluation_integration.py`
+
+Cobertura agregada:
+
+- crea roster vigente
+- genera reporte de oferta mockeado
+- crea request formal desde oferta
+- persiste request `PENDIENTE`
+- evalua formalmente mediante `swap_service.evaluar_swap_request`
+- recupera request desde `request_store`
+- valida estado `EVALUADO`
+- valida `decision_sugerida`
+- valida `roster_hash`
+- valida preservacion de `offer_origin`
+- valida history con `CREADO_DESDE_OFERTA`
+- valida history con `REQUEST_EVALUADO`
+- valida que `clasificacion_observada` no sea reemplazada por la clasificacion formal
+
+---
+
+### Resultados observados
+
+Tests focalizados v72:
+
+```text
+tests/test_offer_workflow_formal_evaluation.py
+tests/test_offer_workflow_formal_evaluation_integration.py
+passed
+```
+
+Tests relacionados:
+
+```text
+tests/test_offer_to_request_service.py
+tests/test_offer_request.py
+passed
+```
+
+Suite completa:
+
+```text
+346 passed
+```
+
+---
+
+### Contratos preservados
+
+- La request creada desde oferta no nace `EVALUADO`.
+- La request creada desde oferta nace `PENDIENTE`.
+- La evaluacion formal ocurre despues.
+- La evaluacion formal ocurre mediante `swap_service.evaluar_swap_request`.
+- `offer_origin` no reemplaza evaluacion formal.
+- `clasificacion_observada` no reemplaza clasificacion formal.
+- `decision_sugerida` la define el flujo formal de evaluacion.
+- La fachada no aprueba.
+- La fachada no rechaza.
+- La fachada no cancela.
+- La fachada no aplica.
+- La fachada no modifica roster.
+- La fachada no llama directamente a `engine`.
+- La fachada no llama directamente a `scoring`.
+- La fachada no llama directamente a `simulator`.
+- La fachada no crea workflow paralelo de ofertas.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- No hay aprobacion automatica posterior.
+- No hay rechazo automatico posterior.
+- No hay aplicacion automatica posterior.
+- No hay UI.
+- No hay API.
+- No hay bloqueo multiusuario.
+- No hay contrapropuestas.
+- No hay normalizacion adicional de persistencia.
+- No se refactorizo `offer_workflow_service.py`.
+
+---
+
+### Proximos pasos naturales
+
+- Volver a arquitectura para decidir si corresponde una fachada posterior:
+  - evaluar y sugerir resolucion
+  - evaluar y resolver
+  - evaluar/resolver/aplicar
+- No automatizar aprobacion ni aplicacion sin decision arquitectonica.
+- Evaluar si `offer_workflow_service.py` debe dividirse mas adelante.
+- Mantener separado el workflow formal de requests del reporting auxiliar.
+
+---
+
+### Notas
+
+Este checkpoint implementa la fachada formal:
+
+```text
+crear_request_desde_oferta_y_evaluar_formalmente
+```
+
+No cambia el workflow formal existente.
+
+No toca `engine`, `scoring`, `simulator`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store`, `roster_store` ni `aplicar_swap_request`.
+
+---
