@@ -11072,3 +11072,273 @@ No se incluye todavia:
 Queda cerrado el contrato arquitectonico de resolucion operativa explicita para V1.
 
 La evaluacion formal informa; la resolucion operativa decide; la aplicacion ejecuta.
+
+## checkpoint-v75-resolucion-operativa-explicita
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se consolido la resolucion operativa explicita de una `SwapRequest` evaluada.
+
+El bloque refuerza el contrato definido en v74:
+
+```text
+SwapRequest EVALUADO
+-> accion explicita de resolucion
+-> APROBADO / RECHAZADO / CANCELADO
+```
+
+La resolucion no aplica el swap.
+
+La aplicacion sigue siendo posterior y separada:
+
+```text
+APROBADO
+-> aplicar_swap_request
+-> APLICADO
+```
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Refuerzo de resolver_swap_request
+
+Se modifico el archivo:
+
+- `src/swap_service.py`
+
+Se reforzo la funcion existente:
+
+- `resolver_swap_request`
+
+La funcion sigue perteneciendo a `swap_service`, porque la resolucion operativa forma parte del workflow formal de `SwapRequest`.
+
+---
+
+#### 2. Firma extendida compatible
+
+La firma quedo extendida con parametros opcionales:
+
+```python
+def resolver_swap_request(
+    request: SwapRequest,
+    accion: str,
+    motivo_resolucion: str | None = None,
+    actor: str | None = None,
+) -> SwapRequest:
+```
+
+Esto mantiene compatibilidad con llamados anteriores:
+
+```python
+resolver_swap_request(request, "APROBAR")
+```
+
+Y permite trazabilidad adicional cuando se informa:
+
+- `motivo_resolucion`
+- `actor`
+
+---
+
+#### 3. Acciones explicitas soportadas
+
+La resolucion acepta solamente:
+
+- `APROBAR`
+- `RECHAZAR`
+- `CANCELAR`
+
+Mapeo de estados:
+
+- `APROBAR` -> `APROBADO`
+- `RECHAZAR` -> `RECHAZADO`
+- `CANCELAR` -> `CANCELADO`
+
+---
+
+#### 4. Validaciones preservadas
+
+Se preservaron las validaciones existentes:
+
+- no resolver accion invalida
+- no resolver request sin evaluacion formal
+- no resolver request ya resuelto
+- no resolver request en estado distinto de `EVALUADO`
+
+La resolucion exige:
+
+```text
+estado == EVALUADO
+decision_sugerida != None
+```
+
+---
+
+#### 5. Trazabilidad de actor y motivo de resolucion
+
+Se agrego trazabilidad opcional en `history` para:
+
+- `actor`
+- `motivo_resolucion`
+
+Ejemplo conceptual:
+
+```text
+REQUEST_RESUELTO: accion=APROBAR, estado=APROBADO, actor=SUP_ACC_CBA, motivo_resolucion=Autorizado por supervisor operativo.
+```
+
+---
+
+#### 6. Decision semantica sobre motivo
+
+Se decidio no pisar `request.motivo`.
+
+Regla adoptada:
+
+```text
+request.motivo conserva el motivo/origen de creacion del request.
+motivo_resolucion se registra en history.
+actor se registra en history.
+```
+
+Esto evita mezclar:
+
+- motivo de creacion
+- motivo de resolucion
+
+Y evita cambios de modelo o migraciones en v75.
+
+---
+
+#### 7. Sin cambios de modelo ni base
+
+No se agregaron campos nuevos a `SwapRequest`.
+
+No se agregaron columnas nuevas a SQLite.
+
+No se modifico `request_store`.
+
+No se agrego modelo formal de auditoria.
+
+---
+
+#### 8. Tests agregados/reforzados
+
+Se modifico el archivo:
+
+- `tests/test_swap_service.py`
+
+Cobertura agregada/reforzada:
+
+- `RECHAZAR` desde `EVALUADO` -> `RECHAZADO`
+- `CANCELAR` desde `EVALUADO` -> `CANCELADO`
+- no resolver desde `PENDIENTE`
+- no resolver desde estados terminales:
+  - `APROBADO`
+  - `RECHAZADO`
+  - `CANCELADO`
+  - `APLICADO`
+- registra history con `actor`
+- registra history con `motivo_resolucion`
+- no pisa `motivo` de creacion
+- no modifica `offer_origin`
+- conserva `decision_sugerida`
+- `VIABLE` no autoaprueba
+- resolver no evalua
+- resolver no aplica
+- accion invalida falla explicitamente
+
+---
+
+### Resultados observados
+
+Tests focalizados:
+
+```text
+tests/test_swap_service.py passed
+```
+
+Tests relacionados:
+
+```text
+tests/test_request_store.py passed
+tests/test_offer_workflow_formal_evaluation.py passed
+tests/test_offer_workflow_formal_evaluation_integration.py passed
+```
+
+Suite completa:
+
+```text
+passed
+```
+
+---
+
+### Contratos preservados
+
+- `EVALUADO` no significa `APROBADO`.
+- `VIABLE` no significa `APROBADO`.
+- `RECHAZAR` como `decision_sugerida` no significa `RECHAZADO` terminal.
+- `BENEFICIOSO` no significa `APROBADO`.
+- La resolucion requiere accion explicita.
+- La resolucion no reevalua.
+- La resolucion no aplica.
+- La resolucion no modifica roster.
+- La resolucion no modifica `offer_origin`.
+- La resolucion no pisa `motivo` de creacion.
+- La resolucion no llama `engine`.
+- La resolucion no llama `scoring`.
+- La resolucion no llama `simulator`.
+- La resolucion no crea workflow bilateral.
+- La resolucion no agrega estados nuevos.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- `actor` no es campo estructurado.
+- `motivo_resolucion` no es campo estructurado.
+- Ambos quedan registrados en `history`.
+- No hay modelo formal de auditoria todavia.
+- No hay roles ni permisos.
+- No hay validacion de autoridad del actor.
+- No hay UI.
+- No hay API.
+- No hay workflow bilateral.
+- No hay aceptacion por contraparte.
+- No hay contrapropuestas.
+- No hay aplicacion automatica.
+
+---
+
+### Proximos pasos naturales
+
+- Volver a arquitectura antes de modelar auditoria estructurada.
+- Definir si en una version futura se agregaran:
+  - `motivo_creacion`
+  - `motivo_resolucion`
+  - `actor_resolucion`
+  - `fecha_evaluacion`
+  - `actor_aplicacion`
+- Mantener por ahora la resolucion como accion explicita.
+- No automatizar resolucion ni aplicacion sin decision arquitectonica previa.
+
+---
+
+### Notas
+
+Este checkpoint consolida la resolucion operativa explicita dentro del workflow formal de `SwapRequest`.
+
+No cambia el flujo de evaluacion formal.
+
+No cambia el flujo de aplicacion.
+
+No toca `engine`, `scoring`, `simulator`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `offer_workflow_service`, `request_store`, `roster_store` ni `aplicar_swap_request`.
+
+---

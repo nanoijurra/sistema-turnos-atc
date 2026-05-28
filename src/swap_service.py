@@ -184,7 +184,12 @@ def evaluar_swap_request(
     }
 
 
-def resolver_swap_request(request: SwapRequest, accion: str) -> SwapRequest:
+def resolver_swap_request(
+    request: SwapRequest,
+    accion: str,
+    motivo_resolucion: str | None = None,
+    actor: str | None = None,
+) -> SwapRequest:
     if accion not in ("APROBAR", "RECHAZAR", "CANCELAR"):
         raise ValueError(f"Acción inválida: {accion}")
 
@@ -209,9 +214,20 @@ def resolver_swap_request(request: SwapRequest, accion: str) -> SwapRequest:
     request.fecha_resolucion = datetime.now()
     guardar_request(request)
 
+    detalle_actor = f", actor={actor}" if actor else ""
+    detalle_motivo = (
+        f", motivo_resolucion={motivo_resolucion}"
+        if motivo_resolucion
+        else ""
+    )
+
     registrar_evento_swap_request(
         request,
-        f"REQUEST_RESUELTO: accion={accion}, estado={request.estado}",
+        (
+            f"REQUEST_RESUELTO: accion={accion}, estado={request.estado}"
+            f"{detalle_actor}"
+            f"{detalle_motivo}"
+        ),
     )
 
     return request
