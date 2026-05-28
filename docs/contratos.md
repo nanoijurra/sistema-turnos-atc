@@ -1962,5 +1962,221 @@ La aceptacion bilateral, contrapropuestas y bloqueos multiusuario quedan reserva
 
 Una request evaluada puede ser resuelta explicitamente, pero no puede resolverse automaticamente ni aplicarse dentro de la misma etapa.
 
+---
+
+# Contrato 20 - Aplicacion de SwapRequest aprobada
+
+## TOC
+
+- [20.1 Proposito](#201-proposito)
+- [20.2 Contexto](#202-contexto)
+- [20.3 Flujo contractual](#203-flujo-contractual)
+- [20.4 Estado de entrada](#204-estado-de-entrada)
+- [20.5 Estados de entrada prohibidos](#205-estados-de-entrada-prohibidos)
+- [20.6 Estado de salida](#206-estado-de-salida)
+- [20.7 Responsabilidades permitidas](#207-responsabilidades-permitidas)
+- [20.8 Responsabilidades prohibidas](#208-responsabilidades-prohibidas)
+- [20.9 Versionado de roster](#209-versionado-de-roster)
+- [20.10 Cancelacion de obsoletos](#2010-cancelacion-de-obsoletos)
+- [20.11 Relacion con oferta evaluada](#2011-relacion-con-oferta-evaluada)
+- [20.12 Relacion con evaluacion y resolucion](#2012-relacion-con-evaluacion-y-resolucion)
+- [20.13 Regla corta](#2013-regla-corta)
+
+---
+
+## 20.1 Proposito
+
+Definir el contrato arquitectonico de aplicacion de una `SwapRequest` aprobada.
+
+La aplicacion es la etapa que ejecuta el swap sobre el roster y crea una nueva version de roster.
+
+---
+
+## 20.2 Contexto
+
+El workflow formal de una `SwapRequest` separa:
+
+```text
+evaluacion formal
+-> resolucion operativa
+-> aplicacion
+```
+
+Una request solo puede aplicarse luego de haber sido resuelta explicitamente como:
+
+```text
+APROBADO
+```
+
+---
+
+## 20.3 Flujo contractual
+
+El flujo contractual de aplicacion es:
+
+```text
+SwapRequest APROBADO
+-> aplicar_swap_request
+-> ejecutar intercambio sobre roster
+-> crear nueva version de roster
+-> marcar request APLICADO
+```
+
+---
+
+## 20.4 Estado de entrada
+
+La aplicacion solo puede operar sobre una request en estado:
+
+```text
+APROBADO
+```
+
+---
+
+## 20.5 Estados de entrada prohibidos
+
+La aplicacion no puede operar sobre requests en estado:
+
+```text
+PENDIENTE
+EVALUADO
+RECHAZADO
+CANCELADO
+APLICADO
+```
+
+---
+
+## 20.6 Estado de salida
+
+El estado esperado luego de una aplicacion exitosa es:
+
+```text
+APLICADO
+```
+
+---
+
+## 20.7 Responsabilidades permitidas
+
+`aplicar_swap_request` puede:
+
+1. Recibir una `SwapRequest` en estado `APROBADO`.
+2. Validar que la request pertenece al roster vigente.
+3. Ejecutar el intercambio de asignaciones.
+4. Crear una nueva version de roster.
+5. Marcar la request como `APLICADO`.
+6. Registrar history formal de aplicacion.
+7. Persistir el estado `APLICADO`.
+8. Cancelar requests obsoletos si corresponde al contrato vigente.
+9. Registrar history de cancelacion por obsolescencia en requests afectadas.
+10. Preservar trazabilidad entre version anterior y nueva version.
+
+---
+
+## 20.8 Responsabilidades prohibidas
+
+`aplicar_swap_request` no puede:
+
+- reevaluar la request;
+- resolver la request;
+- aprobar;
+- rechazar;
+- cancelar por decision operativa humana;
+- modificar `decision_sugerida`;
+- modificar `offer_origin`;
+- modificar clasificacion tecnica formal;
+- reemplazar evaluacion formal;
+- llamar directamente a `engine`;
+- llamar directamente a `scoring`;
+- llamar directamente a `simulator`;
+- crear workflow paralelo;
+- aplicar una request dos veces;
+- aplicar una request que no este `APROBADO`.
+
+---
+
+## 20.9 Versionado de roster
+
+La aplicacion debe crear una nueva version de roster.
+
+La nueva version representa el roster luego de ejecutar el intercambio aprobado.
+
+La version anterior deja de ser vigente.
+
+La request aplicada debe quedar asociada a la trazabilidad de la version sobre la cual fue evaluada y a la version resultante cuando el modelo lo permita.
+
+---
+
+## 20.10 Cancelacion de obsoletos
+
+Cuando una aplicacion crea una nueva version de roster, otras requests asociadas a la version anterior pueden quedar obsoletas.
+
+La cancelacion de obsoletos debe respetar:
+
+- no cancelar requests ya `APLICADO`;
+- no alterar historicos terminales salvo contrato explicito;
+- distinguir cancelacion por obsolescencia de cancelacion operativa;
+- registrar motivo claro;
+- registrar history;
+- no reevaluar las requests canceladas;
+- no aplicar requests canceladas.
+
+Estados candidatos a cancelacion por obsolescencia:
+
+```text
+PENDIENTE
+EVALUADO
+APROBADO
+```
+
+Estados no candidatos a modificacion por obsolescencia:
+
+```text
+RECHAZADO
+CANCELADO
+APLICADO
+```
+
+---
+
+## 20.11 Relacion con oferta evaluada
+
+Si la request aplicada proviene de una oferta, `offer_origin` debe permanecer inmutable.
+
+La aplicacion no debe modificar:
+
+```text
+clasificacion_observada
+delta_score_observado
+delta_hard_observado
+delta_soft_observado
+selection_metadata
+```
+
+La oferta no se aplica. Se aplica la `SwapRequest` formal aprobada.
+
+---
+
+## 20.12 Relacion con evaluacion y resolucion
+
+La aplicacion no reemplaza evaluacion formal ni resolucion operativa.
+
+Por lo tanto:
+
+```text
+aplicar != evaluar
+aplicar != resolver
+aplicar != aprobar
+```
+
+La aplicacion presupone que la request ya fue evaluada y aprobada por el flujo correspondiente.
+
+---
+
+## 20.13 Regla corta
+
+Solo se aplica una `SwapRequest` aprobada; aplicar ejecuta sobre roster y no decide.
 
 

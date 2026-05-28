@@ -11342,3 +11342,158 @@ No cambia el flujo de aplicacion.
 No toca `engine`, `scoring`, `simulator`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `offer_workflow_service`, `request_store`, `roster_store` ni `aplicar_swap_request`.
 
 ---
+
+# Checkpoint v76 - Contrato documental de aplicacion explicita
+
+## Estado
+
+Documental / arquitectonico.
+
+## Contexto
+
+Luego de v72, v73 y v75, el flujo formal del sistema queda:
+
+```text
+PENDIENTE
+-> evaluar_swap_request
+-> EVALUADO
+-> resolver_swap_request
+-> APROBADO / RECHAZADO / CANCELADO
+-> aplicar_swap_request
+-> APLICADO
+```
+
+La regla central vigente es:
+
+```text
+Evaluar informa.
+Resolver decide explicitamente.
+Aplicar ejecuta.
+```
+
+## Decision
+
+Se documenta la aplicacion explicita de una `SwapRequest` aprobada.
+
+La aplicacion solo puede ocurrir desde:
+
+```text
+APROBADO
+```
+
+y debe producir:
+
+```text
+APLICADO
+```
+
+## Compuerta de aplicacion
+
+La aplicacion debe realizarse mediante:
+
+```text
+swap_service.aplicar_swap_request
+```
+
+No se incorpora fachada nueva.
+
+No se permite aplicacion automatica como consecuencia de evaluacion o resolucion.
+
+## Alcance permitido
+
+La aplicacion puede:
+
+- recibir request `APROBADO`;
+- validar roster vigente;
+- ejecutar intercambio;
+- crear nueva version de roster;
+- marcar request `APLICADO`;
+- registrar history;
+- persistir estado `APLICADO`;
+- cancelar requests obsoletos si corresponde;
+- registrar motivo de obsolescencia.
+
+## Alcance prohibido
+
+La aplicacion no puede:
+
+- aplicar requests `PENDIENTE`;
+- aplicar requests `EVALUADO`;
+- aplicar requests `RECHAZADO`;
+- aplicar requests `CANCELADO`;
+- aplicar requests `APLICADO`;
+- reevaluar;
+- resolver;
+- aprobar;
+- rechazar;
+- modificar `decision_sugerida`;
+- modificar `offer_origin`;
+- reemplazar evaluacion formal;
+- llamar directamente a `engine`;
+- llamar directamente a `scoring`;
+- llamar directamente a `simulator`;
+- crear workflow paralelo;
+- aplicarse automaticamente.
+
+## Cancelacion de obsoletos
+
+Al aplicar un swap se crea una nueva version de roster.
+
+Las requests vinculadas a una version anterior pueden quedar obsoletas.
+
+La cancelacion por obsolescencia debe:
+
+- ser trazable;
+- registrar motivo;
+- no tocar requests ya `APLICADO`;
+- no confundirse con cancelacion operativa;
+- no reevaluar requests canceladas;
+- no aplicar requests canceladas.
+
+## Documentos asociados
+
+Se agregan o actualizan:
+
+```text
+Decision 48 - Aplicacion explicita solo desde APROBADO
+Contrato 20 - Aplicacion de SwapRequest aprobada
+Invariante 12 - Aplicar ejecuta, no evalua ni resuelve
+```
+
+## Proximo paso recomendado
+
+Implementacion controlada o refuerzo de tests de:
+
+```text
+swap_service.aplicar_swap_request
+```
+
+Posible checkpoint siguiente:
+
+```text
+v77 - Implementacion/refuerzo de aplicacion explicita
+```
+
+## No incluido
+
+No se incluye:
+
+- fachada nueva;
+- aplicacion automatica;
+- aprobar y aplicar;
+- evaluar, resolver y aplicar;
+- workflow bilateral;
+- contrapropuestas;
+- bloqueos multiusuario;
+- UI;
+- API;
+- Excel;
+- nuevos estados;
+- refactor grande de `swap_service`.
+
+## Resultado
+
+Queda cerrado el contrato documental de aplicacion explicita.
+
+La evaluacion formal informa, la resolucion operativa decide y la aplicacion ejecuta sobre una nueva version de roster.---
+

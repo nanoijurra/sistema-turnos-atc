@@ -1460,3 +1460,203 @@ No se implementa todavia workflow bilateral formal.
 ## 47.10 Regla corta
 
 La evaluacion formal informa; la resolucion operativa decide; la aplicacion ejecuta.
+
+---
+
+# Decision 48 - Aplicacion explicita solo desde APROBADO
+
+## TOC
+
+- [48.1 Estado](#481-estado)
+- [48.2 Contexto](#482-contexto)
+- [48.3 Decision](#483-decision)
+- [48.4 Alcance permitido](#484-alcance-permitido)
+- [48.5 Restricciones](#485-restricciones)
+- [48.6 Cancelacion de requests obsoletos](#486-cancelacion-de-requests-obsoletos)
+- [48.7 Justificacion](#487-justificacion)
+- [48.8 Consecuencias](#488-consecuencias)
+- [48.9 Decision negativa explicita](#489-decision-negativa-explicita)
+- [48.10 Regla corta](#4810-regla-corta)
+
+---
+
+## 48.1 Estado
+
+Aceptada.
+
+---
+
+## 48.2 Contexto
+
+El workflow formal consolidado de `SwapRequest` es:
+
+```text
+PENDIENTE
+-> evaluar_swap_request
+-> EVALUADO
+-> resolver_swap_request
+-> APROBADO / RECHAZADO / CANCELADO
+-> aplicar_swap_request
+-> APLICADO
+```
+
+La regla central vigente es:
+
+```text
+Evaluar informa.
+Resolver decide explicitamente.
+Aplicar ejecuta.
+```
+
+Luego de la resolucion operativa explicita, una request puede quedar en estado `APROBADO`.
+
+La aplicacion es la etapa posterior encargada de ejecutar el swap sobre el roster y crear una nueva version.
+
+---
+
+## 48.3 Decision
+
+La aplicacion de una `SwapRequest` debe ser una accion explicita y solo puede ejecutarse sobre una request en estado:
+
+```text
+APROBADO
+```
+
+La aplicacion debe realizarse mediante:
+
+```text
+swap_service.aplicar_swap_request
+```
+
+La aplicacion no debe ocurrir automaticamente como consecuencia de evaluar o resolver.
+
+---
+
+## 48.4 Alcance permitido
+
+La aplicacion puede:
+
+- recibir una `SwapRequest` en estado `APROBADO`;
+- validar que la request corresponde al roster vigente;
+- ejecutar el intercambio de asignaciones;
+- crear una nueva version de roster;
+- marcar la request como `APLICADO`;
+- registrar history formal de aplicacion;
+- persistir el estado `APLICADO`;
+- cancelar requests obsoletos si corresponde al contrato vigente;
+- registrar motivo especifico de cancelacion por obsolescencia cuando corresponda.
+
+---
+
+## 48.5 Restricciones
+
+La aplicacion no puede:
+
+- operar sobre requests en estado `PENDIENTE`;
+- operar sobre requests en estado `EVALUADO`;
+- operar sobre requests en estado `RECHAZADO`;
+- operar sobre requests en estado `CANCELADO`;
+- operar nuevamente sobre requests en estado `APLICADO`;
+- reevaluar la request;
+- resolver la request;
+- modificar `decision_sugerida`;
+- modificar `offer_origin`;
+- reemplazar la evaluacion formal;
+- llamar directamente a `engine`;
+- llamar directamente a `scoring`;
+- llamar directamente a `simulator`;
+- crear workflow paralelo;
+- aprobar automaticamente;
+- rechazar automaticamente;
+- modificar clasificacion tecnica formal.
+
+---
+
+## 48.6 Cancelacion de requests obsoletos
+
+Al crear una nueva version de roster, algunas requests asociadas a la version anterior pueden quedar obsoletas.
+
+La aplicacion puede cancelar requests obsoletas cuando corresponda, pero debe hacerlo con restricciones claras:
+
+- solo deben cancelarse requests no terminales o no aplicadas que dependan de la version anterior;
+- no deben modificarse requests ya `APLICADO`;
+- no deben modificarse historicos terminales salvo contrato explicito;
+- debe registrarse un motivo de cancelacion por obsolescencia;
+- debe quedar history que permita distinguir cancelacion operativa de cancelacion por obsolescencia.
+
+Estados candidatos a cancelacion por obsolescencia:
+
+```text
+PENDIENTE
+EVALUADO
+APROBADO
+```
+
+Estados que no deberian modificarse por obsolescencia:
+
+```text
+RECHAZADO
+CANCELADO
+APLICADO
+```
+
+---
+
+## 48.7 Justificacion
+
+La aplicacion es la unica etapa que ejecuta consecuencias estructurales sobre el roster.
+
+Por eso debe mantenerse separada de:
+
+- evaluacion formal;
+- decision sugerida;
+- resolucion operativa;
+- oferta evaluada;
+- reporting;
+- candidate_selection;
+- simulator.
+
+La separacion evita que una request tecnicamente viable o aprobada produzca cambios de roster sin una accion explicita de aplicacion.
+
+---
+
+## 48.8 Consecuencias
+
+Una request `APROBADO` queda lista para aplicacion, pero no se aplica automaticamente.
+
+La aplicacion debe ser una operacion formal, trazable y separada.
+
+La aplicacion crea una nueva version de roster y puede provocar obsolescencia de requests vinculadas a versiones anteriores.
+
+---
+
+## 48.9 Decision negativa explicita
+
+No se implementa:
+
+```text
+EVALUADO -> APLICADO automatico
+VIABLE -> APLICADO automatico
+BENEFICIOSO -> APLICADO automatico
+APROBADO -> APLICADO automatico
+```
+
+No se implementa una fachada:
+
+```text
+evaluar_resolver_aplicar
+```
+
+ni:
+
+```text
+aprobar_y_aplicar
+```
+
+La aplicacion sigue siendo una compuerta propia.
+
+---
+
+## 48.10 Regla corta
+
+La aplicacion solo ejecuta requests aprobadas y lo hace sobre una nueva version de roster.

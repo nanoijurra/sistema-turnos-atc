@@ -623,3 +623,148 @@ La contraparte no se modela todavia como workflow propio.
 ## 11.10 Regla corta
 
 La evaluacion formal informa; la resolucion operativa decide; la aplicacion ejecuta.
+
+---
+
+# Invariante 12 - Aplicar ejecuta, no evalua ni resuelve
+
+## TOC
+
+- [12.1 Regla principal](#121-regla-principal)
+- [12.2 Solo APROBADO puede aplicar](#122-solo-aprobado-puede-aplicar)
+- [12.3 Estados prohibidos para aplicar](#123-estados-prohibidos-para-aplicar)
+- [12.4 Aplicar no reevalua](#124-aplicar-no-reevalua)
+- [12.5 Aplicar no resuelve](#125-aplicar-no-resuelve)
+- [12.6 Aplicar no modifica offer_origin](#126-aplicar-no-modifica-offerorigin)
+- [12.7 Aplicar no modifica decision_sugerida](#127-aplicar-no-modifica-decisionsugerida)
+- [12.8 Aplicar crea nueva version de roster](#128-aplicar-crea-nueva-version-de-roster)
+- [12.9 Aplicar no se repite](#129-aplicar-no-se-repite)
+- [12.10 Cancelacion de obsoletos](#1210-cancelacion-de-obsoletos)
+- [12.11 Regla corta](#1211-regla-corta)
+
+---
+
+## 12.1 Regla principal
+
+La aplicacion ejecuta un swap aprobado sobre el roster.
+
+La aplicacion no evalua, no resuelve y no decide.
+
+---
+
+## 12.2 Solo APROBADO puede aplicar
+
+La aplicacion solo puede ejecutarse sobre una `SwapRequest` en estado:
+
+```text
+APROBADO
+```
+
+---
+
+## 12.3 Estados prohibidos para aplicar
+
+No se puede aplicar una request en estado:
+
+```text
+PENDIENTE
+EVALUADO
+RECHAZADO
+CANCELADO
+APLICADO
+```
+
+---
+
+## 12.4 Aplicar no reevalua
+
+La aplicacion no puede reevaluar la request.
+
+No puede llamar directamente a:
+
+```text
+engine
+scoring
+simulator
+```
+
+Tampoco puede reemplazar ni recalcular la evaluacion formal previa.
+
+---
+
+## 12.5 Aplicar no resuelve
+
+La aplicacion no puede aprobar, rechazar ni cancelar por decision operativa.
+
+La request debe llegar a aplicacion ya resuelta como:
+
+```text
+APROBADO
+```
+
+---
+
+## 12.6 Aplicar no modifica offer_origin
+
+Si la request proviene de una oferta, `offer_origin` debe permanecer como evidencia observada.
+
+La aplicacion no puede modificar:
+
+```text
+clasificacion_observada
+delta_score_observado
+delta_hard_observado
+delta_soft_observado
+selection_metadata
+```
+
+---
+
+## 12.7 Aplicar no modifica decision_sugerida
+
+La aplicacion no puede modificar `decision_sugerida`.
+
+`decision_sugerida` pertenece al resultado de evaluacion formal.
+
+---
+
+## 12.8 Aplicar crea nueva version de roster
+
+La aplicacion exitosa debe crear una nueva version de roster.
+
+La nueva version representa el roster luego del swap aplicado.
+
+---
+
+## 12.9 Aplicar no se repite
+
+Una request en estado:
+
+```text
+APLICADO
+```
+
+no puede aplicarse nuevamente.
+
+La aplicacion debe ser idempotente desde el punto de vista de proteccion del workflow: ante un segundo intento, debe rechazar la operacion.
+
+---
+
+## 12.10 Cancelacion de obsoletos
+
+Si la aplicacion genera una nueva version de roster, las requests asociadas a versiones anteriores pueden quedar obsoletas.
+
+La cancelacion por obsolescencia debe:
+
+- registrar motivo;
+- registrar history;
+- no tocar requests ya `APLICADO`;
+- no reevaluar;
+- no aplicar;
+- diferenciarse de una cancelacion operativa normal.
+
+---
+
+## 12.11 Regla corta
+
+Aplicar solo ejecuta una request aprobada y crea una nueva version de roster.
