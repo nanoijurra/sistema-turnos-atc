@@ -1722,6 +1722,245 @@ Este contrato no modifica:
 
 La fachada puede crear y evaluar formalmente una request desde oferta, pero no puede resolverla ni aplicarla.
 
+---
+
+# Contrato 19 - Resolucion operativa posterior de SwapRequest evaluada
+
+## TOC
+
+- [19.1 Proposito](#191-proposito)
+- [19.2 Contexto](#192-contexto)
+- [19.3 Flujo contractual](#193-flujo-contractual)
+- [19.4 Estado de entrada](#194-estado-de-entrada)
+- [19.5 Estados de salida](#195-estados-de-salida)
+- [19.6 Responsabilidades permitidas](#196-responsabilidades-permitidas)
+- [19.7 Responsabilidades prohibidas](#197-responsabilidades-prohibidas)
+- [19.8 Tratamiento de decision_sugerida](#198-tratamiento-de-decisionsugerida)
+- [19.9 Tratamiento de OBSERVAR](#199-tratamiento-de-observar)
+- [19.10 Tratamiento de offer_origin](#1910-tratamiento-de-offerorigin)
+- [19.11 Relacion con aplicacion](#1911-relacion-con-aplicacion)
+- [19.12 Modelo V1 sin workflow bilateral](#1912-modelo-v1-sin-workflow-bilateral)
+- [19.13 Regla corta](#1913-regla-corta)
+
+---
+
+## 19.1 Proposito
+
+Definir el contrato arquitectonico de la resolucion operativa posterior de una `SwapRequest` que ya fue evaluada formalmente.
+
+La resolucion operativa es la etapa que decide si una request evaluada pasa a:
+
+```text
+APROBADO
+RECHAZADO
+CANCELADO
+```
+
+---
+
+## 19.2 Contexto
+
+Una request creada desde oferta o creada manualmente puede pasar por evaluacion formal mediante:
+
+```text
+swap_service.evaluar_swap_request
+```
+
+Luego de esa evaluacion, la request queda en estado:
+
+```text
+EVALUADO
+```
+
+La evaluacion formal puede producir una `decision_sugerida`, pero esa decision no equivale a resolucion terminal.
+
+---
+
+## 19.3 Flujo contractual
+
+El flujo contractual de resolucion es:
+
+```text
+SwapRequest EVALUADO
+-> accion explicita de resolucion
+-> APROBADO / RECHAZADO / CANCELADO
+```
+
+La aplicacion queda fuera de este contrato:
+
+```text
+APROBADO
+-> aplicar_swap_request
+-> APLICADO
+```
+
+---
+
+## 19.4 Estado de entrada
+
+La resolucion operativa solo puede operar sobre una request en estado:
+
+```text
+EVALUADO
+```
+
+No debe resolver requests en estados:
+
+```text
+PENDIENTE
+APROBADO
+RECHAZADO
+CANCELADO
+APLICADO
+```
+
+---
+
+## 19.5 Estados de salida
+
+La resolucion operativa puede llevar la request a uno de estos estados:
+
+```text
+APROBADO
+RECHAZADO
+CANCELADO
+```
+
+No puede llevar directamente a:
+
+```text
+APLICADO
+```
+
+---
+
+## 19.6 Responsabilidades permitidas
+
+La resolucion operativa puede:
+
+1. Recibir una `SwapRequest` en estado `EVALUADO`.
+2. Considerar `decision_sugerida`.
+3. Considerar clasificacion tecnica formal.
+4. Considerar advertencias o divergencias.
+5. Registrar actor de resolucion.
+6. Registrar fecha/hora de resolucion.
+7. Registrar accion de resolucion.
+8. Registrar motivo de resolucion.
+9. Registrar history formal.
+10. Cambiar el estado a `APROBADO`, `RECHAZADO` o `CANCELADO`.
+
+---
+
+## 19.7 Responsabilidades prohibidas
+
+La resolucion operativa no puede:
+
+- reevaluar la request;
+- llamar directamente a `engine`;
+- llamar directamente a `scoring`;
+- llamar directamente a `simulator`;
+- modificar `offer_origin`;
+- modificar la clasificacion tecnica formal;
+- modificar la evaluacion formal;
+- aplicar el swap;
+- modificar roster;
+- crear workflow paralelo;
+- convertir automaticamente una decision sugerida en estado terminal.
+
+---
+
+## 19.8 Tratamiento de decision_sugerida
+
+La `decision_sugerida` orienta la resolucion, pero no la reemplaza.
+
+Por lo tanto:
+
+```text
+VIABLE != APROBADO
+OBSERVAR != APROBADO
+RECHAZAR != RECHAZADO
+```
+
+La resolucion debe ser una accion explicita.
+
+---
+
+## 19.9 Tratamiento de OBSERVAR
+
+Si la `decision_sugerida` es:
+
+```text
+OBSERVAR
+```
+
+la resolucion debe requerir especial trazabilidad.
+
+En V1, esto significa que la accion de resolver debe conservar motivo explicito.
+
+En una version futura, `OBSERVAR` podria requerir rol supervisor o validacion adicional, pero eso no forma parte de este contrato.
+
+---
+
+## 19.10 Tratamiento de offer_origin
+
+Si la request proviene de una oferta, el bloque `offer_origin` debe permanecer como evidencia observada.
+
+La resolucion no debe pisar ni reinterpretar:
+
+```text
+clasificacion_observada
+delta_score_observado
+delta_hard_observado
+delta_soft_observado
+```
+
+La resolucion puede consultar esa informacion como trazabilidad, pero no debe convertirla en decision terminal.
+
+---
+
+## 19.11 Relacion con aplicacion
+
+La resolucion no aplica el swap.
+
+La aplicacion sigue siendo una operacion posterior, separada y formal:
+
+```text
+swap_service.aplicar_swap_request
+```
+
+La unica transicion valida hacia aplicacion es:
+
+```text
+APROBADO
+-> APLICADO
+```
+
+segun el contrato vigente de aplicacion.
+
+---
+
+## 19.12 Modelo V1 sin workflow bilateral
+
+Para V1 no se incorpora workflow bilateral formal.
+
+No se agregan estados como:
+
+```text
+PROPUESTO
+ACEPTADO_POR_CONTRAPARTE
+RECHAZADO_POR_CONTRAPARTE
+PENDIENTE_SUPERVISOR
+```
+
+La contraparte no se modela todavia como estado propio, porque el sistema ya protege restricciones hard y consistencia tecnica mediante evaluacion formal.
+
+La aceptacion bilateral, contrapropuestas y bloqueos multiusuario quedan reservados para una etapa posterior.
+
+---
+
+## 19.13 Regla corta
+
+Una request evaluada puede ser resuelta explicitamente, pero no puede resolverse automaticamente ni aplicarse dentro de la misma etapa.
 
 
 

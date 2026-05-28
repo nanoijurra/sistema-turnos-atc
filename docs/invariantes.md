@@ -457,3 +457,169 @@ La fachada existe para mejorar:
 
 La fachada puede encadenar creacion y evaluacion formal, pero no puede convertir evidencia observada en decision operativa ni en aprobacion.
 
+---
+
+# Invariante 11 - Decision sugerida no equivale a resolucion operativa
+
+## TOC
+
+- [11.1 Regla principal](#111-regla-principal)
+- [11.2 EVALUADO no significa APROBADO](#112-evaluado-no-significa-aprobado)
+- [11.3 VIABLE no significa APROBADO](#113-viable-no-significa-aprobado)
+- [11.4 RECHAZAR no significa RECHAZADO](#114-rechazar-no-significa-rechazado)
+- [11.5 La resolucion debe ser explicita](#115-la-resolucion-debe-ser-explicita)
+- [11.6 La resolucion no aplica](#116-la-resolucion-no-aplica)
+- [11.7 La resolucion no reevalua](#117-la-resolucion-no-reevalua)
+- [11.8 offer_origin no se modifica](#118-offerorigin-no-se-modifica)
+- [11.9 No hay workflow bilateral en V1](#119-no-hay-workflow-bilateral-en-v1)
+- [11.10 Regla corta](#1110-regla-corta)
+
+---
+
+## 11.1 Regla principal
+
+La `decision_sugerida` producida durante la evaluacion formal no equivale a resolucion operativa.
+
+La resolucion debe ser una accion explicita posterior sobre una `SwapRequest` en estado `EVALUADO`.
+
+---
+
+## 11.2 EVALUADO no significa APROBADO
+
+Una request en estado:
+
+```text
+EVALUADO
+```
+
+no esta aprobada.
+
+Debe existir una accion formal posterior para pasar a:
+
+```text
+APROBADO
+```
+
+---
+
+## 11.3 VIABLE no significa APROBADO
+
+Una `decision_sugerida` igual a:
+
+```text
+VIABLE
+```
+
+no convierte automaticamente la request en:
+
+```text
+APROBADO
+```
+
+`VIABLE` orienta, pero no resuelve.
+
+---
+
+## 11.4 RECHAZAR no significa RECHAZADO
+
+Una `decision_sugerida` igual a:
+
+```text
+RECHAZAR
+```
+
+no convierte automaticamente la request en:
+
+```text
+RECHAZADO
+```
+
+El rechazo terminal debe ser una resolucion formal con trazabilidad.
+
+---
+
+## 11.5 La resolucion debe ser explicita
+
+La transicion desde:
+
+```text
+EVALUADO
+```
+
+hacia:
+
+```text
+APROBADO
+RECHAZADO
+CANCELADO
+```
+
+requiere una accion explicita de resolucion.
+
+No se permite resolucion automatica en V1.
+
+---
+
+## 11.6 La resolucion no aplica
+
+La resolucion operativa no puede llevar directamente a:
+
+```text
+APLICADO
+```
+
+La aplicacion sigue siendo una etapa posterior y separada.
+
+---
+
+## 11.7 La resolucion no reevalua
+
+La resolucion operativa no debe reevaluar la request.
+
+No debe llamar directamente a:
+
+```text
+engine
+scoring
+simulator
+```
+
+La evaluacion formal ya fue realizada previamente mediante `swap_service.evaluar_swap_request`.
+
+---
+
+## 11.8 offer_origin no se modifica
+
+Si la request proviene de una oferta, `offer_origin` debe permanecer como evidencia observada.
+
+La resolucion no puede modificar:
+
+```text
+clasificacion_observada
+delta_score_observado
+delta_hard_observado
+delta_soft_observado
+```
+
+---
+
+## 11.9 No hay workflow bilateral en V1
+
+En V1 no se agregan estados formales de aceptacion bilateral.
+
+No se incorporan estados como:
+
+```text
+PROPUESTO
+ACEPTADO_POR_CONTRAPARTE
+RECHAZADO_POR_CONTRAPARTE
+PENDIENTE_SUPERVISOR
+```
+
+La contraparte no se modela todavia como workflow propio.
+
+---
+
+## 11.10 Regla corta
+
+La evaluacion formal informa; la resolucion operativa decide; la aplicacion ejecuta.

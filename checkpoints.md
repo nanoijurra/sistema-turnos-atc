@@ -10786,3 +10786,289 @@ No cambia el workflow formal existente.
 No toca `engine`, `scoring`, `simulator`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `request_store`, `roster_store` ni `aplicar_swap_request`.
 
 ---
+
+---
+
+# Checkpoint v73 - Cierre arquitectonico de evaluacion formal desde oferta
+
+## Estado
+
+Documental / arquitectonico.
+
+## Contexto
+
+Luego de v72, el sistema ya permite ejecutar el flujo completo:
+
+```text
+OfertaEvaluada seleccionada
+-> SwapRequest formal PENDIENTE
+-> persistencia explicita
+-> evaluacion formal mediante swap_service.evaluar_swap_request
+-> SwapRequest EVALUADO
+```
+
+La implementacion de v72 incorporo la fachada:
+
+```text
+crear_request_desde_oferta_y_evaluar_formalmente
+```
+
+Esta fachada coordina la creacion de una request formal desde oferta y su evaluacion formal posterior.
+
+## Decision
+
+Se acepta v72 como cierre de la linea:
+
+```text
+oferta -> request -> evaluacion formal
+```
+
+La fachada puede llegar hasta:
+
+```text
+EVALUADO
+```
+
+pero no puede resolver ni aplicar.
+
+## Regla principal
+
+La evaluacion formal posterior a una oferta no implica resolucion automatica.
+
+Una request creada desde oferta y evaluada formalmente sigue requiriendo una etapa posterior de resolucion operativa.
+
+## Alcance permitido de la fachada v72
+
+La fachada puede:
+
+- generar o recibir una oferta seleccionada;
+- crear una `SwapRequest` formal en estado `PENDIENTE`;
+- preservar `offer_origin`;
+- persistir la request creada desde oferta;
+- invocar `swap_service.evaluar_swap_request`;
+- persistir el resultado formal evaluado;
+- devolver una request `EVALUADO` o resultado equivalente.
+
+## Alcance prohibido
+
+La fachada no puede:
+
+- aprobar;
+- rechazar;
+- cancelar;
+- aplicar;
+- modificar roster;
+- resolver automaticamente en base a `decision_sugerida`;
+- convertir `VIABLE` en `APROBADO`;
+- convertir `RECHAZAR` en `RECHAZADO`;
+- convertir `BENEFICIOSO` en aprobacion automatica;
+- reemplazar decision operativa humana o supervisora.
+
+## Riesgo controlado
+
+El principal riesgo arquitectonico posterior a v72 es la acumulacion de responsabilidades en:
+
+```text
+src/offer_workflow_service.py
+```
+
+Actualmente ese modulo concentra:
+
+- generacion de oferta;
+- seleccion;
+- creacion de request;
+- persistencia;
+- evaluacion formal;
+- consultas;
+- filtros;
+- resumenes;
+- reportes;
+- ordenamiento;
+- paginacion.
+
+Se decide no refactorizar todavia, pero tambien no seguir expandiendo ese modulo sin nueva decision arquitectonica.
+
+## Refactor futuro posible
+
+Si aparece presion real de UI/API o nuevas consultas, se evaluara separar responsabilidades en:
+
+```text
+offer_workflow_service.py
+offer_request_query_service.py
+offer_request_report_service.py
+offer_formal_evaluation_service.py
+```
+
+## Decision negativa explicita
+
+No se implementara por ahora:
+
+```text
+crear_request_desde_oferta_evaluar_y_resolver
+```
+
+ni:
+
+```text
+crear_request_desde_oferta_evaluar_resolver_y_aplicar
+```
+
+La resolucion operativa queda fuera de este checkpoint.
+
+## Proximo tema arquitectonico recomendado
+
+```text
+ARQ-V2-03 - Resolucion operativa posterior
+```
+
+Preguntas a resolver:
+
+- quien puede aprobar;
+- quien puede rechazar;
+- como se trata `OBSERVAR`;
+- que rol tiene el supervisor;
+- que rol tiene la aceptacion bilateral;
+- que trazabilidad se exige;
+- si puede existir resolucion asistida;
+- si se prohibe resolucion automatica en V1.
+
+## Resultado
+
+La linea oferta -> request -> evaluacion formal queda cerrada.
+
+El sistema queda preparado para discutir la resolucion operativa posterior sin mezclarla con oferta, evaluacion tecnica ni aplicacion.
+
+---
+
+# Checkpoint v74 - Contrato documental de resolucion operativa explicita
+
+## Estado
+
+Documental / arquitectonico.
+
+## Contexto
+
+Luego de v72 y v73, el sistema ya permite:
+
+```text
+OfertaEvaluada
+-> SwapRequest PENDIENTE
+-> evaluacion formal
+-> SwapRequest EVALUADO
+```
+
+La evaluacion formal puede producir `decision_sugerida`, pero esa decision no debe transformarse automaticamente en resolucion terminal.
+
+## Decision
+
+Se adopta para V1 un modelo de resolucion simple y explicita.
+
+La request evaluada puede resolverse mediante accion formal hacia:
+
+```text
+APROBADO
+RECHAZADO
+CANCELADO
+```
+
+pero no puede resolverse automaticamente por el solo resultado de `decision_sugerida`.
+
+## Modelo elegido
+
+Para V1 se adopta el modelo:
+
+```text
+CTA selecciona oferta
+-> sistema crea SwapRequest
+-> sistema evalua formalmente
+-> actor autorizado resuelve explicitamente
+-> si corresponde, luego se aplica
+```
+
+No se incorpora todavia workflow bilateral formal.
+
+## Justificacion
+
+Este modelo es el mas parecido al flujo operativo actual.
+
+La contraparte no necesita modelarse todavia como estado propio, porque el sistema ya protege restricciones hard y consistencia tecnica mediante evaluacion formal.
+
+La aceptacion bilateral, contrapropuestas y bloqueos multiusuario quedan reservados para una etapa posterior.
+
+## Regla principal
+
+```text
+EVALUADO no significa APROBADO.
+VIABLE no significa APROBADO.
+RECHAZAR no significa RECHAZADO.
+```
+
+## Alcance permitido
+
+La resolucion operativa puede:
+
+- operar sobre `SwapRequest` en estado `EVALUADO`;
+- considerar `decision_sugerida`;
+- considerar clasificacion tecnica formal;
+- registrar actor;
+- registrar fecha/hora;
+- registrar accion;
+- registrar motivo;
+- registrar history;
+- pasar a `APROBADO`, `RECHAZADO` o `CANCELADO`.
+
+## Alcance prohibido
+
+La resolucion operativa no puede:
+
+- reevaluar;
+- aplicar;
+- modificar roster;
+- modificar `offer_origin`;
+- modificar clasificacion formal;
+- modificar decision_sugerida;
+- convertir automaticamente `VIABLE` en `APROBADO`;
+- convertir automaticamente `RECHAZAR` en `RECHAZADO`;
+- convertir automaticamente `BENEFICIOSO` en `APROBADO`.
+
+## Documentos asociados
+
+Se agregan o actualizan:
+
+```text
+Decision 47 - Resolucion operativa posterior explicita
+Contrato 19 - Resolucion operativa posterior de SwapRequest evaluada
+Invariante 11 - Decision sugerida no equivale a resolucion operativa
+```
+
+## Proximo paso recomendado
+
+Implementacion controlada de la resolucion operativa explicita.
+
+Posible checkpoint siguiente:
+
+```text
+v75 - Implementacion de resolucion operativa explicita
+```
+
+## No incluido
+
+No se incluye todavia:
+
+- workflow bilateral formal;
+- aceptacion por contraparte;
+- contrapropuestas;
+- bloqueos multiusuario;
+- aprobacion automatica;
+- rechazo automatico;
+- aplicacion automatica;
+- UI;
+- API;
+- cambios en taxonomias;
+- nuevos estados de `SwapRequest`.
+
+## Resultado
+
+Queda cerrado el contrato arquitectonico de resolucion operativa explicita para V1.
+
+La evaluacion formal informa; la resolucion operativa decide; la aplicacion ejecuta.

@@ -1232,3 +1232,231 @@ No se acepta que la fachada apruebe, rechace, cancele o aplique swaps.
 ## 45.9 Regla corta
 
 La fachada automatiza el encadenamiento operativo de crear y evaluar formalmente, pero no automatiza la decision ni la aplicacion.
+
+---
+
+# Decision 46 - La evaluacion formal desde oferta no implica resolucion automatica
+
+## Estado
+
+Aceptada.
+
+## Contexto
+
+Luego de implementar `crear_request_desde_oferta_y_evaluar_formalmente`, el sistema puede crear una `SwapRequest` formal desde una oferta seleccionada y evaluarla mediante `swap_service.evaluar_swap_request`.
+
+El resultado esperado de esa fachada es una request en estado `EVALUADO`.
+
+## Decision
+
+La evaluacion formal de una request creada desde oferta no implica resolucion automatica.
+
+Una request `EVALUADO` no debe pasar automaticamente a:
+
+```text
+APROBADO
+RECHAZADO
+CANCELADO
+APLICADO
+```
+
+## Justificacion
+
+La evaluacion formal produce informacion tecnica y decision sugerida, pero la resolucion operativa pertenece a una etapa posterior del workflow.
+
+La decision `VIABLE`, `OBSERVAR` o `RECHAZAR` no equivale por si misma a una resolucion final.
+
+## Regla corta
+
+```text
+EVALUADO no significa APROBADO.
+VIABLE no significa APROBADO.
+RECHAZAR como decision sugerida no significa RECHAZADO terminal.
+```
+
+---
+
+# Decision 47 - Resolucion operativa posterior explicita
+
+## TOC
+
+- [47.1 Estado](#471-estado)
+- [47.2 Contexto](#472-contexto)
+- [47.3 Decision](#473-decision)
+- [47.4 Modelo elegido para V1](#474-modelo-elegido-para-v1)
+- [47.5 Alcance permitido](#475-alcance-permitido)
+- [47.6 Restricciones](#476-restricciones)
+- [47.7 Justificacion](#477-justificacion)
+- [47.8 Consecuencias](#478-consecuencias)
+- [47.9 Decision negativa explicita](#479-decision-negativa-explicita)
+- [47.10 Regla corta](#4710-regla-corta)
+
+---
+
+## 47.1 Estado
+
+Aceptada.
+
+---
+
+## 47.2 Contexto
+
+El sistema ya permite crear una `SwapRequest` formal desde una oferta evaluada seleccionada y luego evaluarla formalmente mediante `swap_service.evaluar_swap_request`.
+
+El flujo consolidado es:
+
+```text
+OfertaEvaluada
+-> seleccion de oferta
+-> SwapRequest formal PENDIENTE
+-> offer_origin como evidencia observada
+-> persistencia explicita
+-> evaluacion formal por swap_service
+-> SwapRequest EVALUADO
+```
+
+La evaluacion formal puede producir una `decision_sugerida`:
+
+```text
+VIABLE
+OBSERVAR
+RECHAZAR
+```
+
+Pero esa decision sugerida no constituye una resolucion operativa terminal.
+
+---
+
+## 47.3 Decision
+
+La resolucion operativa posterior a una `SwapRequest` en estado `EVALUADO` debe ser explicita.
+
+Una request evaluada puede pasar a:
+
+```text
+APROBADO
+RECHAZADO
+CANCELADO
+```
+
+solo mediante una accion formal de resolucion.
+
+La resolucion no debe ser automatica por el solo hecho de existir una `decision_sugerida`.
+
+---
+
+## 47.4 Modelo elegido para V1
+
+Para V1 se adopta el modelo simple:
+
+```text
+CTA selecciona oferta
+-> sistema crea SwapRequest
+-> sistema evalua formalmente
+-> actor autorizado resuelve explicitamente
+-> si corresponde, luego se aplica
+```
+
+No se incorpora todavia un workflow formal de aceptacion bilateral.
+
+La contraparte no se modela como estado propio en V1, porque el sistema ya protege las restricciones hard mediante evaluacion tecnica y formal.
+
+La aceptacion bilateral, contrapropuestas y bloqueos multiusuario quedan fuera de esta decision y podran tratarse en una etapa posterior.
+
+---
+
+## 47.5 Alcance permitido
+
+La resolucion operativa puede:
+
+- consumir una `SwapRequest` en estado `EVALUADO`;
+- considerar la `decision_sugerida`;
+- considerar la clasificacion tecnica formal;
+- considerar advertencias o divergencias;
+- registrar actor de resolucion;
+- registrar fecha/hora de resolucion;
+- registrar accion de resolucion;
+- registrar motivo;
+- pasar la request a `APROBADO`, `RECHAZADO` o `CANCELADO`.
+
+---
+
+## 47.6 Restricciones
+
+La resolucion operativa no puede:
+
+- modificar `offer_origin`;
+- modificar la clasificacion tecnica formal;
+- modificar la evaluacion formal;
+- aplicar el swap;
+- modificar roster;
+- reevaluar la request;
+- convertir automaticamente `VIABLE` en `APROBADO`;
+- convertir automaticamente `RECHAZAR` en `RECHAZADO`;
+- convertir automaticamente `BENEFICIOSO` en `APROBADO`.
+
+---
+
+## 47.7 Justificacion
+
+La evaluacion formal informa, pero no decide terminalmente.
+
+La `decision_sugerida` orienta al actor operativo, pero no reemplaza la resolucion formal.
+
+Este diseño mantiene separadas cuatro etapas:
+
+```text
+evaluacion tecnica
+-> decision sugerida
+-> resolucion operativa
+-> aplicacion al roster
+```
+
+La separacion evita automatizar decisiones operativas antes de definir roles, supervision, consentimiento bilateral, excepciones y trazabilidad institucional.
+
+---
+
+## 47.8 Consecuencias
+
+Una `SwapRequest` en estado `EVALUADO` queda lista para resolucion, pero no esta aprobada automaticamente.
+
+El sistema puede asistir la resolucion mostrando:
+
+- clasificacion tecnica formal;
+- decision_sugerida;
+- impacto tecnico;
+- divergencias contra `offer_origin`;
+- advertencias;
+- historial de eventos.
+
+Pero la transicion a `APROBADO`, `RECHAZADO` o `CANCELADO` requiere accion explicita.
+
+---
+
+## 47.9 Decision negativa explicita
+
+No se implementa por ahora:
+
+```text
+VIABLE -> APROBADO automatico
+RECHAZAR -> RECHAZADO automatico
+BENEFICIOSO -> APROBADO automatico
+EVALUADO -> APLICADO automatico
+```
+
+No se agregan en V1 estados nuevos como:
+
+```text
+PROPUESTO
+ACEPTADO_POR_CONTRAPARTE
+RECHAZADO_POR_CONTRAPARTE
+PENDIENTE_SUPERVISOR
+```
+
+No se implementa todavia workflow bilateral formal.
+
+---
+
+## 47.10 Regla corta
+
+La evaluacion formal informa; la resolucion operativa decide; la aplicacion ejecuta.
