@@ -11735,3 +11735,175 @@ No mueve aplicacion fuera de `swap_service`.
 No toca `engine`, `scoring`, `simulator`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `offer_workflow_service`, `request_store` ni `roster_store`.
 
 ---
+
+## checkpoint-v78-auditoria-lifecycle-formal-completo
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se agrego una prueba de integracion del lifecycle formal completo de `SwapRequest`.
+
+El objetivo fue auditar de punta a punta el flujo formal ya consolidado:
+
+```text
+PENDIENTE
+-> evaluar_swap_request
+-> EVALUADO
+-> resolver_swap_request
+-> APROBADO
+-> aplicar_swap_request
+-> APLICADO
+```
+
+No se modifico codigo productivo.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Test de lifecycle formal completo
+
+Se agrego el archivo:
+
+- `tests/test_swap_request_lifecycle.py`
+
+Se agrego el test:
+
+- `test_lifecycle_formal_completo_evaluar_resolver_aplicar`
+
+---
+
+#### 2. Flujo cubierto
+
+El test valida la secuencia completa:
+
+- creacion de roster inicial vigente
+- creacion de `SwapRequest`
+- estado inicial `PENDIENTE`
+- evaluacion formal mediante `evaluar_swap_request`
+- estado `EVALUADO`
+- resolucion explicita mediante `resolver_swap_request`
+- estado `APROBADO`
+- aplicacion explicita mediante `aplicar_swap_request`
+- estado final `APLICADO`
+
+---
+
+#### 3. Evidencia de separacion de compuertas
+
+El test confirma que:
+
+- evaluar informa
+- resolver decide explicitamente
+- aplicar ejecuta
+
+Cada transicion ocurre por su funcion formal correspondiente.
+
+---
+
+#### 4. Persistencia verificada
+
+El test recupera la request desde `request_store` y verifica:
+
+- estado final `APLICADO`
+- `decision_sugerida` conservada
+- `roster_version_id` original conservado
+- history persistido
+
+---
+
+#### 5. Versionado de roster verificado
+
+El test valida que la aplicacion:
+
+- crea nueva version de roster
+- incrementa `version_number`
+- asigna `base_version_id` a la version anterior
+- deja la nueva version vigente
+- deja la version anterior no vigente
+- intercambia los turnos esperados
+
+---
+
+#### 6. History verificado
+
+El test valida que el historial contiene:
+
+- `REQUEST_EVALUADO`
+- `REQUEST_RESUELTO`
+- `SWAP_APLICADO`
+
+---
+
+### Resultados observados
+
+Test focalizado:
+
+```text
+tests/test_swap_request_lifecycle.py passed
+```
+
+Tests relacionados:
+
+```text
+tests/test_swap_service.py passed
+```
+
+Suite completa:
+
+```text
+367 passed
+```
+
+---
+
+### Contratos preservados
+
+- `PENDIENTE` no significa evaluado.
+- `EVALUADO` no significa aprobado.
+- `APROBADO` no significa aplicado.
+- `APLICADO` ocurre solo por `aplicar_swap_request`.
+- La evaluacion formal ocurre por `evaluar_swap_request`.
+- La resolucion operativa ocurre por `resolver_swap_request`.
+- La aplicacion ocurre por `aplicar_swap_request`.
+- No hay aplicacion automatica al evaluar.
+- No hay aplicacion automatica al resolver.
+- No hay aprobacion automatica por `decision_sugerida`.
+- No hay aplicacion automatica por clasificacion tecnica.
+- No se agregaron estados nuevos.
+- No se agrego fachada nueva.
+- No se modifico `swap_service`.
+
+---
+
+### Limitaciones actuales conscientes
+
+- No se probo workflow bilateral.
+- No se probo aceptacion por contraparte.
+- No se probo bloqueo multiusuario.
+- No se probo UI/API.
+- No se agrego auditoria estructurada.
+- No se agrego automatizacion evaluar-resolver-aplicar.
+
+---
+
+### Proximos pasos naturales
+
+- Volver a arquitectura antes de automatizar cualquier tramo del workflow.
+- Documentar el flujo formal completo en `docs/contratos.md` o `docs/invariantes.md` si se decide.
+- Evaluar si corresponde separar auditoria/history estructurada en una etapa futura.
+- No seguir agregando automatismos sin decision arquitectonica previa.
+
+---
+
+### Notas
+
+Este checkpoint es test-only.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `models`, `request_store`, `roster_store`, `offer_workflow_service`, `offer_to_request_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow` ni `offer_reporting`.
+
+---
