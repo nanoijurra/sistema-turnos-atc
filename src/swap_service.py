@@ -241,7 +241,7 @@ def cancelar_requests_obsoletos(roster_version_id_viejo: str) -> int:
         if req.roster_version_id != roster_version_id_viejo:
             continue
 
-        if req.estado in ("PENDIENTE", "EVALUADO"):
+        if req.estado in ("PENDIENTE", "EVALUADO", "APROBADO"):
             req.cancelar_por_obsolescencia()
             guardar_request(req)
             cancelados += 1

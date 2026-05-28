@@ -11497,3 +11497,241 @@ Queda cerrado el contrato documental de aplicacion explicita.
 
 La evaluacion formal informa, la resolucion operativa decide y la aplicacion ejecuta sobre una nueva version de roster.---
 
+---
+
+## checkpoint-v77-aplicacion-explicita-request-aprobada
+Fecha: 2026-05-19
+
+---
+
+### Estado general
+
+Se consolido `swap_service.aplicar_swap_request` como compuerta formal de aplicacion explicita de una `SwapRequest` aprobada.
+
+El bloque refuerza el contrato definido en v76:
+
+```text
+SwapRequest APROBADO
+-> aplicar_swap_request
+-> ejecutar intercambio sobre roster
+-> crear nueva version de roster
+-> marcar request APLICADO
+-> registrar history
+-> persistir estado APLICADO
+```
+
+La aplicacion no ocurre automaticamente al evaluar ni al resolver.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Aplicacion explicita APROBADO -> APLICADO
+
+Se reforzo el comportamiento existente en:
+
+- `src/swap_service.py`
+
+Funcion:
+
+- `aplicar_swap_request`
+
+Contrato preservado:
+
+- solo requests en estado `APROBADO` pueden aplicarse
+- requests `PENDIENTE`, `EVALUADO`, `RECHAZADO`, `CANCELADO` no aplican
+- requests `APLICADO` no pueden aplicarse otra vez
+
+---
+
+#### 2. Nueva version de roster
+
+La aplicacion:
+
+- valida roster vigente
+- valida que `request.roster_version_id` corresponda al roster vigente
+- valida indices
+- valida consistencia entre controladores del request y asignaciones del roster
+- intercambia los turnos involucrados
+- crea una nueva version de roster
+- deja la version anterior no vigente
+- deja la nueva version como vigente
+
+---
+
+#### 3. Persistencia de aplicacion
+
+La request aplicada:
+
+- cambia a estado `APLICADO`
+- conserva `decision_sugerida`
+- conserva `offer_origin`
+- conserva el motivo/origen previo
+- registra `SWAP_APLICADO` en history
+- persiste estado `APLICADO`
+
+---
+
+#### 4. Cancelacion por obsolescencia ampliada
+
+Se modificaron:
+
+- `src/models.py`
+- `src/swap_service.py`
+
+Se amplio la cancelacion por obsolescencia para incluir requests:
+
+- `PENDIENTE`
+- `EVALUADO`
+- `APROBADO`
+
+Motivo:
+
+- al aplicar un swap se crea una nueva version de roster
+- requests pendientes/evaluadas/aprobadas asociadas a la version anterior pueden quedar obsoletas
+- una request `APROBADO` sobre una version vieja ya no debe seguir aplicable
+
+---
+
+#### 5. Estados no modificados por obsolescencia
+
+La cancelacion por obsolescencia no modifica requests:
+
+- `RECHAZADO`
+- `CANCELADO`
+- `APLICADO`
+
+Esto preserva terminales historicas y evita reabrir o alterar eventos ya cerrados.
+
+---
+
+#### 6. Ajuste en SwapRequest.cancelar_por_obsolescencia
+
+Se actualizo el metodo:
+
+- `SwapRequest.cancelar_por_obsolescencia`
+
+Ahora permite cancelar por obsolescencia requests `APROBADO`.
+
+Sigue rechazando:
+
+- requests ya `CANCELADO`
+- requests ya `RECHAZADO`
+- requests ya `APLICADO`
+
+---
+
+#### 7. Tests agregados/reforzados
+
+Se modifico:
+
+- `tests/test_swap_service.py`
+
+Cobertura agregada/reforzada:
+
+- `APROBADO` pasa a `APLICADO`
+- aplicar crea nueva version de roster
+- version anterior deja de ser vigente
+- nueva version queda vigente
+- se intercambian los turnos esperados
+- estado `APLICADO` persiste
+- history `SWAP_APLICADO` persiste
+- aplicar no modifica `decision_sugerida`
+- aplicar no modifica `offer_origin`
+- `CANCELADO` no puede aplicar
+- `APLICADO` no puede aplicar otra vez
+- no se aplica request con `roster_version_id` distinto al vigente
+- aplicar no llama evaluacion formal
+- aplicar no llama resolucion
+- obsoletas `PENDIENTE`, `EVALUADO` y `APROBADO` se cancelan
+- obsoletas registran motivo/history de obsolescencia
+- `RECHAZADO`, `CANCELADO` y `APLICADO` no se modifican por obsolescencia
+
+---
+
+### Resultados observados
+
+Tests focalizados:
+
+```text
+tests/test_swap_service.py passed
+```
+
+Tests relacionados:
+
+```text
+tests/test_request_store.py passed
+tests/test_offer_workflow_formal_evaluation.py passed
+tests/test_offer_workflow_formal_evaluation_integration.py passed
+```
+
+Suite completa:
+
+```text
+366 passed
+```
+
+---
+
+### Contratos preservados
+
+- Solo `APROBADO` puede aplicar.
+- `PENDIENTE` no puede aplicar.
+- `EVALUADO` no puede aplicar.
+- `RECHAZADO` no puede aplicar.
+- `CANCELADO` no puede aplicar.
+- `APLICADO` no puede aplicar otra vez.
+- Aplicar no reevalua.
+- Aplicar no resuelve.
+- Aplicar no aprueba.
+- Aplicar no rechaza.
+- Aplicar no modifica `decision_sugerida`.
+- Aplicar no modifica `offer_origin`.
+- Aplicar no reemplaza evaluacion formal.
+- Aplicar crea nueva version de roster.
+- Aplicar registra history.
+- Aplicar persiste estado `APLICADO`.
+- Aplicar no crea workflow paralelo.
+
+---
+
+### Limitaciones actuales conscientes
+
+- No hay aplicacion automatica al aprobar.
+- No hay aplicacion automatica por `decision_sugerida == VIABLE`.
+- No hay aplicacion automatica por clasificacion tecnica `BENEFICIOSO`.
+- No hay workflow bilateral.
+- No hay bloqueo multiusuario.
+- No hay permisos/roles.
+- No hay UI.
+- No hay API.
+- No hay exportacion.
+- No hay auditoria estructurada separada mas alla de history.
+
+---
+
+### Proximos pasos naturales
+
+- Volver a arquitectura antes de automatizar cualquier tramo del workflow.
+- Evaluar si corresponde documentar formalmente el flujo completo:
+  - evaluar informa
+  - resolver decide
+  - aplicar ejecuta
+- Evaluar si corresponde una auditoria documental del workflow completo.
+- No implementar `evaluar_resolver_aplicar` automatico sin decision arquitectonica previa.
+
+---
+
+### Notas
+
+Este checkpoint consolida la aplicacion explicita dentro del workflow formal de `SwapRequest`.
+
+No crea fachada nueva.
+
+No mueve aplicacion fuera de `swap_service`.
+
+No toca `engine`, `scoring`, `simulator`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting`, `offer_service`, `offer_to_request_service`, `offer_workflow_service`, `request_store` ni `roster_store`.
+
+---

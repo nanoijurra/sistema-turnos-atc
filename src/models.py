@@ -128,8 +128,8 @@ class SwapRequest:
         if self.estado == "CANCELADO":
             raise ValueError("No se puede cancelar dos veces el mismo request.")
 
-        if self.estado in ("APROBADO", "RECHAZADO"):
-            raise ValueError("No se puede cancelar un request ya resuelto.")
+        if self.estado == "RECHAZADO":
+            raise ValueError("No se puede cancelar un request ya rechazado.")
 
         self.estado = "CANCELADO"
         self.fecha_resolucion = self.fecha_resolucion or datetime.now()
