@@ -15,7 +15,7 @@ Su objetivo es evitar ambiguedades entre capas, responsabilidades, estados, clas
 
 - `simulator` -> subsistema responsable de simular swaps, comparar escenario antes/despues y producir clasificacion tecnica. Clasifica tecnicamente, pero no decide operativamente.
 
-- `swap_service` -> subsistema responsable del workflow formal de `SwapRequest`: crear, evaluar, resolver y aplicar. Es responsable de decision operativa, estados y persistencia del workflow.
+- `swap_service` -> subsistema responsable del workflow formal de `SwapRequest`: crear, evaluar, resolver y aplicar. Es responsable de decision operativa, estados, persistencia y trazabilidad del workflow. Evalua para informar, resuelve para decidir explicitamente y aplica para ejecutar el cambio sobre roster.
 
 - `roster_index` -> estructura derivada del roster vigente para acceso rapido. No evalua, no clasifica, no decide y no persiste.
 
@@ -55,6 +55,14 @@ Su objetivo es evitar ambiguedades entre capas, responsabilidades, estados, clas
 
 - `selection_reason` -> motivo de seleccion de una oferta. No significa motivo de resolucion operativa.
 
+- `motivo_creacion` -> razon o contexto por el cual se crea una `SwapRequest`. No equivale a motivo de resolucion.
+
+- `motivo_resolucion` -> razon registrada al resolver explicitamente una `SwapRequest`. Pertenece a la accion de resolver y no debe confundirse con motivo de creacion, seleccion de oferta u obsolescencia tecnica.
+
+- `history` -> registro cronologico de eventos relevantes del workflow de una `SwapRequest`. Sirve para trazabilidad, no para definir permisos formales.
+
+- `actor` -> identificador registrado en un evento de `history` para indicar quien ejecuto o disparo una accion. No equivale por si mismo a autorizacion, rol formal ni control de permisos.
+
 - `roster_version_id` -> identificador de version de roster sobre la cual se evalua o crea una request.
 
 - `roster_hash` -> huella tecnica del contenido del roster. Sirve para detectar obsolescencia o inconsistencia entre oferta y roster vigente.
@@ -73,25 +81,25 @@ Su objetivo es evitar ambiguedades entre capas, responsabilidades, estados, clas
 
 ## Decision operativa
 
-- `VIABLE` -> decision operativa sugerida por `swap_service`.
+- `VIABLE` -> decision operativa sugerida por `swap_service` luego de evaluar formalmente una `SwapRequest`. Indica que puede avanzar a resolucion favorable si un actor la resuelve explicitamente. No significa `APROBADO`.
 
-- `OBSERVAR` -> decision operativa sugerida por `swap_service` cuando corresponde revision o cautela.
+- `OBSERVAR` -> decision operativa sugerida por `swap_service` cuando corresponde revision o cautela antes de resolver explicitamente.
 
-- `RECHAZAR` -> decision operativa sugerida por `swap_service` cuando el flujo formal determina rechazo operativo.
+- `RECHAZAR` -> decision operativa sugerida por `swap_service` cuando la evaluacion formal indica rechazo operativo recomendado. No significa `RECHAZADO` terminal hasta que exista resolucion explicita.
 
 ## Estados de SwapRequest
 
 - `PENDIENTE` -> estado inicial de una `SwapRequest` creada pero aun no evaluada formalmente.
 
-- `EVALUADO` -> estado de una `SwapRequest` luego de pasar por evaluacion formal.
+- `EVALUADO` -> estado de una `SwapRequest` luego de pasar por evaluacion formal. Informa resultado tecnico-operativo, pero no aprueba, rechaza, cancela ni aplica.
 
-- `APROBADO` -> estado de una `SwapRequest` resuelta favorablemente.
+- `APROBADO` -> estado de una `SwapRequest` resuelta favorablemente mediante accion explicita. No significa `APLICADO`.
 
-- `RECHAZADO` -> estado terminal de una `SwapRequest` resuelta desfavorablemente.
+- `RECHAZADO` -> estado terminal de una `SwapRequest` resuelta desfavorablemente mediante accion explicita.
 
-- `CANCELADO` -> estado terminal de una `SwapRequest` cancelada.
+- `CANCELADO` -> estado terminal de una `SwapRequest` cancelada. Puede responder a decision operativa, obsolescencia o imposibilidad de continuar el flujo. Cancelacion por obsolescencia no equivale a rechazo operativo.
 
-- `APLICADO` -> estado final de una `SwapRequest` cuyo swap fue aplicado al roster.
+- `APLICADO` -> estado final de una `SwapRequest` aprobada cuyo swap fue ejecutado sobre una nueva version de roster.
 
 ---
 
@@ -107,7 +115,11 @@ Su objetivo es evitar ambiguedades entre capas, responsabilidades, estados, clas
 
 - `estado_workflow` -> estado formal de una `SwapRequest`. No debe confundirse con clasificacion tecnica ni decision operativa.
 
-- `evaluacion_formal` -> evaluacion de una `SwapRequest` realizada mediante `swap_service.evaluar_swap_request`.
+- `evaluacion_formal` -> evaluacion de una `SwapRequest` realizada mediante `swap_service.evaluar_swap_request`. Informa resultado tecnico-operativo y deja la request en estado `EVALUADO`; no resuelve ni aplica.
+
+- `resolucion_operativa` -> accion explicita posterior a la evaluacion formal. Decide si una `SwapRequest` pasa a `APROBADO`, `RECHAZADO` o `CANCELADO`. No reevalua y no aplica.
+
+- `aplicacion_formal` -> accion posterior a una resolucion favorable. Ejecuta el swap aprobado sobre roster y deja la request en estado `APLICADO`.
 
 - `evidencia_observada` -> informacion tecnica preservada desde la oferta original. Sirve para trazabilidad, no para reemplazar evaluacion formal.
 
@@ -129,13 +141,13 @@ Su objetivo es evitar ambiguedades entre capas, responsabilidades, estados, clas
 
 Estos verbos pertenecen al dominio de `SwapRequest` y `swap_service`:
 
-- `crear`
-- `evaluar`
-- `resolver`
-- `aprobar`
-- `rechazar`
-- `cancelar`
-- `aplicar`
+- `crear` -> generar una `SwapRequest` formal.
+- `evaluar` -> informar resultado tecnico-operativo de una `SwapRequest`. No decide y no aplica.
+- `resolver` -> decidir explicitamente el destino operativo de una `SwapRequest` evaluada.
+- `aprobar` -> resolver favorablemente una `SwapRequest`. No aplica el swap.
+- `rechazar` -> resolver desfavorablemente una `SwapRequest`.
+- `cancelar` -> cerrar una `SwapRequest` sin aplicarla. Si la causa es obsolescencia, no equivale a rechazo operativo.
+- `aplicar` -> ejecutar un swap aprobado sobre una nueva version de roster.
 
 No deben usarse para describir workflow propio de ofertas.
 
@@ -166,21 +178,35 @@ La oferta no se aprueba, no se rechaza, no se aplica y no se resuelve.
 
 - `selection_reason` no es motivo de resolucion.
 
+- `motivo_creacion` no es `motivo_resolucion`.
+
+- `actor` registrado en `history` no equivale a permisos formales.
+
 - `candidate_selection` no reemplaza a `simulator`.
 
 - `priorizacion_historica` no modifica clasificacion tecnica.
 
 - `decision_operativa` no es clasificacion tecnica.
 
+- `decision_sugerida` no es estado del workflow.
+
 - `estado_workflow` no es decision operativa.
 
+- `VIABLE` no significa `APROBADO`.
+
+- `RECHAZAR` como decision sugerida no significa `RECHAZADO` terminal.
+
 - `APROBADO` no significa `BENEFICIOSO`.
+
+- `APROBADO` no significa `APLICADO`.
 
 - `BENEFICIOSO` no implica aprobacion automatica.
 
 - `EVALUADO` no implica aprobado.
 
 - `APLICADO` no implica reevaluacion.
+
+- Cancelacion por obsolescencia no equivale a rechazo operativo.
 
 ---
 
@@ -200,14 +226,28 @@ La oferta no se aprueba, no se rechaza, no se aplica y no se resuelve.
 
 - La evaluacion formal de una request pertenece a `swap_service`.
 
+- Evaluar informa.
+
+- Resolver decide explicitamente.
+
+- Aplicar ejecuta.
+
 - La fachada puede encadenar creacion y evaluacion formal, pero no puede resolver ni aplicar.
 
 - La clasificacion tecnica no equivale a decision operativa.
 
 - La decision operativa no equivale a estado del workflow.
 
+- `VIABLE` no equivale a `APROBADO`.
+
+- `APROBADO` no equivale a `APLICADO`.
+
 - La request creada desde oferta nace `PENDIENTE`.
 
 - La transicion valida de la fachada es `PENDIENTE -> EVALUADO`.
 
+- La resolucion explicita posterior puede llevar a `APROBADO`, `RECHAZADO` o `CANCELADO`.
+
 - La aplicacion del swap sigue siendo una operacion posterior, formal y separada.
+
+- Cancelar por obsolescencia cierra el flujo sin convertir la request en rechazo operativo.

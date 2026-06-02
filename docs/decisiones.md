@@ -8,6 +8,10 @@
 - [Decision operativa](#decision-operativa)
 - [Versionado y consistencia](#versionado-y-consistencia)
 - [Estrategia de evolucion](#estrategia-de-evolucion)
+- [Decision 45 - Fachada para crear request desde oferta y evaluar formalmente](#decision-45---fachada-para-crear-request-desde-oferta-y-evaluar-formalmente)
+- [Decision 46 - La evaluacion formal desde oferta no implica resolucion automatica](#decision-46---la-evaluacion-formal-desde-oferta-no-implica-resolucion-automatica)
+- [Decision 47 - Resolucion operativa posterior explicita](#decision-47---resolucion-operativa-posterior-explicita)
+- [Decision 48 - Aplicacion explicita solo desde APROBADO](#decision-48---aplicacion-explicita-solo-desde-aprobado)
 
 ---
 
@@ -62,7 +66,7 @@ Trazabilidad completa y auditabilidad.
 - ACEPTABLE
 - RECHAZABLE
 
-### Mapeo normal hacia decision operativa
+### Mapeo normal hacia decision_sugerida
 
 - BENEFICIOSO → VIABLE
 - ACEPTABLE → OBSERVAR
@@ -70,7 +74,9 @@ Trazabilidad completa y auditabilidad.
 
 ### Aclaracion
 
-Este mapeo expresa el tratamiento operativo normal derivado de la evaluación técnica, pero puede ser desplazado por restricciones operativas del flujo, como la ventana operativa.
+Este mapeo expresa el tratamiento operativo sugerido derivado de la evaluación técnica, pero puede ser desplazado por restricciones operativas del flujo, como la ventana operativa.
+
+La `decision_sugerida` no equivale a resolucion operativa ni a estado terminal del workflow.
 
 ### Motivo
 
@@ -159,7 +165,7 @@ Se consolida la separación estricta entre capas con esta distribución final:
 - engine → validación técnica de reglas
 - scoring → validez y score
 - simulator → simulación y clasificación técnica del swap
-- swap_service → decisión operativa, estados y orquestación del flujo
+- swap_service → evaluacion formal, decision_sugerida, resolucion operativa, estados y aplicacion del flujo
 - (futuro) roster_service → versionado, vigencia y obsolescencia de roster
 
 ### Definicion
@@ -167,8 +173,9 @@ Se consolida la separación estricta entre capas con esta distribución final:
 - engine responde si existen violaciones según reglas configuradas
 - scoring responde si el roster es válido y cuál es su score
 - simulator responde cómo impacta técnicamente un swap
-- swap_service responde qué decisión operativa corresponde sobre un SwapRequest
-- aplicar_swap_request no reevalúa ni reclasifica
+- evaluar_swap_request informa resultado formal y decision_sugerida
+- resolver_swap_request decide explicitamente el destino operativo del SwapRequest
+- aplicar_swap_request ejecuta una request aprobada; no reevalúa ni reclasifica
 
 ### Motivo
 
@@ -180,7 +187,9 @@ Queda prohibido:
 - que engine tome decisiones de negocio
 - que simulator modifique requests o persista
 - que swap_service reclasifique swaps
-- que aplicar_swap_request vuelva a evaluar un swap
+- que evaluar_swap_request resuelva o aplique
+- que resolver_swap_request reevalúe o aplique
+- que aplicar_swap_request vuelva a evaluar o resolver un swap
 
 Ver implementación contractual en:
 [Ref: contratos.md #16]
@@ -195,8 +204,9 @@ Cada pregunta crítica del sistema debe tener un único módulo responsable.
 
 - validez técnica por reglas → engine / scoring
 - clasificación técnica del swap → simulator
-- decisión operativa del request → swap_service
-- aplicación real y versionado → swap_service (temporalmente), luego roster_service
+- evaluacion formal y decision_sugerida → swap_service.evaluar_swap_request
+- resolucion operativa explicita → swap_service.resolver_swap_request
+- aplicación real y versionado → swap_service.aplicar_swap_request (temporalmente), luego roster_service
 
 ### Motivo
 
@@ -217,9 +227,10 @@ La ventana operativa no forma parte de la calidad técnica del roster, sino de l
 ### Consecuencia
 
 Si falla la ventana operativa:
-- la decisión operativa es RECHAZAR
-- se registra motivo: SWAP_FUERA_DE_VENTANA_OPERATIVA
+- la decision_sugerida es RECHAZAR
+- se registra motivo de evaluacion: SWAP_FUERA_DE_VENTANA_OPERATIVA
 - la clasificación técnica no se modifica ni se falsifica
+- no se genera por si mismo un estado terminal RECHAZADO
 
 ### Opcionalmente
 
@@ -308,14 +319,16 @@ swap_service no puede fabricar ni reemplazar clasificación técnica por motivos
 
 ### Decision
 
-La decisión operativa del request queda separada de la clasificación técnica.
+La decision_sugerida del request queda separada de la clasificación técnica, de la resolucion operativa y del estado del workflow.
 
 ### Definicion
 
 - clasificacion_tecnica = resultado técnico del swap
-- decision_operativa = acción o tratamiento del request dentro del flujo del sistema
+- decision_sugerida = tratamiento operativo sugerido durante la evaluacion formal
+- resolucion_operativa = accion explicita posterior que lleva el request a APROBADO, RECHAZADO o CANCELADO
+- estado_workflow = punto del ciclo de vida del request
 
-### Valores de decision operativa
+### Valores de decision_sugerida
 
 - VIABLE
 - OBSERVAR
@@ -323,11 +336,11 @@ La decisión operativa del request queda separada de la clasificación técnica.
 
 ### Origen
 
-- swap_service
+- swap_service.evaluar_swap_request
 
 ### Motivo
 
-Preservar trazabilidad y permitir representar casos donde un swap sea técnicamente aceptable o beneficioso pero operativamente inadmisible.
+Preservar trazabilidad y permitir representar casos donde un swap sea técnicamente aceptable o beneficioso pero operativamente inadmisible, sin convertir automaticamente la sugerencia en estado terminal.
 
 ---
 
@@ -355,8 +368,11 @@ Evitar mezclar causas técnicas con causas operativas.
 El modelo del request debe permitir distinguir explícitamente:
 
 - clasificación técnica
-- decisión operativa
-- motivo operativo, cuando corresponda
+- decision_sugerida
+- motivo de evaluacion, cuando corresponda
+- resolucion operativa explicita
+- motivo_resolucion, cuando corresponda
+- cancelacion por obsolescencia, cuando corresponda
 
 ### Motivo
 
@@ -522,14 +538,18 @@ El uso de versiones dummy para cálculos comparativos se considera transitorio y
 
 `RosterVersion` pertenece al plano de versionado real del sistema, mientras que la simulación necesita comparar escenarios hipotéticos sin forzar dependencia con la abstracción de versionado formal.
 
-### Decision 28 Frontera definitiva entre simulator y swap_service
+---
+
+### Decision 28 - Frontera definitiva entre simulator y swap_service
 
 Decisión:
 Se consolida la frontera definitiva entre `simulator` y `swap_service`.
 
 Definición:
 - `simulator` produce evaluación técnica de escenarios hipotéticos de swap
-- `swap_service` produce tratamiento operativo del request dentro del flujo del sistema
+- `evaluar_swap_request` produce evaluacion formal y decision_sugerida
+- `resolver_swap_request` produce resolucion operativa explicita
+- `aplicar_swap_request` produce aplicacion sobre roster
 
 Responsabilidad de `simulator`:
 - comparar escenario original y escenario resultante
@@ -540,17 +560,22 @@ Responsabilidad de `simulator`:
 Responsabilidad de `swap_service`:
 - validar condiciones estructurales y operativas del request
 - consumir evaluación técnica de `simulator`
-- producir decisión operativa
+- producir decision_sugerida durante evaluacion formal
+- resolver explicitamente requests evaluadas
+- aplicar requests aprobadas
 - gestionar estado, persistencia e historial del request
 
 Regla:
-`simulator` no produce decisión operativa ni estado de workflow.
+`simulator` no produce decision_sugerida, resolucion operativa ni estado de workflow.
 `swap_service` no reclasifica técnicamente ni reinterpreta el resultado técnico como nueva clasificación.
+`evaluar_swap_request` informa.
+`resolver_swap_request` decide explicitamente.
+`aplicar_swap_request` ejecuta.
 
 Motivo:
 Blindar la separación entre evaluación técnica y ciclo de vida operativo del request.
 
-### Decision 29 Frontera publica de simulator
+### Decision 29 - Frontera publica de simulator
 
 Decisión:
 Se restringe la superficie publica de `simulator` a capacidades tecnicas exclusivamente.
@@ -1191,7 +1216,7 @@ La mejora esperada es operativa:
 - evita que queden requests creadas desde oferta sin evaluacion formal;
 - concentra la trazabilidad del paso oferta -> request -> evaluacion formal;
 - permite comparar la evidencia observada de `offer_origin` con la evaluacion formal posterior;
-- mantiene a `swap_service` como responsable de la evaluacion formal y la decision operativa.
+- mantiene a `swap_service` como responsable de la evaluacion formal y la decision_sugerida.
 
 ---
 
@@ -1231,7 +1256,7 @@ No se acepta que la fachada apruebe, rechace, cancele o aplique swaps.
 
 ## 45.9 Regla corta
 
-La fachada automatiza el encadenamiento operativo de crear y evaluar formalmente, pero no automatiza la decision ni la aplicacion.
+La fachada automatiza el encadenamiento operativo de crear y evaluar formalmente, pero no automatiza la resolucion ni la aplicacion.
 
 ---
 
@@ -1376,7 +1401,7 @@ La resolucion operativa puede:
 - registrar actor de resolucion;
 - registrar fecha/hora de resolucion;
 - registrar accion de resolucion;
-- registrar motivo;
+- registrar motivo_resolucion;
 - pasar la request a `APROBADO`, `RECHAZADO` o `CANCELADO`.
 
 ---
@@ -1402,6 +1427,8 @@ La resolucion operativa no puede:
 La evaluacion formal informa, pero no decide terminalmente.
 
 La `decision_sugerida` orienta al actor operativo, pero no reemplaza la resolucion formal.
+
+El `actor` registrado en history identifica quien ejecuto o disparo la accion, pero no define por si mismo permisos formales ni autorizacion operativa.
 
 Este diseño mantiene separadas cuatro etapas:
 
@@ -1582,7 +1609,8 @@ La aplicacion puede cancelar requests obsoletas cuando corresponda, pero debe ha
 - no deben modificarse requests ya `APLICADO`;
 - no deben modificarse historicos terminales salvo contrato explicito;
 - debe registrarse un motivo de cancelacion por obsolescencia;
-- debe quedar history que permita distinguir cancelacion operativa de cancelacion por obsolescencia.
+- debe quedar history que permita distinguir cancelacion operativa de cancelacion por obsolescencia;
+- no debe tratarse la obsolescencia como rechazo operativo.
 
 Estados candidatos a cancelacion por obsolescencia:
 

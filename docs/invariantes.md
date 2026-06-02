@@ -11,6 +11,9 @@
 - [7. Invariantes del dominio del swap](#7-invariantes-del-dominio-del-swap)
 - [8. Invariantes criticos](#8-invariantes-criticos)
 - [9. Proposito arquitectonico](#9-proposito-arquitectonico)
+- [Invariante 10 - Fachada de creacion y evaluacion formal desde oferta](#invariante-10---fachada-de-creacion-y-evaluacion-formal-desde-oferta)
+- [Invariante 11 - Decision sugerida no equivale a resolucion operativa](#invariante-11---decision-sugerida-no-equivale-a-resolucion-operativa)
+- [Invariante 12 - Aplicar ejecuta, no evalua ni resuelve](#invariante-12---aplicar-ejecuta-no-evalua-ni-resuelve)
 
 ---
 
@@ -53,6 +56,7 @@ El módulo swap_service:
 
 - no puede recalcular ni reinterpretar la clasificación técnica
 - debe consumir la clasificación producida por simulator
+- puede mapear la evaluación formal a una decision_sugerida operativa sin alterar la clasificación técnica
 
 ---
 
@@ -63,8 +67,9 @@ La aplicación de un swap:
 - no reevalúa
 - no reclasifica
 - no redefine decisiones
+- no resuelve
 
-Ejecuta una decisión previamente tomada.
+Ejecuta una decisión favorable previamente tomada y explicitamente aprobada.
 
 ---
 
@@ -155,6 +160,22 @@ Ninguna restricción operativa puede transformar una causa de rechazo operativo 
 
 ---
 
+### I-16 bis Evaluar informa, resolver decide
+
+La evaluacion formal de una `SwapRequest` informa resultado tecnico-operativo.
+
+No puede por si misma:
+
+- aprobar;
+- rechazar terminalmente;
+- cancelar;
+- aplicar.
+
+La resolucion operativa debe ser una accion explicita posterior.
+
+---
+
+
 ## 5. Invariantes de reglas y validacion
 
 ### I-17 Fuente unica de reglas
@@ -213,6 +234,8 @@ no pueden reingresar al flujo.
 
 Todo cambio relevante en un request debe registrarse en history.
 
+El `actor` registrado en `history` identifica quien ejecuto o disparo una accion, pero no define por si mismo permisos formales ni autorizacion operativa.
+
 ---
 
 ### I-25 Trazabilidad de asignaciones
@@ -247,7 +270,13 @@ Estos invariantes son considerados fundamentales:
 - engine valida, no decide
 - simulator clasifica, no decide ni persiste
 - swap_service decide, no clasifica
+- evaluar informa
+- resolver decide explicitamente
+- aplicar ejecuta
 - aplicar no reevalúa
+- aplicar solo puede ejecutarse sobre `APROBADO`
+- `VIABLE` no equivale a `APROBADO`
+- `APROBADO` no equivale a `APLICADO`
 - todo request pertenece a una única versión
 - no aplicar sobre versión distinta
 - toda aplicación crea nueva versión
@@ -255,6 +284,7 @@ Estos invariantes son considerados fundamentales:
 - restricciones operativas no alteran clasificación técnica
 - fuente única de reglas
 - estados terminales no reingresan
+- cancelacion por obsolescencia no equivale a rechazo operativo
 - roster vigente único
 
 Ver formalización de responsabilidades y fronteras en:  
@@ -761,7 +791,8 @@ La cancelacion por obsolescencia debe:
 - no tocar requests ya `APLICADO`;
 - no reevaluar;
 - no aplicar;
-- diferenciarse de una cancelacion operativa normal.
+- diferenciarse de una cancelacion operativa normal;
+- no tratarse como rechazo operativo.
 
 ---
 

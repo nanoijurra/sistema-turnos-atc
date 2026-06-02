@@ -19,6 +19,7 @@
 - [10. Reglas del dominio](#10-reglas-del-dominio)
 - [11. Proposito del modelo](#11-proposito-del-modelo)
 - [Nota de frontera con simulacion](#nota-de-frontera-con-simulacion)
+- [Nota de estados, resolucion y aplicacion](#nota-de-estados-resolucion-y-aplicacion)
 
 ---
 
@@ -73,6 +74,8 @@ Entidad que representa una intención de intercambio de turnos entre dos asignac
 
 Entidad de proceso auditable.
 
+La auditoria se expresa mediante `history`, pero el `actor` registrado en un evento no define por si mismo permisos formales ni autorizacion operativa.
+
 #### Componentes conceptuales
 
 **A. Intencion**
@@ -82,13 +85,23 @@ Entidad de proceso auditable.
 **B. Evaluacion tecnica**
 - clasificación técnica del swap
 
-**C. Decision operativa**
-- decisión del sistema (VIABLE / OBSERVAR / RECHAZAR)
-- motivo operativo cuando corresponda
+**C. Evaluacion formal**
+- `decision_sugerida` del sistema (VIABLE / OBSERVAR / RECHAZAR)
+- motivo de evaluacion cuando corresponda
 
-**D. Workflow**
+**D. Resolucion operativa**
+- accion explicita posterior a la evaluacion formal
+- destino de workflow: APROBADO / RECHAZADO / CANCELADO
+- motivo_resolucion cuando corresponda
+
+**E. Aplicacion**
+- ejecucion del swap aprobado sobre roster versionado
+- generacion de una nueva RosterVersion
+
+**F. Workflow**
 - estado del request
 - historial de eventos
+- actor registrado en eventos de trazabilidad
 
 #### Identidad
 
@@ -125,22 +138,30 @@ Si cambia la versión del roster:
 
 #### Estados del dominio
 
-- PENDIENTE
-- EVALUADO
-- APROBADO
-- RECHAZADO
-- CANCELADO
-- APLICADO
+- PENDIENTE -> request creada pero aun no evaluada formalmente.
+- EVALUADO -> request evaluada formalmente. Informa resultado y `decision_sugerida`, pero no aprueba, rechaza terminalmente, cancela ni aplica.
+- APROBADO -> request resuelta favorablemente mediante accion explicita. No significa APLICADO.
+- RECHAZADO -> request resuelta desfavorablemente mediante accion explicita.
+- CANCELADO -> request cerrada sin aplicacion. Puede responder a cancelacion operativa u obsolescencia.
+- APLICADO -> request aprobada cuyo swap fue ejecutado sobre una nueva version de roster.
 
 #### Aclaración de planos
 
 El SwapRequest actúa como entidad agregadora de:
 
-- evaluación técnica
-- decisión operativa
+- evaluacion tecnica
+- evaluacion formal con `decision_sugerida`
+- resolucion operativa explicita
+- aplicacion
 - estado del workflow
 
 Estos planos permanecen conceptualmente separados y no deben colapsarse.
+
+En particular:
+
+- `VIABLE` no significa `APROBADO`;
+- `APROBADO` no significa `APLICADO`;
+- cancelacion por obsolescencia no equivale a rechazo operativo.
 
 ---
 
@@ -293,9 +314,9 @@ No incluye:
 
 ---
 
-### 6.2 Decision operativa
+### 6.2 Decision sugerida
 
-Resultado del tratamiento del request dentro del sistema.
+Resultado operativo sugerido durante la evaluacion formal del request.
 
 Valores:
 
@@ -305,15 +326,52 @@ Valores:
 
 Puede diferir de la clasificación técnica.
 
+No equivale a estado del workflow.
+
+En particular:
+
+- VIABLE no significa APROBADO.
+- RECHAZAR no significa RECHAZADO terminal.
+
 ---
 
-### 6.3 Motivo operativo
+### 6.3 Resolucion operativa
 
-Explica por qué una decisión operativa se aparta del resultado técnico.
+Accion explicita posterior a la evaluacion formal.
 
-Ejemplo:
+Puede llevar una request EVALUADO a:
 
-- fuera de ventana operativa
+- APROBADO
+- RECHAZADO
+- CANCELADO
+
+La resolucion no reevalua, no reclasifica y no aplica.
+
+---
+
+### 6.4 Aplicacion
+
+Ejecucion de una request previamente APROBADO sobre roster versionado.
+
+La aplicacion:
+
+- ejecuta el intercambio real;
+- crea una nueva RosterVersion;
+- deja la request en estado APLICADO;
+- no reevalua;
+- no resuelve;
+- no decide nuevamente.
+
+---
+
+### 6.5 Motivos del workflow
+
+Los motivos deben conservar su significado segun la etapa del workflow.
+
+- motivo de creacion -> explica por que nace una request.
+- motivo de evaluacion -> explica restricciones o advertencias detectadas durante evaluacion formal.
+- motivo_resolucion -> explica la accion explicita de resolver.
+- motivo de obsolescencia -> explica cierre por cambio de version, sin convertirlo en rechazo operativo.
 
 ---
 
@@ -338,6 +396,8 @@ Un request es evaluable y aplicable dentro del flujo si su versión coincide con
 ### Obsolescencia
 
 Un request se vuelve obsoleto cuando su versión deja de ser vigente.
+
+La obsolescencia puede provocar cancelacion del workflow, pero no equivale conceptualmente a rechazo operativo.
 
 ---
 
@@ -371,15 +431,19 @@ Consecuencia:
 
 ## 9. Separacion conceptual
 
-El sistema separa tres planos:
+El sistema separa cuatro planos:
 
 ### Evaluacion tecnica
 
 Describe el impacto del swap.
 
-### Decision operativa
+### Evaluacion formal
 
-Describe el tratamiento del request.
+Describe el tratamiento sugerido del request y produce `decision_sugerida`.
+
+### Resolucion operativa
+
+Decide explicitamente el destino del request evaluado.
 
 ### Aplicacion
 
@@ -396,11 +460,18 @@ y decisiones arquitectónicas en:
 ## 10. Reglas del dominio
 
 - todo request pertenece a una única versión
+- evaluar informa
+- resolver decide explicitamente
+- aplicar ejecuta
 - no se evalúan requests sobre versiones no vigentes
 - no se aplican swaps sobre versiones no vigentes
+- solo una request APROBADO puede aplicarse
+- APROBADO no significa APLICADO
+- VIABLE no significa APROBADO
 - toda aplicación genera una nueva versión
 - la versión previa permanece inmutable
 - los requests de versiones no vigentes se vuelven obsoletos
+- cancelacion por obsolescencia no equivale a rechazo operativo
 
 ---
 
@@ -429,6 +500,11 @@ La simulación compara escenarios hipotéticos; la gestión de versiones pertene
 
 ---
 
-## IMPORTANTE
+## Nota de estados, resolucion y aplicacion
 
-APROBADO = estado posterior a decisión operativa favorable
+- EVALUADO significa que la request fue evaluada formalmente.
+- VIABLE es una `decision_sugerida`; no aprueba por si misma.
+- APROBADO es un estado posterior a una resolucion operativa favorable y explicita.
+- APROBADO no significa APLICADO.
+- APLICADO significa que el swap aprobado fue ejecutado sobre roster versionado.
+- CANCELADO por obsolescencia no significa RECHAZADO operativo.

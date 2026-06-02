@@ -12,6 +12,7 @@
   - [6.1 validar_todo](#61-validar_todo)
   - [6.2 evaluar_swap](#62-evaluar_swap)
   - [6.3 evaluar_swap_request](#63-evaluar_swap_request)
+  - [6.3.1 resolver_swap_request](#631-resolver_swap_request)
   - [6.4 aplicar_swap_request](#64-aplicar_swap_request)
   - [6.5 Contrato de clasificacion y decision](#65-contrato-de-clasificacion-y-decision)
 - [7. Responsabilidades](#7-responsabilidades)
@@ -26,6 +27,7 @@
   - [9.1 Nota de evolucion](#91-nota-de-evolucion)
   - [9.2 Aclaracion sobre indices estructurales](#92-aclaracion-sobre-indices-estructurales)
   - [9.3 Aclaracion sobre mapeo normal](#93-aclaracion-sobre-mapeo-normal)
+  - [9.4 Diferencia entre obsolescencia y cancelacion](#94-diferencia-entre-obsolescencia-y-cancelacion)
 - [10. Reglas criticas](#10-reglas-criticas)
   - [10.1 Reglas de consistencia](#101-reglas-de-consistencia)
   - [10.2 Contrato minimo de salida de evaluar_swap](#102-contrato-minimo-de-salida-de-evaluar_swap)
@@ -37,6 +39,15 @@
   - [11.2 Contratos de consistencia de datos](#112-contratos-de-consistencia-de-datos)
   - [11.3 Contratos de frontera de simulator](#113-contratos-de-frontera-de-simulator)
   - [11.4 Contrato consolidado entre simulator y swap_service](#114-contrato-consolidado-entre-simulator-y-swap_service)
+- [12. Contrato de frontera publica de simulator](#12-contrato-de-frontera-publica-de-simulator)
+- [13. Contrato de priorizacion historica de swaps](#13-contrato-de-priorizacion-historica-de-swaps)
+- [14. Contrato de equidad historica avanzada](#14-contrato-de-equidad-historica-avanzada)
+- [15. Contrato de flujo de oferta con equidad historica](#15-contrato-de-flujo-de-oferta-con-equidad-historica)
+- [16. Contrato de candidate_generation](#16-contrato-de-candidate_generation)
+- [17. Contrato de roster_index](#17-contrato-de-roster_index)
+- [Contrato 18 - Fachada para crear request desde oferta y evaluar formalmente](#contrato-18---fachada-para-crear-request-desde-oferta-y-evaluar-formalmente)
+- [Contrato 19 - Resolucion operativa posterior de SwapRequest evaluada](#contrato-19---resolucion-operativa-posterior-de-swaprequest-evaluada)
+- [Contrato 20 - Aplicacion de SwapRequest aprobada](#contrato-20---aplicacion-de-swaprequest-aprobada)
 
 ---
 
@@ -73,7 +84,9 @@ No define:
 ## 4. Definiciones
 
 - **clasificación técnica** → resultado técnico del swap (simulator)
-- **decisión operativa** → tratamiento del request (swap_service)
+- **decision_sugerida** → tratamiento operativo sugerido durante la evaluacion formal del request (swap_service)
+- **resolucion operativa** → accion explicita posterior que lleva una request evaluada a APROBADO, RECHAZADO o CANCELADO
+- **aplicacion** → ejecucion de una request APROBADO sobre roster versionado
 - **estado** → etapa del workflow del request
 
 ---
@@ -102,12 +115,17 @@ Responsabilidad:
   - evaluar
   - resolver
   - aplicar
-- decisiones operativas
+- decision_sugerida durante evaluacion formal
+- resolucion operativa explicita
+- aplicacion de requests aprobadas
 - persistencia de requests
+- trazabilidad del workflow
 
 No debe:
 - duplicar lógica de validación del engine
 - ejecutar reglas directamente fuera de validar_todo
+- convertir automaticamente decision_sugerida en estado terminal
+- aplicar requests no aprobadas
 
 #### src.simulator
 
@@ -150,7 +168,7 @@ No debe:
 
 ### 6.2 evaluar_swap
 
-**Firma:** `evaluar_swap(asignaciones, idx_a, idx_b, config_file) -> dict`  
+**Firma:** `evaluar_swap(asignaciones, idx_a, idx_b, config_file) -> dict`
 **Modulo:** `src.simulator`
 
 #### Proposito
@@ -250,11 +268,13 @@ La `clasificacion_tecnica` devuelta por `evaluar_swap` es definitiva a nivel té
 
 #### Proposito
 
-Evaluar un `SwapRequest` dentro del flujo de negocio, asignar clasificación técnica y decisión operativa, actualizar su estado y persistir el resultado.
+Evaluar un `SwapRequest` dentro del flujo de negocio, consumir la clasificacion tecnica formal, producir una `decision_sugerida`, actualizar su estado a `EVALUADO` y persistir el resultado.
 
 #### Responsabilidad
 
-Es la fuente única de verdad de la decisión operativa del request.
+Es la fuente única de verdad de la evaluacion formal del request y de la `decision_sugerida`.
+
+No es fuente de verdad de aprobacion, rechazo terminal, cancelacion ni aplicacion.
 
 #### Debe hacer
 
@@ -265,7 +285,7 @@ Es la fuente única de verdad de la decisión operativa del request.
 - validar que el request esté asociado a la versión vigente del sistema
 - validar ventana operativa
 - si corresponde, invocar `simulator.evaluar_swap(...)`
-- mapear clasificación técnica a decisión operativa
+- mapear clasificación técnica a `decision_sugerida`
 - actualizar estado a `EVALUADO`
 - persistir request
 - registrar history
@@ -314,6 +334,10 @@ Debe validar:
 - no aplica el swap
 - no crea nueva versión
 - no cancela requests obsoletos
+- no aprueba
+- no rechaza terminalmente
+- no cancela por resolucion operativa
+- no convierte `decision_sugerida` en estado terminal
 - no resuelve aceptación/rechazo final fuera del flujo definido
 
 #### Estado resultante
@@ -324,10 +348,10 @@ Si la evaluación se completa:
 #### Persistencia obligatoria
 
 Debe persistir al menos:
-- clasificación técnica
-- decisión operativa
-- motivo, si aplica
-- estado actualizado
+- clasificación técnica, si existe
+- `decision_sugerida`
+- motivo de evaluacion, si aplica
+- estado actualizado a `EVALUADO`
 - history
 
 #### Regla critica
@@ -343,6 +367,28 @@ Si la evaluación técnica no se ejecuta por una restricción operativa:
 - la clasificación técnica puede ser nula
 - debe persistirse explícitamente como ausente
 - no debe inferirse ni reemplazarse por lógica operativa
+
+### 6.3.1 resolver_swap_request
+
+**Firma:** `resolver_swap_request(request, accion, motivo_resolucion=None, actor=None) -> SwapRequest`
+**Modulo:** `src.swap_service`
+
+#### Proposito
+
+Resolver operativamente una `SwapRequest` ya evaluada.
+
+La resolucion transforma una evaluacion formal en una decision explicita de workflow, sin aplicar el swap.
+
+#### Responsabilidad
+
+Es la compuerta formal entre:
+
+```text
+EVALUADO
+-> APROBADO / RECHAZADO / CANCELADO
+```
+
+---
 
 ### 6.4 aplicar_swap_request
 
@@ -375,7 +421,7 @@ Aplicar efectivamente un swap previamente APROBADO sobre la versión de roster c
 
 #### Regla critica
 
-`aplicar_swap_request` ejecuta una decisión ya tomada; no realiza una nueva evaluación.
+`aplicar_swap_request` ejecuta una `SwapRequest` ya resuelta explicitamente como `APROBADO`; no evalua, no resuelve y no decide nuevamente.
 
 👉 Fuente de verdad de aplicación
 
@@ -405,10 +451,12 @@ La clasificación técnica:
   - OBSERVAR
   - RECHAZAR
 
-La decisión operativa:
+La decisión operativa sugerida:
 - puede derivarse normalmente de la clasificación técnica
 - puede verse afectada por restricciones operativas
 - debe registrarse separadamente de la clasificación técnica
+- no equivale a estado del workflow
+- no aprueba, rechaza terminalmente, cancela ni aplica por si misma
 
 ---
 
@@ -544,13 +592,14 @@ Dependencias prohibidas:
 
 #### 8.1.1 Principio general
 
-El flujo del sistema se divide en tres niveles:
+El flujo del sistema se divide en cuatro niveles:
 
-1. evaluación técnica
-2. decisión operativa
-3. aplicación persistente
+1. evaluacion tecnica
+2. evaluacion formal con `decision_sugerida`
+3. resolucion operativa explicita
+4. aplicacion persistente
 
-Cada nivel tiene un único responsable.
+Cada nivel tiene un responsable y no debe absorber responsabilidades del nivel siguiente.
 
 #### 8.1.2 Evaluacion tecnica
 
@@ -577,23 +626,45 @@ swap_service no puede:
 - reinterpretar deltas técnicos
 - reclasificar un swap
 
-#### 8.1.3 Decision operativa
+#### 8.1.3 Evaluacion formal y decision_sugerida
 
 ##### Responsable
 - swap_service
 
 ##### Alcance
 
-La decisión operativa determina:
-- si el request queda VIABLE / OBSERVAR / RECHAZAR
-- estado del request
-- persistencia e historial
+La evaluacion formal determina:
+- `decision_sugerida` VIABLE / OBSERVAR / RECHAZAR
+- estado `EVALUADO`
+- persistencia e historial de evaluacion
 
 ##### Regla
 
-La decisión operativa surge de:
+La `decision_sugerida` surge de:
 - clasificación técnica recibida desde simulator
 - validaciones operativas propias de swap_service
+
+No determina por si misma:
+- APROBADO
+- RECHAZADO
+- CANCELADO
+- APLICADO
+
+#### 8.1.3 bis Resolucion operativa explicita
+
+##### Responsable
+- swap_service
+
+##### Alcance
+
+La resolucion operativa decide explicitamente si una request `EVALUADO` pasa a:
+- APROBADO
+- RECHAZADO
+- CANCELADO
+
+##### Regla
+
+La resolucion operativa no reevalua, no reclasifica y no aplica.
 
 #### 8.1.4 Aplicacion persistente
 
@@ -659,13 +730,16 @@ Todo request obsoleto debe transicionar a estado CANCELADO.
 ### 10.1 Reglas de consistencia
 
 1. simulator clasifica, no decide
-2. swap_service decide, no clasifica
-3. aplicar no reevalúa
-4. engine no decide negocio
-5. validez del roster ≠ aprobación automática
-6. ventana operativa puede rechazar swaps válidos técnicamente
-7. flujo favorable:
-   PENDIENTE → EVALUADO → APROBADO → APLICADO
+2. evaluar_swap_request informa, no resuelve
+3. resolver_swap_request decide explicitamente, no aplica
+4. aplicar_swap_request ejecuta, no reevalúa
+5. engine no decide negocio
+6. validez del roster ≠ aprobación automática
+7. `VIABLE` no equivale a `APROBADO`
+8. `APROBADO` no equivale a `APLICADO`
+9. ventana operativa puede rechazar swaps válidos técnicamente
+10. flujo favorable:
+    PENDIENTE → EVALUADO → APROBADO → APLICADO
 
 ### 10.2 Contrato minimo de salida de evaluar_swap
 
@@ -716,10 +790,11 @@ Estos tres planos nunca deben colapsarse entre sí.
 
 ### 10.5 Regla critica de frontera
 
-`simulator` clasifica.  
-`swap_service` decide.  
-La aplicación no reevalúa.  
-El estado refleja la evolución del request dentro del workflow.
+- `simulator` clasifica.
+- `evaluar_swap_request` informa.
+- `resolver_swap_request` decide explicitamente.
+- `aplicar_swap_request` ejecuta.
+- El estado refleja la evolución del request dentro del workflow.
 
 ---
 
@@ -762,7 +837,9 @@ No se puede aplicar sobre versión distinta a la evaluada
 
 #### Historia
 
-Todo cambio relevante debe registrarse en history
+Todo cambio relevante debe registrarse en history.
+
+El `actor` registrado en history identifica quien ejecuto o disparo una accion, pero no define por si mismo permisos formales ni autorizacion operativa.
 
 ### 11.3 Contratos de frontera de simulator
 
@@ -937,7 +1014,9 @@ Responsable:
 - workflow del `SwapRequest`, materializado por swap_service
 
 Regla:
-El estado APROBADO representa la materialización en el workflow de una decisión operativa favorable.
+El estado APROBADO representa una resolucion operativa favorable y explicita dentro del workflow.
+
+No representa aplicacion del swap.
 
 ## 12. Contrato de frontera publica de simulator
 
@@ -995,7 +1074,7 @@ Ambas superficies no deben solaparse.
 
 ---
 
-## 13.Contrato de priorizacion historica de swaps
+## 13. Contrato de priorizacion historica de swaps
 
 ### Proposito
 
@@ -2118,6 +2197,7 @@ La cancelacion de obsoletos debe respetar:
 - no cancelar requests ya `APLICADO`;
 - no alterar historicos terminales salvo contrato explicito;
 - distinguir cancelacion por obsolescencia de cancelacion operativa;
+- no tratar obsolescencia como rechazo operativo;
 - registrar motivo claro;
 - registrar history;
 - no reevaluar las requests canceladas;
@@ -2178,5 +2258,4 @@ La aplicacion presupone que la request ya fue evaluada y aprobada por el flujo c
 ## 20.13 Regla corta
 
 Solo se aplica una `SwapRequest` aprobada; aplicar ejecuta sobre roster y no decide.
-
 

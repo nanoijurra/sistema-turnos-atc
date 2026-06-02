@@ -11495,7 +11495,7 @@ No se incluye:
 
 Queda cerrado el contrato documental de aplicacion explicita.
 
-La evaluacion formal informa, la resolucion operativa decide y la aplicacion ejecuta sobre una nueva version de roster.---
+La evaluacion formal informa, la resolucion operativa decide y la aplicacion ejecuta sobre una nueva version de roster.
 
 ---
 
@@ -11905,5 +11905,233 @@ Suite completa:
 Este checkpoint es test-only.
 
 No toca `engine`, `scoring`, `simulator`, `swap_service`, `models`, `request_store`, `roster_store`, `offer_workflow_service`, `offer_to_request_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow` ni `offer_reporting`.
+
+---
+
+## checkpoint-v79-auditoria-documental-controlada-workflow-formal
+
+Fecha: 2026-06-01
+
+---
+
+### Estado general
+
+Se completo una auditoria documental controlada del workflow formal de `SwapRequest`.
+
+El objetivo fue alinear la documentacion base con el estado consolidado posterior a v75, v76, v77 y v78, sin tocar codigo productivo ni tests.
+
+Flujo formal consolidado:
+
+```text
+PENDIENTE
+-> evaluar_swap_request
+-> EVALUADO
+-> resolver_swap_request
+-> APROBADO / RECHAZADO / CANCELADO
+-> aplicar_swap_request
+-> APLICADO
+```
+
+Regla central vigente:
+
+```text
+Evaluar informa.
+Resolver decide explicitamente.
+Aplicar ejecuta.
+```
+
+---
+
+### Documentos auditados
+
+Se auditaron y actualizaron quirurgicamente:
+
+* `docs/diccionario.md`
+* `docs/invariantes.md`
+* `docs/contratos.md`
+* `docs/modelo_dominio.md`
+* `docs/decisiones.md`
+
+Tambien se habilito la actualizacion de este `checkpoints.md` una vez cerrados los documentos base.
+
+---
+
+### Que quedo actualizado
+
+#### 1. Separacion semantica del workflow
+
+La documentacion queda alineada con la separacion formal:
+
+* evaluar informa;
+* resolver decide explicitamente;
+* aplicar ejecuta.
+
+La evaluacion formal no aprueba, no rechaza terminalmente, no cancela y no aplica.
+
+La resolucion operativa no reevalua, no reclasifica y no aplica.
+
+La aplicacion no evalua, no resuelve y no decide nuevamente.
+
+---
+
+#### 2. Decision sugerida separada de estado
+
+Se reforzo documentalmente que:
+
+* `decision_sugerida` no es estado del workflow;
+* `VIABLE` no significa `APROBADO`;
+* `RECHAZAR` como decision sugerida no significa `RECHAZADO` terminal;
+* `OBSERVAR` requiere trazabilidad especial, pero no crea un estado propio.
+
+---
+
+#### 3. APROBADO separado de APLICADO
+
+Se reforzo que:
+
+* `APROBADO` representa una resolucion operativa favorable y explicita;
+* `APROBADO` no significa `APLICADO`;
+* una request `APROBADO` solo queda lista para aplicacion;
+* `APLICADO` ocurre solo por `aplicar_swap_request`.
+
+---
+
+#### 4. Motivos del workflow diferenciados
+
+Se incorporo o reforzo la diferencia conceptual entre:
+
+* motivo de creacion;
+* motivo de evaluacion;
+* `motivo_resolucion`;
+* motivo de obsolescencia.
+
+`motivo_resolucion` pertenece a la accion explicita de resolver y no debe confundirse con motivo de creacion, seleccion de oferta, evaluacion formal u obsolescencia.
+
+---
+
+#### 5. History, actor y permisos
+
+Se documento que:
+
+* `history` registra trazabilidad;
+* `actor` identifica quien ejecuto o disparo una accion;
+* `actor` en `history` no equivale por si mismo a permisos formales, rol institucional ni autorizacion operativa.
+
+No se agrego modelo formal de permisos.
+
+No se agrego auditoria estructurada nueva.
+
+---
+
+#### 6. Obsolescencia separada de rechazo operativo
+
+Se reforzo que:
+
+* una request puede cancelarse por obsolescencia cuando cambia la version de roster;
+* la cancelacion por obsolescencia debe quedar trazable;
+* cancelacion por obsolescencia no equivale a rechazo operativo;
+* no debe tratarse obsolescencia como `RECHAZADO`.
+
+---
+
+#### 7. Reparaciones estructurales Markdown
+
+Durante la auditoria se verifico estructura Markdown y se repararon problemas puntuales cuando correspondio:
+
+* TOC desactualizados;
+* encabezados que afectaban navegacion;
+* separadores mal ubicados;
+* bloques o estructuras que podian afectar renderizado;
+* saltos de linea finales.
+
+---
+
+### Alcance excluido
+
+No se modifico:
+
+* `src/`
+* `tests/`
+* reglas de negocio en codigo
+* persistencia
+* stores
+* modelos
+* servicios
+* fixtures
+* benchmarks
+* flujos de aplicacion
+* flujos de resolucion
+* automatismos
+
+Este checkpoint es exclusivamente documental.
+
+---
+
+### Resultados observados
+
+Validacion documental realizada mediante revision de diffs por archivo.
+
+Comandos usados como control estructural:
+
+```text
+git diff --check -- docs/diccionario.md
+git diff --check -- docs/invariantes.md
+git diff --check -- docs/contratos.md
+git diff --check -- docs/modelo_dominio.md
+git diff --check -- docs/decisiones.md
+```
+
+No se ejecutaron tests porque no hubo cambios de codigo ni tests.
+
+---
+
+### Contratos preservados
+
+* `engine` valida, no decide.
+* `scoring` calcula validez y score, no decide.
+* `simulator` clasifica tecnicamente, no decide.
+* `evaluar_swap_request` informa.
+* `resolver_swap_request` decide explicitamente.
+* `aplicar_swap_request` ejecuta.
+* `candidate_generation` reduce universo, no evalua.
+* `technical_prefilter` prefiltra, no clasifica.
+* `candidate_selection` selecciona candidatos, no clasifica ni decide.
+* `offer_origin` conserva evidencia observada, no reemplaza evaluacion formal.
+* `history` conserva trazabilidad, no define permisos.
+
+---
+
+### Limitaciones actuales conscientes
+
+* No hay modelo formal de permisos.
+* No hay roles operativos implementados.
+* No hay auditoria estructurada separada de `history`.
+* `actor` y `motivo_resolucion` siguen siendo principalmente trazabilidad documental/history.
+* No hay workflow bilateral.
+* No hay aceptacion por contraparte.
+* No hay bloqueo multiusuario.
+* No hay UI.
+* No hay API.
+* No hay automatizacion evaluar-resolver-aplicar.
+
+---
+
+### Proximos pasos naturales
+
+* Revisar si corresponde una etapa futura de auditoria estructurada.
+* Evaluar si `motivo_resolucion`, `actor_resolucion` y fechas de workflow deben pasar a campos formales.
+* Mantener separada cualquier discusion futura sobre permisos, roles y autorizaciones.
+* No automatizar resolucion ni aplicacion sin decision arquitectonica previa.
+* Volver a implementacion solo si la arquitectura define una necesidad concreta.
+
+---
+
+### Notas
+
+Este checkpoint cierra la auditoria documental controlada v79.
+
+No cambia comportamiento del sistema.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `models`, `request_store`, `roster_store`, `offer_workflow_service`, `offer_to_request_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting` ni tests.
 
 ---
