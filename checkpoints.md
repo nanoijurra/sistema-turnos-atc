@@ -12135,3 +12135,152 @@ No cambia comportamiento del sistema.
 No toca `engine`, `scoring`, `simulator`, `swap_service`, `models`, `request_store`, `roster_store`, `offer_workflow_service`, `offer_to_request_service`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting` ni tests.
 
 ---
+
+---
+
+# Checkpoint v80 - Contrato documental de auditoria estructurada minima
+
+## Estado
+
+Documental / arquitectonico.
+
+## Contexto
+
+Luego de v79, el workflow formal de `SwapRequest` quedo auditado documentalmente y consolidado como:
+
+```text
+PENDIENTE
+-> evaluar_swap_request
+-> EVALUADO
+-> resolver_swap_request
+-> APROBADO / RECHAZADO / CANCELADO
+-> aplicar_swap_request
+-> APLICADO
+```
+
+Regla central:
+
+```text
+Evaluar informa.
+Resolver decide explicitamente.
+Aplicar ejecuta.
+```
+
+No se toco codigo.
+
+No se tocaron tests.
+
+No se modifico comportamiento productivo.
+
+## Decision
+
+Se adopta como proximo eje la auditoria estructurada minima del workflow formal.
+
+La auditoria estructurada registra hechos del workflow, pero no gobierna transiciones.
+
+## Alcance
+
+Se documenta:
+
+- diferencia entre `history` y audit trail estructurado;
+- eventos auditables minimos;
+- campos base de eventos;
+- actor registrado;
+- tipo de actor;
+- motivos diferenciados;
+- relacion con estados del workflow;
+- limites de la auditoria.
+
+## Eventos minimos
+
+```text
+REQUEST_CREADA
+REQUEST_CREADA_DESDE_OFERTA
+REQUEST_EVALUADA
+REQUEST_RESUELTA
+REQUEST_APLICADA
+REQUEST_CANCELADA_POR_OBSOLESCENCIA
+```
+
+## Campos base sugeridos
+
+```text
+event_type
+timestamp
+actor
+actor_type
+request_id
+estado_anterior
+estado_nuevo
+motivo
+source
+roster_version_id
+roster_hash
+metadata
+```
+
+## Restricciones
+
+La auditoria estructurada no puede:
+
+- cambiar estados;
+- decidir;
+- aprobar;
+- rechazar;
+- cancelar;
+- aplicar;
+- reevaluar;
+- definir permisos;
+- definir roles;
+- introducir UI;
+- introducir API;
+- introducir workflow bilateral;
+- introducir locks;
+- agregar nuevos estados;
+- reemplazar `swap_service`.
+
+## Documentos asociados
+
+Se agregan o actualizan:
+
+```text
+Decision 49 - Auditoria estructurada minima del workflow formal
+Contrato 21 - Auditoria estructurada minima del workflow formal
+Invariante 13 - La auditoria registra hechos y no gobierna el workflow
+```
+
+## Proximo paso recomendado
+
+Implementacion controlada o refuerzo minimo de eventos auditables, si corresponde.
+
+Posible checkpoint siguiente:
+
+```text
+v81 - Implementacion/refuerzo de auditoria estructurada minima
+```
+
+## No incluido
+
+No se incluye:
+
+- roles;
+- permisos;
+- supervisor;
+- UI;
+- API;
+- workflow bilateral;
+- locks;
+- nuevas tablas obligatorias;
+- nuevos estados;
+- automatismos;
+- refactor de workflow.
+
+## Resultado
+
+Queda definido el contrato documental de auditoria estructurada minima.
+
+Regla final:
+
+```text
+El workflow cambia estados; la auditoria registra hechos del workflow.
+```

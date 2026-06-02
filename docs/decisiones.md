@@ -1688,3 +1688,245 @@ La aplicacion sigue siendo una compuerta propia.
 ## 48.10 Regla corta
 
 La aplicacion solo ejecuta requests aprobadas y lo hace sobre una nueva version de roster.
+
+---
+
+# Decision 49 - Auditoria estructurada minima del workflow formal
+
+## TOC
+
+- [49.1 Estado](#491-estado)
+- [49.2 Contexto](#492-contexto)
+- [49.3 Decision](#493-decision)
+- [49.4 Alcance permitido](#494-alcance-permitido)
+- [49.5 Restricciones](#495-restricciones)
+- [49.6 Diferencia entre history y audit trail](#496-diferencia-entre-history-y-audit-trail)
+- [49.7 Eventos minimos](#497-eventos-minimos)
+- [49.8 Campos minimos sugeridos](#498-campos-minimos-sugeridos)
+- [49.9 Justificacion](#499-justificacion)
+- [49.10 Consecuencias](#4910-consecuencias)
+- [49.11 Decision negativa explicita](#4911-decision-negativa-explicita)
+- [49.12 Regla corta](#4912-regla-corta)
+
+---
+
+## 49.1 Estado
+
+Aceptada.
+
+---
+
+## 49.2 Contexto
+
+El workflow formal de `SwapRequest` quedo consolidado como:
+
+```text
+PENDIENTE
+-> evaluar_swap_request
+-> EVALUADO
+-> resolver_swap_request
+-> APROBADO / RECHAZADO / CANCELADO
+-> aplicar_swap_request
+-> APLICADO
+```
+
+La regla central vigente es:
+
+```text
+Evaluar informa.
+Resolver decide explicitamente.
+Aplicar ejecuta.
+```
+
+Tambien quedaron separadas las responsabilidades:
+
+- `simulator` clasifica tecnicamente;
+- `swap_service.evaluar_swap_request` informa y produce `decision_sugerida`;
+- `swap_service.resolver_swap_request` decide explicitamente el destino operativo;
+- `swap_service.aplicar_swap_request` ejecuta una request aprobada sobre roster.
+
+El sistema ya conserva `history`, pero se necesita definir un contrato semantico mas claro para eventos auditables del workflow.
+
+---
+
+## 49.3 Decision
+
+Se adopta como proximo eje arquitectonico la auditoria estructurada minima del workflow formal.
+
+La auditoria estructurada debe registrar hechos relevantes del workflow sin modificar estados, decisiones ni transiciones.
+
+La auditoria no gobierna el workflow.
+
+La auditoria observa y registra lo ocurrido.
+
+---
+
+## 49.4 Alcance permitido
+
+La auditoria estructurada puede definir:
+
+- tipos de eventos del workflow;
+- timestamp de cada evento;
+- actor registrado;
+- tipo de actor;
+- estado anterior;
+- estado nuevo;
+- motivo asociado;
+- request afectada;
+- version de roster asociada;
+- metadata auxiliar;
+- origen del evento;
+- diferencia entre eventos operativos y eventos automaticos del sistema.
+
+---
+
+## 49.5 Restricciones
+
+La auditoria estructurada no puede:
+
+- crear nuevos estados de `SwapRequest`;
+- modificar taxonomias;
+- aprobar;
+- rechazar;
+- cancelar;
+- aplicar;
+- reevaluar;
+- definir permisos;
+- definir roles autorizantes;
+- reemplazar `history`;
+- reemplazar persistencia de requests;
+- introducir UI;
+- introducir API;
+- introducir workflow bilateral;
+- introducir locks o concurrencia;
+- cambiar comportamiento productivo.
+
+---
+
+## 49.6 Diferencia entre history y audit trail
+
+`history` representa trazabilidad existente del request.
+
+Puede ser usado para conservar informacion legible o historica asociada a eventos.
+
+`audit trail` representa un contrato estructurado de eventos auditables.
+
+La auditoria estructurada no elimina `history`.
+
+En V1, `audit trail` puede implementarse sobre `history` si el modelo actual lo permite, siempre que respete nombres, tipos de eventos y campos definidos.
+
+---
+
+## 49.7 Eventos minimos
+
+Eventos minimos recomendados:
+
+```text
+REQUEST_CREADA
+REQUEST_CREADA_DESDE_OFERTA
+REQUEST_EVALUADA
+REQUEST_RESUELTA
+REQUEST_APLICADA
+REQUEST_CANCELADA_POR_OBSOLESCENCIA
+```
+
+Para `REQUEST_RESUELTA`, el resultado debe indicar:
+
+```text
+APROBADO
+RECHAZADO
+CANCELADO
+```
+
+La cancelacion por obsolescencia se mantiene como evento diferenciado porque no equivale a rechazo operativo ni a cancelacion operativa comun.
+
+---
+
+## 49.8 Campos minimos sugeridos
+
+Campos minimos sugeridos para eventos auditables:
+
+```text
+event_type
+timestamp
+actor
+actor_type
+request_id
+estado_anterior
+estado_nuevo
+motivo
+source
+roster_version_id
+roster_hash
+metadata
+```
+
+No todos los campos son obligatorios para todos los eventos.
+
+La implementacion futura debe definir cuales son requeridos por tipo de evento.
+
+---
+
+## 49.9 Justificacion
+
+El workflow formal ya esta consolidado.
+
+Antes de avanzar hacia roles, permisos, UI, API, locks o workflow bilateral, conviene definir una base de auditoria estructurada.
+
+Esto permite:
+
+- distinguir evaluacion, resolucion y aplicacion;
+- distinguir cancelacion operativa de cancelacion por obsolescencia;
+- conservar actor y motivo sin confundirlos con permisos;
+- preparar integraciones futuras sin contaminar el core;
+- mejorar trazabilidad institucional.
+
+---
+
+## 49.10 Consecuencias
+
+El workflow no cambia.
+
+Los estados no cambian.
+
+Las taxonomias no cambian.
+
+La auditoria estructurada queda definida como capa conceptual auxiliar de trazabilidad.
+
+Cualquier implementacion futura debe respetar que:
+
+```text
+El workflow cambia estados.
+La auditoria registra hechos del workflow.
+```
+
+---
+
+## 49.11 Decision negativa explicita
+
+No se implementa en esta decision:
+
+```text
+roles
+permisos
+supervisor
+UI
+API
+workflow bilateral
+locks
+nuevas tablas
+nuevos estados
+automatismos
+```
+
+No se convierte `actor` en permiso formal.
+
+No se convierte `history` en autorizacion.
+
+No se modifica comportamiento productivo.
+
+---
+
+## 49.12 Regla corta
+
+El workflow cambia estados; la auditoria registra hechos del workflow.

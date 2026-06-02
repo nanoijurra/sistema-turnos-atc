@@ -799,3 +799,141 @@ La cancelacion por obsolescencia debe:
 ## 12.11 Regla corta
 
 Aplicar solo ejecuta una request aprobada y crea una nueva version de roster.
+
+---
+
+# Invariante 13 - La auditoria registra hechos y no gobierna el workflow
+
+## TOC
+
+- [13.1 Regla principal](#131-regla-principal)
+- [13.2 La auditoria no cambia estados](#132-la-auditoria-no-cambia-estados)
+- [13.3 La auditoria no decide](#133-la-auditoria-no-decide)
+- [13.4 Actor registrado no equivale a permiso](#134-actor-registrado-no-equivale-a-permiso)
+- [13.5 History no equivale a autorizacion](#135-history-no-equivale-a-autorizacion)
+- [13.6 Motivos no equivalentes](#136-motivos-no-equivalentes)
+- [13.7 Evento no reemplaza estado](#137-evento-no-reemplaza-estado)
+- [13.8 Cancelacion por obsolescencia no equivale a rechazo](#138-cancelacion-por-obsolescencia-no-equivale-a-rechazo)
+- [13.9 La auditoria no introduce nuevos estados](#139-la-auditoria-no-introduce-nuevos-estados)
+- [13.10 Regla corta](#1310-regla-corta)
+
+---
+
+## 13.1 Regla principal
+
+La auditoria estructurada registra hechos del workflow formal.
+
+No gobierna el workflow.
+
+---
+
+## 13.2 La auditoria no cambia estados
+
+La auditoria no puede cambiar el estado de una `SwapRequest`.
+
+Los cambios de estado pertenecen al workflow formal de `swap_service`.
+
+---
+
+## 13.3 La auditoria no decide
+
+La auditoria no puede:
+
+```text
+aprobar
+rechazar
+cancelar
+aplicar
+evaluar
+resolver
+```
+
+La auditoria solo registra hechos ocurridos.
+
+---
+
+## 13.4 Actor registrado no equivale a permiso
+
+Registrar un actor en un evento no implica que ese actor tenga permiso formal.
+
+```text
+actor registrado != actor autorizado
+```
+
+Los permisos, si se incorporan en el futuro, deben definirse en un contrato separado.
+
+---
+
+## 13.5 History no equivale a autorizacion
+
+`history` conserva trazabilidad.
+
+`history` no define permisos, autorizaciones ni roles.
+
+---
+
+## 13.6 Motivos no equivalentes
+
+No deben mezclarse:
+
+```text
+motivo_creacion
+motivo_evaluacion
+motivo_resolucion
+motivo_cancelacion
+motivo_obsolescencia
+motivo_aplicacion
+```
+
+Cada motivo pertenece al evento o etapa correspondiente.
+
+---
+
+## 13.7 Evento no reemplaza estado
+
+La existencia de un evento auditable no reemplaza el estado formal de la request.
+
+Ejemplo:
+
+```text
+REQUEST_APLICADA
+```
+
+no debe usarse como sustituto de:
+
+```text
+estado = APLICADO
+```
+
+El estado formal sigue siendo la fuente de verdad del workflow.
+
+---
+
+## 13.8 Cancelacion por obsolescencia no equivale a rechazo
+
+Una cancelacion por obsolescencia de roster no equivale a rechazo operativo.
+
+Debe quedar distinguida en motivo, history o evento auditable.
+
+---
+
+## 13.9 La auditoria no introduce nuevos estados
+
+La auditoria estructurada no puede introducir estados nuevos de `SwapRequest`.
+
+No agrega:
+
+```text
+PROPUESTO
+ACEPTADO_POR_CONTRAPARTE
+PENDIENTE_SUPERVISOR
+OBSOLETO
+```
+
+Cualquier nuevo estado requiere decision arquitectonica separada.
+
+---
+
+## 13.10 Regla corta
+
+La auditoria observa el workflow; no lo reemplaza.

@@ -2259,3 +2259,231 @@ La aplicacion presupone que la request ya fue evaluada y aprobada por el flujo c
 
 Solo se aplica una `SwapRequest` aprobada; aplicar ejecuta sobre roster y no decide.
 
+---
+
+# Contrato 21 - Auditoria estructurada minima del workflow formal
+
+## TOC
+
+- [21.1 Proposito](#211-proposito)
+- [21.2 Contexto](#212-contexto)
+- [21.3 Principio contractual](#213-principio-contractual)
+- [21.4 Eventos auditables minimos](#214-eventos-auditables-minimos)
+- [21.5 Campos base de evento auditable](#215-campos-base-de-evento-auditable)
+- [21.6 Responsabilidades permitidas](#216-responsabilidades-permitidas)
+- [21.7 Responsabilidades prohibidas](#217-responsabilidades-prohibidas)
+- [21.8 Actor registrado no equivale a permiso](#218-actor-registrado-no-equivale-a-permiso)
+- [21.9 Motivos diferenciados](#219-motivos-diferenciados)
+- [21.10 Relacion con history](#2110-relacion-con-history)
+- [21.11 Relacion con workflow formal](#2111-relacion-con-workflow-formal)
+- [21.12 Regla corta](#2112-regla-corta)
+
+---
+
+## 21.1 Proposito
+
+Definir el contrato arquitectonico de auditoria estructurada minima para el workflow formal de `SwapRequest`.
+
+La auditoria estructurada registra hechos relevantes del workflow de manera consistente y trazable.
+
+---
+
+## 21.2 Contexto
+
+El workflow formal vigente es:
+
+```text
+PENDIENTE
+-> evaluar_swap_request
+-> EVALUADO
+-> resolver_swap_request
+-> APROBADO / RECHAZADO / CANCELADO
+-> aplicar_swap_request
+-> APLICADO
+```
+
+Cada etapa produce hechos relevantes que deben poder auditarse sin modificar la semantica del workflow.
+
+---
+
+## 21.3 Principio contractual
+
+La auditoria estructurada no gobierna el workflow.
+
+La auditoria estructurada registra hechos ocurridos dentro del workflow.
+
+```text
+El workflow cambia estados.
+La auditoria registra hechos del workflow.
+```
+
+---
+
+## 21.4 Eventos auditables minimos
+
+Los eventos auditables minimos son:
+
+```text
+REQUEST_CREADA
+REQUEST_CREADA_DESDE_OFERTA
+REQUEST_EVALUADA
+REQUEST_RESUELTA
+REQUEST_APLICADA
+REQUEST_CANCELADA_POR_OBSOLESCENCIA
+```
+
+El evento `REQUEST_RESUELTA` debe poder representar el resultado:
+
+```text
+APROBADO
+RECHAZADO
+CANCELADO
+```
+
+El evento `REQUEST_CANCELADA_POR_OBSOLESCENCIA` debe mantenerse separado para no confundir obsolescencia tecnica/versionado con resolucion operativa.
+
+---
+
+## 21.5 Campos base de evento auditable
+
+Un evento auditable puede contener:
+
+```text
+event_type
+timestamp
+actor
+actor_type
+request_id
+estado_anterior
+estado_nuevo
+motivo
+source
+roster_version_id
+roster_hash
+metadata
+```
+
+La obligatoriedad de cada campo puede variar segun el tipo de evento.
+
+La implementacion futura debe definir validaciones especificas por evento.
+
+---
+
+## 21.6 Responsabilidades permitidas
+
+La auditoria estructurada puede:
+
+1. Registrar eventos del workflow.
+2. Registrar actor informado.
+3. Registrar tipo de actor informado.
+4. Registrar timestamp.
+5. Registrar estado anterior y estado nuevo.
+6. Registrar motivo asociado.
+7. Registrar version/hash de roster si corresponde.
+8. Registrar metadata auxiliar.
+9. Diferenciar eventos humanos de eventos automaticos del sistema.
+10. Diferenciar cancelacion operativa de cancelacion por obsolescencia.
+
+---
+
+## 21.7 Responsabilidades prohibidas
+
+La auditoria estructurada no puede:
+
+- cambiar estados;
+- decidir;
+- aprobar;
+- rechazar;
+- cancelar;
+- aplicar;
+- reevaluar;
+- modificar `decision_sugerida`;
+- modificar `offer_origin`;
+- modificar clasificacion tecnica;
+- definir permisos;
+- validar autorizacion;
+- crear workflow paralelo;
+- introducir nuevos estados;
+- reemplazar `swap_service`.
+
+---
+
+## 21.8 Actor registrado no equivale a permiso
+
+El campo `actor` representa quien o que fue registrado como ejecutor u origen del evento.
+
+No representa por si mismo autorizacion formal.
+
+La auditoria puede registrar:
+
+```text
+actor = usuario_123
+actor_type = USER
+```
+
+o:
+
+```text
+actor = sistema
+actor_type = SYSTEM
+```
+
+Pero no debe inferir permisos.
+
+La autorizacion formal, si se implementa en el futuro, debe definirse en un contrato separado.
+
+---
+
+## 21.9 Motivos diferenciados
+
+Los motivos deben mantenerse semanticamente separados.
+
+No son equivalentes:
+
+```text
+motivo_creacion
+motivo_evaluacion
+motivo_resolucion
+motivo_cancelacion
+motivo_obsolescencia
+motivo_aplicacion
+```
+
+La auditoria estructurada debe permitir distinguir el motivo asociado al evento correspondiente.
+
+---
+
+## 21.10 Relacion con history
+
+`history` puede seguir existiendo como trazabilidad historica del request.
+
+La auditoria estructurada puede implementarse inicialmente sobre `history` si eso respeta el contrato de eventos.
+
+No se exige en esta etapa una nueva tabla ni un refactor de persistencia.
+
+---
+
+## 21.11 Relacion con workflow formal
+
+La auditoria debe acompañar las transiciones del workflow, no reemplazarlas.
+
+Ejemplos:
+
+```text
+evaluar_swap_request
+-> registra REQUEST_EVALUADA
+
+resolver_swap_request
+-> registra REQUEST_RESUELTA
+
+aplicar_swap_request
+-> registra REQUEST_APLICADA
+```
+
+Pero la existencia de un evento no debe ser usada como sustituto del estado formal.
+
+---
+
+## 21.12 Regla corta
+
+La auditoria conserva hechos; no decide transiciones.
