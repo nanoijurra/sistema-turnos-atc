@@ -92,7 +92,7 @@ def test_cancelar_requests_obsoletos_cancela_aprobados_obsoletos():
     assert recuperado.estado == "CANCELADO"
     assert recuperado.motivo == "request obsoleto por nueva version de roster vigente"
     assert any(
-        "REQUEST_CANCELADO_POR_OBSOLESCENCIA" in evento
+        "REQUEST_CANCELADA_POR_OBSOLESCENCIA" in evento
         for evento in recuperado.history
     )
     
@@ -332,11 +332,16 @@ def test_resolver_swap_request_registra_history_con_actor_y_motivo_resolucion() 
 
     assert request.estado == "APROBADO"
     assert any(
-        "REQUEST_RESUELTO: accion=APROBAR, estado=APROBADO" in evento
-        and "actor=SUP_ACC_CBA" in evento
-        and "motivo_resolucion=Autorizado por supervisor operativo." in evento
-        for evento in request.history
-    )
+    "REQUEST_RESUELTA:" in evento
+    and "event_type=REQUEST_RESUELTA" in evento
+    and "accion=APROBAR" in evento
+    and "resultado=APROBADO" in evento
+    and "estado_anterior=EVALUADO" in evento
+    and "estado_nuevo=APROBADO" in evento
+    and "actor=SUP_ACC_CBA" in evento
+    and "motivo_resolucion=Autorizado por supervisor operativo." in evento
+    for evento in request.history
+)
 
 
 def test_resolver_swap_request_no_pisa_motivo_de_creacion() -> None:
@@ -501,7 +506,7 @@ def test_aplicar_swap_request_aprobado_pasa_a_aplicado_y_crea_nueva_version() ->
 
     assert nueva_version.asignaciones[0].turno == asignaciones[1].turno
     assert nueva_version.asignaciones[1].turno == asignaciones[0].turno
-    assert any("SWAP_APLICADO" in evento for evento in request.history)
+    assert any("REQUEST_APLICADA" in evento for evento in request.history)
 
 
 def test_aplicar_swap_request_persiste_estado_aplicado() -> None:
@@ -530,7 +535,7 @@ def test_aplicar_swap_request_persiste_estado_aplicado() -> None:
     assert recuperado is not None
     assert recuperado.estado == "APLICADO"
     assert recuperado.decision_sugerida == "VIABLE"
-    assert any("SWAP_APLICADO" in evento for evento in recuperado.history)
+    assert any("REQUEST_APLICADA" in evento for evento in recuperado.history)
 
 
 def test_aplicar_swap_request_no_modifica_offer_origin() -> None:
@@ -705,7 +710,7 @@ def test_cancelar_requests_obsoletos_cancela_pendiente_evaluado_y_aprobado() -> 
         assert recuperado.estado == "CANCELADO"
         assert recuperado.motivo == "request obsoleto por nueva version de roster vigente"
         assert any(
-            "REQUEST_CANCELADO_POR_OBSOLESCENCIA" in evento
+            "REQUEST_CANCELADA_POR_OBSOLESCENCIA" in evento
             for evento in recuperado.history
         )
 

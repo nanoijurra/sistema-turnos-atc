@@ -131,7 +131,19 @@ class SwapRequest:
         if self.estado == "RECHAZADO":
             raise ValueError("No se puede cancelar un request ya rechazado.")
 
+        estado_anterior = self.estado
+
         self.estado = "CANCELADO"
         self.fecha_resolucion = self.fecha_resolucion or datetime.now()
         self.motivo = motivo
-        self.add_history_entry(f"REQUEST_CANCELADO_POR_OBSOLESCENCIA: {motivo}")
+        self.add_history_entry(
+            (
+                "REQUEST_CANCELADA_POR_OBSOLESCENCIA: "
+                "event_type=REQUEST_CANCELADA_POR_OBSOLESCENCIA, "
+                f"request_id={self.id}, "
+                f"estado_anterior={estado_anterior}, "
+                f"estado_nuevo={self.estado}, "
+                f"motivo={motivo}, "
+                f"roster_version_id={self.roster_version_id}"
+            )
+        )

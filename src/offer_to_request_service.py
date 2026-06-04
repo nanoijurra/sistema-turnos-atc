@@ -9,7 +9,7 @@ from src.swap_service import crear_swap_request
 
 
 SOURCE_TYPE_OFERTA_EVALUADA = "OFERTA_EVALUADA"
-HISTORY_EVENT_CREADO_DESDE_OFERTA = "CREADO_DESDE_OFERTA"
+HISTORY_EVENT_CREADO_DESDE_OFERTA = "REQUEST_CREADA_DESDE_OFERTA"
 
 
 def _validar_oferta_con_indices(oferta: OfertaEvaluada) -> None:
@@ -214,9 +214,16 @@ def crear_request_formal_desde_oferta(
     request.add_history_entry(
         (
             f"{HISTORY_EVENT_CREADO_DESDE_OFERTA}: "
+            f"event_type={HISTORY_EVENT_CREADO_DESDE_OFERTA}, "
+            f"request_id={request.id}, "
+            "estado_anterior=None, "
+            f"estado_nuevo={request.estado}, "
+            "motivo_creacion=CREADO_DESDE_OFERTA, "
             f"source_type={SOURCE_TYPE_OFERTA_EVALUADA}, "
+            f"source={SOURCE_TYPE_OFERTA_EVALUADA}, "
             f"offer_rank_observado={oferta.posicion}, "
-            f"clasificacion_observada={oferta.clasificacion}"
+            f"clasificacion_observada={oferta.clasificacion}, "
+            f"roster_version_id={request.roster_version_id}"
             f"{seleccion_usuario}"
         )
     )

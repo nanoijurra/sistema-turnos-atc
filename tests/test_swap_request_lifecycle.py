@@ -46,7 +46,13 @@ def test_lifecycle_formal_completo_evaluar_resolver_aplicar() -> None:
     assert request.decision_sugerida is not None
     assert evaluacion_formal["request_id"] == request.id
     assert evaluacion_formal["decision"] == request.decision_sugerida
-    assert any("REQUEST_EVALUADO" in evento for evento in request.history)
+    assert any(
+    "REQUEST_EVALUADA" in evento
+    and "event_type=REQUEST_EVALUADA" in evento
+    and "estado_anterior=PENDIENTE" in evento
+    and "estado_nuevo=EVALUADO" in evento
+    for evento in request.history
+)
 
     resolver_swap_request(
         request,
@@ -58,7 +64,10 @@ def test_lifecycle_formal_completo_evaluar_resolver_aplicar() -> None:
     assert request.estado == "APROBADO"
     assert request.decision_sugerida == evaluacion_formal["decision"]
     assert any(
-        "REQUEST_RESUELTO: accion=APROBAR, estado=APROBADO" in evento
+        "REQUEST_RESUELTA" in evento
+        and "event_type=REQUEST_RESUELTA" in evento
+        and "accion=APROBAR" in evento
+        and "resultado=APROBADO" in evento
         and "actor=SUP_ACC_CBA" in evento
         and "motivo_resolucion=Aprobado para test de ciclo formal completo." in evento
         for evento in request.history
@@ -76,7 +85,7 @@ def test_lifecycle_formal_completo_evaluar_resolver_aplicar() -> None:
     assert request.estado == "APLICADO"
     assert request.fecha_resolucion is not None
     assert request.decision_sugerida == evaluacion_formal["decision"]
-    assert any("SWAP_APLICADO" in evento for evento in request.history)
+    assert any("REQUEST_APLICADA" in evento for evento in request.history)
 
     assert nueva_version.version_number == roster_inicial.version_number + 1
     assert nueva_version.base_version_id == roster_inicial.id
@@ -93,14 +102,22 @@ def test_lifecycle_formal_completo_evaluar_resolver_aplicar() -> None:
     assert request_persistido.decision_sugerida == evaluacion_formal["decision"]
     assert request_persistido.roster_version_id == roster_inicial.id
     assert any(
-        "REQUEST_EVALUADO" in evento
+    "REQUEST_EVALUADA" in evento
+    and "event_type=REQUEST_EVALUADA" in evento
+    and "estado_anterior=PENDIENTE" in evento
+    and "estado_nuevo=EVALUADO" in evento
+    for evento in request_persistido.history
+    )
+    assert any(
+        "REQUEST_RESUELTA:" in evento
+        and "event_type=REQUEST_RESUELTA" in evento
+        and "accion=APROBAR" in evento
+        and "resultado=APROBADO" in evento
+        and "estado_anterior=EVALUADO" in evento
+        and "estado_nuevo=APROBADO" in evento
         for evento in request_persistido.history
     )
     assert any(
-        "REQUEST_RESUELTO: accion=APROBAR, estado=APROBADO" in evento
-        for evento in request_persistido.history
-    )
-    assert any(
-        "SWAP_APLICADO" in evento
+        "REQUEST_APLICADA" in evento
         for evento in request_persistido.history
     )

@@ -81,7 +81,19 @@ def crear_swap_request(
 
     registrar_evento_swap_request(
         request,
-        f"Request creado: {controlador_a}[{idx_a}] <-> {controlador_b}[{idx_b}] | roster_version_id={roster_vigente.id}",
+        (
+            "REQUEST_CREADA: "
+            "event_type=REQUEST_CREADA, "
+            f"request_id={request.id}, "
+            "estado_anterior=None, "
+            "estado_nuevo=PENDIENTE, "
+            f"controlador_a={controlador_a}, "
+            f"controlador_b={controlador_b}, "
+            f"idx_a={idx_a}, "
+            f"idx_b={idx_b}, "
+            f"motivo={motivo}, "
+            f"roster_version_id={roster_vigente.id}"
+        ),
     )
 
     return request
@@ -122,6 +134,8 @@ def evaluar_swap_request(
     config = cargar_config(config_file)
 
     if not _validar_ventana_operativa(asignaciones, request.idx_a, request.idx_b, config):
+        estado_anterior = request.estado
+
         request.estado = "EVALUADO"
         request.decision_sugerida = "RECHAZAR"
         request.roster_hash = calcular_roster_hash(asignaciones)
@@ -130,9 +144,16 @@ def evaluar_swap_request(
         registrar_evento_swap_request(
             request,
             (
-                "REQUEST_EVALUADO_SIN_TECNICA: decision=RECHAZAR, "
+                "REQUEST_EVALUADA_SIN_TECNICA: "
+                "event_type=REQUEST_EVALUADA_SIN_TECNICA, "
+                f"request_id={request.id}, "
+                f"estado_anterior={estado_anterior}, "
+                f"estado_nuevo={request.estado}, "
+                "decision=RECHAZAR, "
                 "motivo=SWAP_FUERA_DE_VENTANA_OPERATIVA, "
-                f"roster_version_id={roster_vigente.id}, version_number={roster_vigente.version_number}"
+                f"roster_version_id={roster_vigente.id}, "
+                f"roster_hash={request.roster_hash}, "
+                f"version_number={roster_vigente.version_number}"
             ),
         )
 
@@ -158,6 +179,7 @@ def evaluar_swap_request(
     clasificacion = evaluacion["clasificacion"]
 
     decision = mapear_decision(clasificacion)
+    estado_anterior = request.estado
 
     request.estado = "EVALUADO"
     request.decision_sugerida = decision
@@ -167,8 +189,16 @@ def evaluar_swap_request(
     registrar_evento_swap_request(
         request,
         (
-            f"REQUEST_EVALUADO: clasificacion={clasificacion}, decision={decision}, "
-            f"roster_version_id={roster_vigente.id}, version_number={roster_vigente.version_number}"
+            "REQUEST_EVALUADA: "
+            "event_type=REQUEST_EVALUADA, "
+            f"request_id={request.id}, "
+            f"estado_anterior={estado_anterior}, "
+            f"estado_nuevo={request.estado}, "
+            f"clasificacion={clasificacion}, "
+            f"decision={decision}, "
+            f"roster_version_id={roster_vigente.id}, "
+            f"roster_hash={request.roster_hash}, "
+            f"version_number={roster_vigente.version_number}"
         ),
     )
 
@@ -204,6 +234,8 @@ def resolver_swap_request(
             f"Estado inválido para resolver request: {request.estado}. Se esperaba EVALUADO."
         )
 
+    estado_anterior = request.estado
+
     if accion == "APROBAR":
         request.estado = "APROBADO"
     elif accion == "RECHAZAR":
@@ -224,7 +256,13 @@ def resolver_swap_request(
     registrar_evento_swap_request(
         request,
         (
-            f"REQUEST_RESUELTO: accion={accion}, estado={request.estado}"
+            "REQUEST_RESUELTA: "
+            "event_type=REQUEST_RESUELTA, "
+            f"request_id={request.id}, "
+            f"accion={accion}, "
+            f"resultado={request.estado}, "
+            f"estado_anterior={estado_anterior}, "
+            f"estado_nuevo={request.estado}"
             f"{detalle_actor}"
             f"{detalle_motivo}"
         ),
@@ -274,6 +312,7 @@ def aplicar_swap_request(
     _validar_indices_request_en_roster(asignaciones, request)
     _validar_controladores_request_vs_roster(asignaciones, request, contexto="al aplicar")
 
+    estado_anterior = request.estado
     roster_version_id_viejo = roster_vigente.id
 
     nuevo = deepcopy(asignaciones)
@@ -297,7 +336,16 @@ def aplicar_swap_request(
 
     registrar_evento_swap_request(
         request,
-        f"SWAP_APLICADO: nueva_version={nueva_version.version_number}",
+        (
+            "REQUEST_APLICADA: "
+            "event_type=REQUEST_APLICADA, "
+            f"request_id={request.id}, "
+            f"estado_anterior={estado_anterior}, "
+            f"estado_nuevo={request.estado}, "
+            f"roster_version_id_anterior={roster_version_id_viejo}, "
+            f"nueva_version_id={nueva_version.id}, "
+            f"nueva_version={nueva_version.version_number}"
+        ),
     )
 
     if historial_por_controlador is not None:

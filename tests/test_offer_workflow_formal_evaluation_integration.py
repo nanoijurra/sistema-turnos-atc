@@ -159,7 +159,13 @@ def test_crear_request_desde_oferta_y_evaluar_formalmente_persiste_evaluado(
     assert resultado.evaluacion_formal["decision"] == "OBSERVAR"
 
     assert any("CREADO_DESDE_OFERTA" in evento for evento in recuperado.history)
-    assert any("REQUEST_EVALUADO" in evento for evento in recuperado.history)
+    assert any(
+    "REQUEST_EVALUADA" in evento
+    and "event_type=REQUEST_EVALUADA" in evento
+    and "estado_anterior=PENDIENTE" in evento
+    and "estado_nuevo=EVALUADO" in evento
+    for evento in recuperado.history
+)
 
 
 def test_crear_request_desde_oferta_y_evaluar_formalmente_no_reemplaza_clasificacion_observada(

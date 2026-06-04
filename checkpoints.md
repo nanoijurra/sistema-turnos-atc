@@ -11343,7 +11343,7 @@ No toca `engine`, `scoring`, `simulator`, `candidate_generation`, `technical_pre
 
 ---
 
-# Checkpoint v76 - Contrato documental de aplicacion explicita
+## Checkpoint v76 - Contrato documental de aplicacion explicita
 
 ## Estado
 
@@ -12138,7 +12138,7 @@ No toca `engine`, `scoring`, `simulator`, `swap_service`, `models`, `request_sto
 
 ---
 
-# Checkpoint v80 - Contrato documental de auditoria estructurada minima
+## Checkpoint v80 - Contrato documental de auditoria estructurada minima
 
 ## Estado
 
@@ -12284,3 +12284,400 @@ Regla final:
 ```text
 El workflow cambia estados; la auditoria registra hechos del workflow.
 ```
+
+---
+
+## checkpoint-v81-auditoria-estructurada-minima-history
+Fecha: 2026-06-04
+
+---
+
+### Estado general
+
+Se implemento/reforzo una auditoria estructurada minima del workflow formal de `SwapRequest` usando el mecanismo `history` existente.
+
+No se creo tabla nueva.
+
+No se creo `audit_event`.
+
+No se modifico el modelo de persistencia.
+
+No se cambio el workflow formal.
+
+La suite completa quedo en verde.
+
+---
+
+### Objetivo
+
+Normalizar los eventos auditables minimos del workflow formal:
+
+```text
+PENDIENTE
+-> evaluar_swap_request
+-> EVALUADO
+-> resolver_swap_request
+-> APROBADO / RECHAZADO / CANCELADO
+-> aplicar_swap_request
+-> APLICADO
+```
+
+Regla central preservada:
+
+```text
+Evaluar informa.
+Resolver decide explicitamente.
+Aplicar ejecuta.
+```
+
+Regla de auditoria:
+
+```text
+El workflow cambia estados.
+La auditoria registra hechos del workflow.
+```
+
+---
+
+### Que quedo implementado
+
+#### 1. History se mantiene como mecanismo actual
+
+Se preservo el modelo vigente:
+
+```python
+history: list[str]
+```
+
+No se cambio a lista de diccionarios.
+
+No se agregaron columnas.
+
+No se agrego tabla nueva.
+
+No se modifico `request_store`.
+
+---
+
+#### 2. Eventos auditables normalizados
+
+Se normalizaron los eventos principales del workflow formal:
+
+- `REQUEST_CREADA`
+- `REQUEST_CREADA_DESDE_OFERTA`
+- `REQUEST_EVALUADA`
+- `REQUEST_EVALUADA_SIN_TECNICA`
+- `REQUEST_RESUELTA`
+- `REQUEST_APLICADA`
+- `REQUEST_CANCELADA_POR_OBSOLESCENCIA`
+
+---
+
+#### 3. Creacion de request
+
+Se modifico:
+
+- `src/swap_service.py`
+
+La creacion formal de request ahora registra:
+
+```text
+REQUEST_CREADA
+```
+
+Con campos textuales normalizados dentro de history:
+
+- `event_type`
+- `request_id`
+- `estado_anterior`
+- `estado_nuevo`
+- `controlador_a`
+- `controlador_b`
+- `idx_a`
+- `idx_b`
+- `motivo`
+- `roster_version_id`
+
+---
+
+#### 4. Creacion desde oferta
+
+Se modifico:
+
+- `src/offer_to_request_service.py`
+
+La creacion formal desde oferta ahora registra:
+
+```text
+REQUEST_CREADA_DESDE_OFERTA
+```
+
+Con campos textuales normalizados:
+
+- `event_type`
+- `request_id`
+- `estado_anterior`
+- `estado_nuevo`
+- `motivo_creacion`
+- `source_type`
+- `source`
+- `offer_rank_observado`
+- `clasificacion_observada`
+- `roster_version_id`
+- `selected_by`, si corresponde
+
+Se preserva la semantica anterior mediante:
+
+```text
+motivo_creacion=CREADO_DESDE_OFERTA
+```
+
+---
+
+#### 5. Evaluacion formal
+
+Se modifico:
+
+- `src/swap_service.py`
+
+La evaluacion formal normal registra:
+
+```text
+REQUEST_EVALUADA
+```
+
+Con campos:
+
+- `event_type`
+- `request_id`
+- `estado_anterior`
+- `estado_nuevo`
+- `clasificacion`
+- `decision`
+- `roster_version_id`
+- `roster_hash`
+- `version_number`
+
+La evaluacion sin tecnica por restriccion operativa registra:
+
+```text
+REQUEST_EVALUADA_SIN_TECNICA
+```
+
+Con motivo:
+
+```text
+SWAP_FUERA_DE_VENTANA_OPERATIVA
+```
+
+---
+
+#### 6. Resolucion operativa
+
+Se modifico:
+
+- `src/swap_service.py`
+
+La resolucion ahora registra:
+
+```text
+REQUEST_RESUELTA
+```
+
+Con campos:
+
+- `event_type`
+- `request_id`
+- `accion`
+- `resultado`
+- `estado_anterior`
+- `estado_nuevo`
+- `actor`, si corresponde
+- `motivo_resolucion`, si corresponde
+
+La resolucion sigue aceptando solo:
+
+- `APROBAR`
+- `RECHAZAR`
+- `CANCELAR`
+
+Y sigue transformando:
+
+- `APROBAR` -> `APROBADO`
+- `RECHAZAR` -> `RECHAZADO`
+- `CANCELAR` -> `CANCELADO`
+
+---
+
+#### 7. Aplicacion
+
+Se modifico:
+
+- `src/swap_service.py`
+
+La aplicacion ahora registra:
+
+```text
+REQUEST_APLICADA
+```
+
+Con campos:
+
+- `event_type`
+- `request_id`
+- `estado_anterior`
+- `estado_nuevo`
+- `roster_version_id_anterior`
+- `nueva_version_id`
+- `nueva_version`
+
+Se reemplazo el evento anterior:
+
+```text
+SWAP_APLICADO
+```
+
+por el evento normalizado:
+
+```text
+REQUEST_APLICADA
+```
+
+---
+
+#### 8. Cancelacion por obsolescencia
+
+Se modifico:
+
+- `src/models.py`
+
+La cancelacion por obsolescencia ahora registra:
+
+```text
+REQUEST_CANCELADA_POR_OBSOLESCENCIA
+```
+
+Con campos:
+
+- `event_type`
+- `request_id`
+- `estado_anterior`
+- `estado_nuevo`
+- `motivo`
+- `roster_version_id`
+
+Se reemplazo el evento anterior:
+
+```text
+REQUEST_CANCELADO_POR_OBSOLESCENCIA
+```
+
+por el evento normalizado:
+
+```text
+REQUEST_CANCELADA_POR_OBSOLESCENCIA
+```
+
+---
+
+### Tests actualizados
+
+Se ajustaron tests para reflejar los nuevos nombres normalizados de eventos.
+
+Archivos involucrados:
+
+- `tests/test_swap_service.py`
+- `tests/test_simulator.py`
+- `tests/test_offer_workflow_formal_evaluation_integration.py`
+- `tests/test_swap_request_lifecycle.py`
+
+Se reforzaron asserts sobre:
+
+- `event_type`
+- `estado_anterior`
+- `estado_nuevo`
+- `resultado`
+- `accion`
+- `actor`
+- `motivo_resolucion`
+- `nueva_version`
+- `motivo` de obsolescencia
+
+---
+
+### Contratos preservados
+
+- La auditoria no cambia estados.
+- La auditoria no decide.
+- La auditoria no aprueba.
+- La auditoria no rechaza.
+- La auditoria no cancela por cuenta propia.
+- La auditoria no aplica.
+- La auditoria no reevalua.
+- La auditoria no define permisos.
+- Actor registrado no equivale a actor autorizado.
+- History no equivale a autorizacion.
+- Evento no reemplaza estado formal.
+- `REQUEST_APLICADA` no reemplaza estado `APLICADO`.
+- `REQUEST_RESUELTA` no reemplaza estado `APROBADO / RECHAZADO / CANCELADO`.
+- Cancelacion por obsolescencia no equivale a rechazo operativo.
+- No se introdujeron nuevos estados.
+- No se introdujeron roles/permisos.
+- No se introdujo UI/API.
+- No se introdujo workflow bilateral.
+- No se introdujeron locks.
+
+---
+
+### Limitaciones conscientes
+
+- `history` sigue siendo `list[str]`.
+- Los eventos no son objetos estructurados reales todavia.
+- No existe tabla `audit_event`.
+- No existe auditoria relacional.
+- `actor` sigue siendo dato textual de trazabilidad.
+- `actor_type` no se implemento aun.
+- `metadata` no se implemento como dict formal.
+- No hay modelo de permisos.
+- No hay roles formales.
+- No hay validacion de autoridad.
+
+---
+
+### Resultados observados
+
+Tests focalizados:
+
+```text
+tests/test_swap_service.py passed
+tests/test_request_store.py passed
+tests/test_offer_to_request_service.py passed
+tests/test_offer_workflow_formal_evaluation.py passed
+tests/test_offer_workflow_formal_evaluation_integration.py passed
+tests/test_swap_request_lifecycle.py passed
+tests/test_simulator.py passed
+```
+
+Suite completa:
+
+```text
+367 passed
+```
+
+---
+
+### Notas
+
+Este checkpoint implementa auditoria estructurada minima sobre `history` existente.
+
+No se modifica el comportamiento productivo del workflow.
+
+No se modifica `request_store`.
+
+No se modifica SQLite.
+
+No se crea tabla nueva.
+
+No se toca `engine`, `scoring`, `simulator`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting` ni `offer_service`.
+
+---

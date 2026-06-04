@@ -1,4 +1,5 @@
 from datetime import date
+from urllib import request
 
 from src.scenarios.v2_fatiga import crear_escenario
 from src.simulator import (
@@ -323,14 +324,20 @@ def test_swap_request_registra_historial_completo_en_flujo_aprobado():
     )
 
     assert len(request.history) == 1
-    assert "Request creado" in request.history[0]
+    assert "REQUEST_CREADA:" in request.history[0]
+    assert "event_type=REQUEST_CREADA" in request.history[0]
+    assert "estado_anterior=None" in request.history[0]
+    assert "estado_nuevo=PENDIENTE" in request.history[0]
 
     resultado = evaluar_swap_request(asignaciones, request, evaluar_swap_fn=evaluar_swap)
 
     assert resultado["decision"] == "VIABLE"
     assert request.decision_sugerida == "VIABLE"
     assert len(request.history) == 2
-    assert "REQUEST_EVALUADO:" in request.history[1]
+    assert "REQUEST_EVALUADA:" in request.history[1]
+    assert "event_type=REQUEST_EVALUADA" in request.history[1]
+    assert "estado_anterior=PENDIENTE" in request.history[1]
+    assert "estado_nuevo=EVALUADO" in request.history[1]
     assert "clasificacion=BENEFICIOSO" in request.history[1]
     assert "decision=VIABLE" in request.history[1]
 
@@ -339,16 +346,22 @@ def test_swap_request_registra_historial_completo_en_flujo_aprobado():
     assert request.estado == "APROBADO"
     assert request.fecha_resolucion is not None
     assert len(request.history) == 3
-    assert "REQUEST_RESUELTO:" in request.history[2]
+    assert "REQUEST_RESUELTA:" in request.history[2]
+    assert "event_type=REQUEST_RESUELTA" in request.history[2]
     assert "accion=APROBAR" in request.history[2]
-    assert "estado=APROBADO" in request.history[2]
+    assert "resultado=APROBADO" in request.history[2]
+    assert "estado_anterior=EVALUADO" in request.history[2]
+    assert "estado_nuevo=APROBADO" in request.history[2]
 
     nueva_version = aplicar_swap_request(asignaciones, request)
 
     assert nueva_version is not None
     assert nueva_version.version_number == 2
     assert len(request.history) == 4
-    assert "SWAP_APLICADO:" in request.history[3]
+    assert "REQUEST_APLICADA:" in request.history[3]
+    assert "event_type=REQUEST_APLICADA" in request.history[3]
+    assert "estado_anterior=APROBADO" in request.history[3]
+    assert "estado_nuevo=APLICADO" in request.history[3]
     assert "nueva_version=2" in request.history[3]
 
 
@@ -372,7 +385,10 @@ def test_swap_request_registra_historial_hasta_resolucion_rechazada():
     )
 
     assert len(request.history) == 1
-    assert "Request creado" in request.history[0]
+    assert "REQUEST_CREADA:" in request.history[0]
+    assert "event_type=REQUEST_CREADA" in request.history[0]
+    assert "estado_anterior=None" in request.history[0]
+    assert "estado_nuevo=PENDIENTE" in request.history[0]
 
     resultado = evaluar_swap_request(asignaciones, request, evaluar_swap_fn=evaluar_swap)
 
@@ -381,7 +397,10 @@ def test_swap_request_registra_historial_hasta_resolucion_rechazada():
     assert "motivo" not in resultado
     assert request.decision_sugerida == "RECHAZAR"
     assert len(request.history) == 2
-    assert "REQUEST_EVALUADO:" in request.history[1]
+    assert "REQUEST_EVALUADA:" in request.history[1]
+    assert "event_type=REQUEST_EVALUADA" in request.history[1]
+    assert "estado_anterior=PENDIENTE" in request.history[1]
+    assert "estado_nuevo=EVALUADO" in request.history[1]
     assert "decision=RECHAZAR" in request.history[1]
     assert "clasificacion=RECHAZABLE" in request.history[1]
 
@@ -390,9 +409,12 @@ def test_swap_request_registra_historial_hasta_resolucion_rechazada():
     assert request.estado == "RECHAZADO"
     assert request.fecha_resolucion is not None
     assert len(request.history) == 3
-    assert "REQUEST_RESUELTO:" in request.history[2]
+    assert "REQUEST_RESUELTA:" in request.history[2]
+    assert "event_type=REQUEST_RESUELTA" in request.history[2]
     assert "accion=RECHAZAR" in request.history[2]
-    assert "estado=RECHAZADO" in request.history[2]
+    assert "resultado=RECHAZADO" in request.history[2]
+    assert "estado_anterior=EVALUADO" in request.history[2]
+    assert "estado_nuevo=RECHAZADO" in request.history[2]
 
 
 def test_evaluar_swap_request_falla_si_se_evalua_dos_veces():
