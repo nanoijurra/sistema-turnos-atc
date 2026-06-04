@@ -85,3 +85,41 @@ def rule_no_ambiguous_valido(text: str, file: str) -> list[SemanticViolation]:
         )
 
     return violations
+
+def rule_no_legacy_audit_event_names(
+    tree: ast.AST,
+    file: str,
+) -> list[SemanticViolation]:
+    violations: list[SemanticViolation] = []
+
+    forbidden_events = [
+        "REQUEST_EVALUADO",
+        "REQUEST_EVALUADO_SIN_TECNICA",
+        "REQUEST_RESUELTO",
+        "SWAP_APLICADO",
+        "REQUEST_CANCELADO_POR_OBSOLESCENCIA",
+        "Request creado:",
+    ]
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Constant):
+            continue
+
+        if not isinstance(node.value, str):
+            continue
+
+        for event_name in forbidden_events:
+            if event_name in node.value:
+                violations.append(
+                    SemanticViolation(
+                        "S-05",
+                        (
+                            "Nombre legacy de evento auditable detectado: "
+                            f"{event_name}. Usar eventos normalizados v81."
+                        ),
+                        file,
+                        getattr(node, "lineno", 0),
+                    )
+                )
+
+    return violations

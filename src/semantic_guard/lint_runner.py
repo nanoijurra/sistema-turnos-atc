@@ -5,6 +5,7 @@ from src.semantic_guard.lint_rules import (
     SemanticViolation,
     rule_engine_no_decision,
     rule_no_ambiguous_valido,
+    rule_no_legacy_audit_event_names,
     rule_simulator_no_decision,
     rule_swap_service_no_classification_logic,
 )
@@ -31,6 +32,8 @@ def analyze_python_file(path: str) -> list[SemanticViolation]:
     if "swap_service" in normalized:
         violations.extend(rule_swap_service_no_classification_logic(tree, path))
 
+    violations.extend(rule_no_legacy_audit_event_names(tree, path))
+    
     return violations
 
 

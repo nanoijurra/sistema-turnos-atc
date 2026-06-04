@@ -12681,3 +12681,174 @@ No se crea tabla nueva.
 No se toca `engine`, `scoring`, `simulator`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting` ni `offer_service`.
 
 ---
+
+## checkpoint-v82-blindaje-eventos-auditables
+Fecha: 2026-06-04
+
+---
+
+### Estado general
+
+Se reforzo el `semantic_guard` para blindar los nombres normalizados de eventos auditables incorporados en v81.
+
+El objetivo fue evitar que vuelvan a introducirse nombres legacy de eventos en `src/`.
+
+No se modifico el workflow formal.
+
+No se modifico `history`.
+
+No se agrego tabla nueva.
+
+La suite completa quedo en verde.
+
+---
+
+### Contexto
+
+En v81 se normalizaron los eventos auditables minimos sobre `history` existente:
+
+```text
+REQUEST_CREADA
+REQUEST_CREADA_DESDE_OFERTA
+REQUEST_EVALUADA
+REQUEST_EVALUADA_SIN_TECNICA
+REQUEST_RESUELTA
+REQUEST_APLICADA
+REQUEST_CANCELADA_POR_OBSOLESCENCIA
+```
+
+v82 agrega un blindaje semantico para evitar regresiones terminologicas.
+
+---
+
+### Que quedo implementado
+
+#### 1. Nueva regla semantica
+
+Se modifico:
+
+- `src/semantic_guard/lint_rules.py`
+
+Se agrego la regla:
+
+```python
+rule_no_legacy_audit_event_names
+```
+
+La regla detecta nombres legacy de eventos auditables dentro de literales string de archivos Python.
+
+---
+
+#### 2. Eventos legacy prohibidos
+
+La regla detecta el uso de:
+
+```text
+REQUEST_EVALUADO
+REQUEST_EVALUADO_SIN_TECNICA
+REQUEST_RESUELTO
+SWAP_APLICADO
+REQUEST_CANCELADO_POR_OBSOLESCENCIA
+Request creado:
+```
+
+Estos nombres quedaron reemplazados por la taxonomia normalizada de v81.
+
+---
+
+#### 3. Integracion con lint runner
+
+Se modifico:
+
+- `src/semantic_guard/lint_runner.py`
+
+La nueva regla se ejecuta dentro de:
+
+```python
+analyze_python_file
+```
+
+Por lo tanto queda incluida en:
+
+```python
+run_semantic_lint()
+```
+
+y cubierta por:
+
+```text
+tests/test_semantic_guard.py
+```
+
+---
+
+### Excepciones conscientes
+
+No se prohibio:
+
+```text
+CREADO_DESDE_OFERTA
+```
+
+Motivo:
+
+En v81 se decidio preservar ese valor como dato semantico de compatibilidad:
+
+```text
+motivo_creacion=CREADO_DESDE_OFERTA
+```
+
+pero no como `event_type`.
+
+Tampoco se prohiben frases humanas como:
+
+```text
+El request creado desde oferta...
+```
+
+La regla apunta al evento legacy exacto:
+
+```text
+Request creado:
+```
+
+---
+
+### Contratos preservados
+
+- El semantic guard no cambia estados.
+- El semantic guard no modifica workflow.
+- El semantic guard no decide.
+- El semantic guard no audita runtime.
+- El semantic guard no reemplaza `history`.
+- No se agrego tabla `audit_event`.
+- No se agregaron roles.
+- No se agregaron permisos.
+- No se agrego UI/API.
+- No se agregaron nuevos estados.
+
+---
+
+### Resultado observado
+
+Test focalizado:
+
+```text
+tests/test_semantic_guard.py passed
+```
+
+Suite completa:
+
+```text
+367 passed
+```
+
+---
+
+### Notas
+
+Este checkpoint es de blindaje semantico.
+
+No toca `swap_service`, `models`, `request_store`, `offer_to_request_service`, `offer_workflow_service`, `engine`, `scoring`, `simulator`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting` ni `offer_service`.
+
+---
