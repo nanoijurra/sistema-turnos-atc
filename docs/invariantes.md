@@ -937,3 +937,156 @@ Cualquier nuevo estado requiere decision arquitectonica separada.
 ## 13.10 Regla corta
 
 La auditoria observa el workflow; no lo reemplaza.
+
+---
+
+# Invariante 14 - El importador normaliza datos reales, no evalua ni decide
+
+## TOC
+
+- [14.1 Regla principal](#141-regla-principal)
+- [14.2 El importador no evalua swaps](#142-el-importador-no-evalua-swaps)
+- [14.3 El importador no decide workflow](#143-el-importador-no-decide-workflow)
+- [14.4 El importador no aplica](#144-el-importador-no-aplica)
+- [14.5 Celda vacia es franco](#145-celda-vacia-es-franco)
+- [14.6 A/B/C son turnos operativos](#146-abc-son-turnos-operativos)
+- [14.7 Codigos no operativos no entran al motor en V1](#147-codigos-no-operativos-no-entran-al-motor-en-v1)
+- [14.8 El importador no infiere puestos ni supervisores](#148-el-importador-no-infiere-puestos-ni-supervisores)
+- [14.9 roster_store no parsea](#149-rosterstore-no-parsea)
+- [14.10 RosterVersion se crea explicitamente](#1410-rosterversion-se-crea-explicitamente)
+- [14.11 Regla corta](#1411-regla-corta)
+
+---
+
+## 14.1 Regla principal
+
+El importador normaliza datos reales de roster.
+
+No evalua swaps.
+
+No decide workflow.
+
+No aplica cambios operativos.
+
+---
+
+## 14.2 El importador no evalua swaps
+
+El importador no puede llamar a:
+
+```text
+simulator
+```
+
+Tampoco puede clasificar tecnicamente swaps.
+
+---
+
+## 14.3 El importador no decide workflow
+
+El importador no puede:
+
+```text
+aprobar
+rechazar
+cancelar
+resolver
+crear decision_sugerida
+```
+
+El workflow formal sigue perteneciendo a `swap_service`.
+
+---
+
+## 14.4 El importador no aplica
+
+El importador no puede ejecutar swaps ni modificar requests existentes.
+
+La aplicacion sigue perteneciendo a:
+
+```text
+swap_service.aplicar_swap_request
+```
+
+---
+
+## 14.5 Celda vacia es franco
+
+Una celda vacia representa franco.
+
+No genera `Asignacion` operativa.
+
+---
+
+## 14.6 A/B/C son turnos operativos
+
+Los codigos:
+
+```text
+A
+B
+C
+```
+
+representan turnos operativos y generan `Asignacion`.
+
+---
+
+## 14.7 Codigos no operativos no entran al motor en V1
+
+Codigos como:
+
+```text
+LA
+PSI
+RTA
+RTB
+REM
+RET
+SIM
+TW
+```
+
+no deben generar `Asignacion` operativa en V1.
+
+Deben quedar como eventos no operativos, warnings o informacion auxiliar de importacion.
+
+---
+
+## 14.8 El importador no infiere puestos ni supervisores
+
+El importador no debe inferir:
+
+```text
+TMA
+SUR
+NORTE
+SUPERVISOR
+INSTRUCTOR
+```
+
+si esos datos no estan explicitamente presentes.
+
+La posicion de una fila no debe usarse como regla general para determinar rol.
+
+---
+
+## 14.9 roster_store no parsea
+
+`roster_store` no debe interpretar CSV, Excel ni matrices humanas.
+
+Su responsabilidad es persistir y versionar rosters ya normalizados.
+
+---
+
+## 14.10 RosterVersion se crea explicitamente
+
+Leer o parsear una matriz no debe crear una `RosterVersion` automaticamente de manera implicita.
+
+La creacion de `RosterVersion` desde una importacion debe ser una accion explicita posterior a la validacion.
+
+---
+
+## 14.11 Regla corta
+
+El importador prepara datos; el motor tecnico valida reglas; el workflow formal decide y ejecuta.

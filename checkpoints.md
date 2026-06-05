@@ -12852,3 +12852,209 @@ Este checkpoint es de blindaje semantico.
 No toca `swap_service`, `models`, `request_store`, `offer_to_request_service`, `offer_workflow_service`, `engine`, `scoring`, `simulator`, `candidate_generation`, `technical_prefilter`, `candidate_selection`, `exploration_flow`, `offer_reporting` ni `offer_service`.
 
 ---
+
+---
+
+# Checkpoint v85 - Contrato documental de importacion de roster real acotado
+
+## Estado
+
+Documental / arquitectonico.
+
+## Contexto
+
+Luego de v84 se decide priorizar la importacion y normalizacion de roster real acotado antes de implementar workflow bilateral, roles, permisos, UI o API.
+
+El sistema ya tiene consolidado:
+
+```text
+roster interno
+-> generar ofertas
+-> crear request
+-> evaluar
+-> resolver
+-> aplicar
+-> versionar roster
+```
+
+El nuevo objetivo es definir la frontera:
+
+```text
+matriz real de roster
+-> normalizacion
+-> validacion
+-> asignaciones internas
+-> RosterVersion inicial
+-> ofertas/evaluacion sobre datos reales
+```
+
+## Decision
+
+Se adopta una importacion acotada basada inicialmente en:
+
+```text
+CSV o matriz tabular simple
+```
+
+No se implementa todavia parser generico de Excel.
+
+## Formato minimo V1
+
+La matriz debe tener:
+
+```text
+controlador,01,02,03,...,30/31
+CONTROLADOR A,A,B,,C,...,LA
+CONTROLADOR B,,C,A,,...,PSI
+```
+
+Reglas:
+
+- primera columna: controlador;
+- columnas siguientes: dias del mes;
+- celda vacia = franco;
+- `A`, `B`, `C` = turnos operativos;
+- codigos no operativos conocidos = eventos de importacion;
+- codigos desconocidos = error o warning segun politica.
+
+## Interpretacion
+
+```text
+A/B/C -> Asignacion operativa
+celda vacia -> franco, no genera Asignacion
+LA/PSI/RTA/RTB/etc -> evento no operativo, fuera del motor tecnico en V1
+```
+
+## Salida esperada
+
+La salida conceptual es:
+
+```text
+RosterImportResult
+```
+
+Con:
+
+```text
+asignaciones_operativas
+eventos_no_operativos
+warnings
+errors
+metadata
+roster_version
+```
+
+`roster_version` puede ser `None` si solo se parsea y valida.
+
+## Responsabilidad de modulos
+
+Se define conceptualmente una frontera:
+
+```text
+roster_import_service
+```
+
+Responsabilidad:
+
+- recibir CSV/matriz;
+- normalizar;
+- validar;
+- separar operativos y no operativos;
+- construir asignaciones;
+- producir reporte;
+- coordinar creacion explicita de `RosterVersion` si corresponde.
+
+`roster_store` no parsea.
+
+`roster_store` solo persiste/versiona rosters ya normalizados.
+
+## Validaciones
+
+Errores bloqueantes recomendados:
+
+```text
+controlador vacio
+controlador duplicado
+dia invalido
+dia fuera de mes
+codigo operativo desconocido
+celda ambigua no parseable
+fecha imposible
+mes/anio invalido
+```
+
+Warnings recomendados:
+
+```text
+codigo no operativo conocido
+codigo desconocido en modo permisivo
+falta contexto previo
+nombre normalizado
+controlador sin turnos operativos
+turnos no operativos ignorados por motor tecnico
+puestos no definidos
+supervisores no definidos
+```
+
+## Contexto intermensual
+
+V1 puede recibir contexto previo opcional:
+
+```text
+asignaciones_contexto_previas
+```
+
+Ese contexto puede ayudar en validaciones intermensuales.
+
+No forma parte del roster mensual principal.
+
+No se exige contexto posterior en V1.
+
+## Restricciones
+
+No se implementa todavia:
+
+- parser generico de Excel;
+- lectura de colores;
+- lectura de celdas combinadas;
+- UI;
+- API;
+- roles;
+- permisos;
+- workflow bilateral;
+- locks;
+- carga multiusuario;
+- inferencia de supervisores;
+- inferencia de puestos;
+- import incremental complejo;
+- merge automatico con roster vigente.
+
+## Documentos asociados
+
+Se agregan o actualizan:
+
+```text
+Decision 50 - Importacion de roster real acotado
+Contrato 22 - Importacion y normalizacion de roster real acotado
+Invariante 14 - El importador normaliza datos reales, no evalua ni decide
+```
+
+## Proximo paso recomendado
+
+Implementacion controlada de importacion CSV/matriz simple.
+
+Posible checkpoint siguiente:
+
+```text
+v86 - Implementacion de importacion CSV/matriz simple
+```
+
+## Resultado
+
+Queda definido el contrato documental de importacion de roster real acotado.
+
+Regla final:
+
+```text
+El importador normaliza datos reales; no evalua swaps ni decide workflow.
+```

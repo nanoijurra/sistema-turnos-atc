@@ -2487,3 +2487,268 @@ Pero la existencia de un evento no debe ser usada como sustituto del estado form
 ## 21.12 Regla corta
 
 La auditoria conserva hechos; no decide transiciones.
+
+---
+
+# Contrato 22 - Importacion y normalizacion de roster real acotado
+
+## TOC
+
+- [22.1 Proposito](#221-proposito)
+- [22.2 Contexto](#222-contexto)
+- [22.3 Entrada soportada V1](#223-entrada-soportada-v1)
+- [22.4 Interpretacion de codigos](#224-interpretacion-de-codigos)
+- [22.5 Salida contractual](#225-salida-contractual)
+- [22.6 Responsabilidades permitidas](#226-responsabilidades-permitidas)
+- [22.7 Responsabilidades prohibidas](#227-responsabilidades-prohibidas)
+- [22.8 Validaciones estructurales](#228-validaciones-estructurales)
+- [22.9 Eventos no operativos](#229-eventos-no-operativos)
+- [22.10 Contexto intermensual](#2210-contexto-intermensual)
+- [22.11 Relacion con roster_store](#2211-relacion-con-rosterstore)
+- [22.12 Relacion con engine y workflow](#2212-relacion-con-engine-y-workflow)
+- [22.13 Regla corta](#2213-regla-corta)
+
+---
+
+## 22.1 Proposito
+
+Definir el contrato arquitectonico de importacion y normalizacion de roster real acotado.
+
+La importacion convierte una matriz mensual simple en datos internos confiables para el sistema de swaps ATC.
+
+---
+
+## 22.2 Contexto
+
+El sistema opera internamente con asignaciones y versiones de roster.
+
+Para usar datos reales, se requiere una frontera de importacion que transforme una matriz humana en:
+
+```text
+asignaciones operativas internas
+eventos no operativos registrados
+reporte de importacion
+metadata de importacion
+```
+
+sin alterar el workflow formal de `SwapRequest`.
+
+---
+
+## 22.3 Entrada soportada V1
+
+La entrada soportada en V1 es:
+
+```text
+CSV o matriz tabular simple
+```
+
+Estructura esperada:
+
+```text
+controlador,01,02,03,...,30/31
+CONTROLADOR A,A,B,,C,...,LA
+CONTROLADOR B,,C,A,,...,PSI
+```
+
+Reglas:
+
+- primera columna: controlador;
+- columnas siguientes: dias del mes;
+- una celda por controlador/dia;
+- celda vacia = franco;
+- `A`, `B`, `C` = turnos operativos;
+- otros codigos conocidos = eventos no operativos;
+- codigos desconocidos = error o warning segun politica.
+
+---
+
+## 22.4 Interpretacion de codigos
+
+La interpretacion contractual es:
+
+```text
+A -> Asignacion operativa
+B -> Asignacion operativa
+C -> Asignacion operativa
+celda vacia -> franco, no genera Asignacion
+codigo no operativo conocido -> evento no operativo de importacion
+codigo desconocido -> error o warning segun politica
+```
+
+El importador no debe interpretar codigos no operativos como turnos operativos.
+
+---
+
+## 22.5 Salida contractual
+
+La salida conceptual debe ser:
+
+```text
+RosterImportResult
+```
+
+Contenido recomendado:
+
+```text
+asignaciones_operativas
+eventos_no_operativos
+warnings
+errors
+metadata
+roster_version
+```
+
+`roster_version` puede ser `None` si la operacion solo parsea y valida sin persistir.
+
+---
+
+## 22.6 Responsabilidades permitidas
+
+El importador puede:
+
+1. Recibir una matriz o CSV simple.
+2. Normalizar nombres de controladores.
+3. Normalizar dias.
+4. Normalizar codigos.
+5. Identificar celdas vacias como francos.
+6. Convertir `A`, `B`, `C` en asignaciones operativas.
+7. Registrar codigos no operativos conocidos como eventos de importacion.
+8. Detectar codigos desconocidos.
+9. Generar warnings.
+10. Generar errores bloqueantes.
+11. Producir reporte de importacion.
+12. Coordinar la creacion explicita de una `RosterVersion` inicial si no hay errores bloqueantes.
+
+---
+
+## 22.7 Responsabilidades prohibidas
+
+El importador no puede:
+
+- evaluar swaps;
+- clasificar tecnicamente;
+- decidir workflow;
+- crear requests;
+- resolver requests;
+- aplicar requests;
+- modificar requests existentes;
+- llamar a `simulator`;
+- reemplazar `engine`;
+- inferir puestos no presentes;
+- inferir supervisores;
+- crear roles;
+- crear permisos;
+- crear locks;
+- crear workflow bilateral;
+- interpretar Excel generico con formato visual complejo;
+- depender de colores, formulas o celdas combinadas.
+
+---
+
+## 22.8 Validaciones estructurales
+
+Errores bloqueantes recomendados:
+
+```text
+controlador vacio
+controlador duplicado
+dia invalido
+dia fuera de mes
+codigo operativo desconocido
+celda ambigua no parseable
+fecha imposible
+mes/anio invalido
+```
+
+Warnings recomendados:
+
+```text
+codigo no operativo conocido
+codigo desconocido en modo permisivo
+falta contexto previo
+nombre normalizado
+controlador sin turnos operativos
+turnos no operativos ignorados por motor tecnico
+puestos no definidos
+supervisores no definidos
+```
+
+---
+
+## 22.9 Eventos no operativos
+
+Los codigos no operativos conocidos deben quedar fuera del motor tecnico en V1.
+
+Ejemplos:
+
+```text
+LA
+PSI
+RTA
+RTB
+REM
+RET
+SIM
+TW
+```
+
+Estos codigos pueden registrarse como eventos de importacion o elementos auxiliares del reporte.
+
+No deben generar `Asignacion` operativa.
+
+---
+
+## 22.10 Contexto intermensual
+
+El importador puede recibir contexto previo opcional:
+
+```text
+asignaciones_contexto_previas
+```
+
+Ese contexto puede servir para validaciones intermensuales.
+
+No forma parte del roster mensual principal importado.
+
+En V1 no se exige contexto posterior del mes siguiente.
+
+Si falta contexto previo, el importador puede emitir warning.
+
+---
+
+## 22.11 Relacion con roster_store
+
+`roster_store` persiste y versiona rosters.
+
+`roster_store` no parsea CSV ni matrices humanas.
+
+La creacion de una `RosterVersion` desde una importacion debe ser una accion explicita, posterior a parseo y validacion.
+
+---
+
+## 22.12 Relacion con engine y workflow
+
+La importacion no reemplaza al `engine`.
+
+La importacion prepara datos.
+
+La validacion tecnica de reglas sigue perteneciendo a `engine`.
+
+La evaluacion de swaps sigue perteneciendo al flujo formal existente.
+
+La importacion no modifica el workflow:
+
+```text
+PENDIENTE
+-> EVALUADO
+-> APROBADO / RECHAZADO / CANCELADO
+-> APLICADO
+```
+
+---
+
+## 22.13 Regla corta
+
+Importar roster convierte datos reales en asignaciones internas; no evalua, no decide y no aplica.
+

@@ -1930,3 +1930,359 @@ No se modifica comportamiento productivo.
 ## 49.12 Regla corta
 
 El workflow cambia estados; la auditoria registra hechos del workflow.
+
+---
+
+# Decision 50 - Importacion de roster real acotado
+
+## TOC
+
+- [50.1 Estado](#501-estado)
+- [50.2 Contexto](#502-contexto)
+- [50.3 Decision](#503-decision)
+- [50.4 Formato minimo de entrada V1](#504-formato-minimo-de-entrada-v1)
+- [50.5 Interpretacion de celdas](#505-interpretacion-de-celdas)
+- [50.6 Codigos no operativos](#506-codigos-no-operativos)
+- [50.7 Continuidad entre meses](#507-continuidad-entre-meses)
+- [50.8 Supervisores y puestos](#508-supervisores-y-puestos)
+- [50.9 Validaciones de importacion](#509-validaciones-de-importacion)
+- [50.10 Ubicacion de responsabilidades](#5010-ubicacion-de-responsabilidades)
+- [50.11 Salida esperada](#5011-salida-esperada)
+- [50.12 Restricciones](#5012-restricciones)
+- [50.13 Consecuencias](#5013-consecuencias)
+- [50.14 Decision negativa explicita](#5014-decision-negativa-explicita)
+- [50.15 Regla corta](#5015-regla-corta)
+
+---
+
+## 50.1 Estado
+
+Aceptada.
+
+---
+
+## 50.2 Contexto
+
+Luego de consolidar el workflow formal de `SwapRequest`, la auditoria estructurada minima y el blindaje semantico de eventos auditables, el siguiente riesgo arquitectonico relevante es la calidad de entrada del roster real.
+
+El sistema ya puede operar sobre un roster interno:
+
+```text
+roster interno
+-> generar ofertas
+-> crear request
+-> evaluar
+-> resolver
+-> aplicar
+-> versionar roster
+```
+
+Pero falta definir una frontera controlada para convertir una matriz real humana en datos internos confiables.
+
+El objetivo conceptual es:
+
+```text
+matriz real de roster
+-> normalizacion
+-> validacion
+-> asignaciones internas
+-> RosterVersion inicial
+-> ofertas/evaluacion sobre datos reales
+```
+
+---
+
+## 50.3 Decision
+
+Se adopta como proximo eje la importacion de roster real acotado.
+
+La importacion debe convertir una matriz mensual simple en asignaciones operativas internas y reporte de importacion.
+
+La importacion no evalua swaps.
+
+La importacion no decide workflow.
+
+La importacion no aplica cambios sobre requests.
+
+---
+
+## 50.4 Formato minimo de entrada V1
+
+Para V1 se acepta como formato minimo:
+
+```text
+CSV o matriz tabular simple
+```
+
+La estructura esperada es:
+
+```text
+controlador,01,02,03,04,...,30/31
+IJURRA E.,A,B,,C,...,LA
+PEREZ J.,,A,C,,...,PSI
+```
+
+Reglas basicas:
+
+- primera columna: identificador o nombre del controlador;
+- columnas siguientes: dias del mes;
+- una celda por controlador y dia;
+- celda vacia representa franco;
+- codigos `A`, `B`, `C` representan turnos operativos;
+- otros codigos conocidos representan eventos no operativos o ausencias;
+- no se requiere Excel generico en V1.
+
+La arquitectura queda preparada para que un Excel simple pueda convertirse luego a la misma matriz normalizada, pero el primer contrato no debe depender de interpretar formato visual complejo.
+
+---
+
+## 50.5 Interpretacion de celdas
+
+La interpretacion V1 es:
+
+```text
+celda vacia -> franco
+A -> turno operativo
+B -> turno operativo
+C -> turno operativo
+codigo no operativo conocido -> evento de importacion no operativo
+codigo desconocido -> error o warning segun politica
+```
+
+Los turnos operativos generan `Asignacion`.
+
+Las celdas vacias no generan `Asignacion`.
+
+Los codigos no operativos no generan `Asignacion` operativa en V1.
+
+---
+
+## 50.6 Codigos no operativos
+
+Codigos no operativos conocidos pueden incluir, entre otros:
+
+```text
+LA
+PSI
+RTA
+RTB
+REM
+RET
+SIM
+TW
+```
+
+Para V1, estos codigos deben quedar fuera del motor tecnico.
+
+Deben registrarse en el resultado de importacion como eventos no operativos, advertencias o entradas auxiliares, segun el modelo disponible.
+
+No deben contaminar reglas de descanso, secuencias, noches consecutivas o dotacion como si fueran turnos operativos.
+
+---
+
+## 50.7 Continuidad entre meses
+
+La importacion V1 puede recibir contexto opcional del mes anterior.
+
+Ese contexto puede usarse para validaciones intermensuales, por ejemplo descanso minimo o continuidad de noches.
+
+El contexto previo no forma parte del roster mensual principal importado.
+
+Contrato recomendado:
+
+```text
+asignaciones_contexto_previas: list[Asignacion]
+```
+
+Para V1 no se exige contexto del mes siguiente.
+
+Si no se provee contexto previo, el importador puede emitir warning:
+
+```text
+No se proporciono contexto previo; algunas validaciones intermensuales pueden quedar incompletas.
+```
+
+---
+
+## 50.8 Supervisores y puestos
+
+El importador V1 no debe inferir supervisores.
+
+El importador V1 no debe inferir puestos.
+
+Si el roster no define puestos `TMA`, `SUR`, `NORTE` o equivalentes, el dato debe quedar como:
+
+```text
+puesto = None
+```
+
+o equivalente.
+
+El importador no debe aplicar reglas basadas en puesto si el puesto no existe en la entrada.
+
+La regla contextual "primeros N son supervisores" no debe incorporarse como contrato general de importacion.
+
+---
+
+## 50.9 Validaciones de importacion
+
+La importacion debe distinguir errores bloqueantes y warnings.
+
+Errores bloqueantes recomendados:
+
+```text
+controlador vacio
+controlador duplicado
+dia fuera de mes
+columna de dia invalida
+codigo operativo desconocido
+celda ambigua no parseable
+fecha imposible
+mes/anio invalido
+```
+
+Warnings recomendados:
+
+```text
+codigo no operativo conocido
+codigo desconocido si politica permisiva
+falta contexto previo
+nombre normalizado
+controlador sin turnos operativos
+turnos especiales ignorados por motor tecnico
+puestos no definidos
+supervisores no definidos
+```
+
+La politica por defecto recomendada es:
+
+```text
+strict = True
+```
+
+En modo exploratorio puede existir:
+
+```text
+strict = False
+```
+
+---
+
+## 50.10 Ubicacion de responsabilidades
+
+La responsabilidad principal debe vivir en una frontera de importacion.
+
+Nombre recomendado:
+
+```text
+roster_import_service
+```
+
+Responsabilidades:
+
+- recibir CSV o matriz simple;
+- normalizar nombres, dias y codigos;
+- validar estructura;
+- separar turnos operativos de eventos no operativos;
+- construir asignaciones internas;
+- producir reporte de importacion;
+- opcionalmente coordinar la creacion explicita de una `RosterVersion`.
+
+`roster_store` no debe parsear.
+
+`roster_store` debe persistir y versionar rosters ya normalizados.
+
+---
+
+## 50.11 Salida esperada
+
+La salida de importacion no debe ser solo `list[Asignacion]`.
+
+Debe existir un resultado estructurado conceptual:
+
+```text
+RosterImportResult
+```
+
+Contenido recomendado:
+
+```text
+asignaciones_operativas
+eventos_no_operativos
+warnings
+errors
+metadata
+roster_version
+```
+
+La creacion de `RosterVersion` debe ser una accion explicita posterior al parseo y validacion, no un efecto automatico inevitable de leer una matriz.
+
+---
+
+## 50.12 Restricciones
+
+La importacion no puede:
+
+- evaluar swaps;
+- llamar a `simulator`;
+- decidir workflow;
+- crear requests;
+- resolver requests;
+- aplicar requests;
+- modificar requests existentes;
+- inferir supervisores;
+- inferir puestos;
+- inventar roles;
+- crear workflow bilateral;
+- crear locks;
+- interpretar cualquier Excel generico;
+- depender de colores, celdas combinadas o formato visual;
+- hacer alta automatica silenciosa de controladores desconocidos.
+
+---
+
+## 50.13 Consecuencias
+
+El sistema queda preparado para usar datos reales acotados sin contaminar el motor tecnico.
+
+Los turnos operativos `A`, `B`, `C` entran como asignaciones internas.
+
+Los codigos no operativos quedan registrados pero fuera del motor tecnico en V1.
+
+El workflow formal de `SwapRequest` no cambia.
+
+El importador se convierte en una frontera previa al roster interno.
+
+---
+
+## 50.14 Decision negativa explicita
+
+No se implementa todavia:
+
+```text
+parser generico de Excel
+lectura de colores
+lectura de celdas combinadas
+UI
+API
+roles
+permisos
+workflow bilateral
+locks
+carga multiusuario
+inferencia de supervisores
+inferencia de puestos
+merge automatico con roster vigente
+import incremental complejo
+```
+
+No se modifica el workflow formal de `SwapRequest`.
+
+No se modifica `engine`, `scoring`, `simulator`, `swap_service` ni `candidate_selection`.
+
+---
+
+## 50.15 Regla corta
+
+El importador normaliza datos reales; no evalua swaps ni decide workflow.
+
