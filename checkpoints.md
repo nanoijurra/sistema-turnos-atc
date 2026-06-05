@@ -13058,3 +13058,322 @@ Regla final:
 ```text
 El importador normaliza datos reales; no evalua swaps ni decide workflow.
 ```
+## checkpoint-v86-importacion-roster-real-acotado
+Fecha: 2026-06-04
+
+---
+
+### Estado general
+
+Se implemento la importacion acotada de roster real desde matriz simple y CSV simple.
+
+El importador normaliza datos reales y produce asignaciones internas, eventos no operativos, warnings, errors y metadata.
+
+No evalua swaps.
+
+No decide workflow.
+
+No crea requests.
+
+No aplica swaps.
+
+No persiste automaticamente una `RosterVersion` al solo parsear.
+
+La suite completa quedo en verde.
+
+---
+
+### Objetivo
+
+Implementar el pipeline inicial:
+
+```text
+CSV / matriz simple
+-> normalizacion
+-> validacion estructural
+-> separacion operativos / no operativos
+-> list[Asignacion]
+-> RosterImportResult
+-> creacion explicita opcional de RosterVersion
+```
+
+---
+
+### Archivos agregados
+
+Se agrego:
+
+- `src/roster_import_service.py`
+- `tests/test_roster_import_service.py`
+
+---
+
+### Funciones agregadas
+
+En `src/roster_import_service.py`:
+
+- `importar_roster_desde_matriz`
+- `importar_roster_desde_csv`
+- `crear_roster_version_desde_importacion`
+
+---
+
+### Dataclasses agregadas
+
+En `src/roster_import_service.py`:
+
+- `RosterImportIssue`
+- `EventoNoOperativoImportado`
+- `ImportMetadata`
+- `RosterImportResult`
+
+---
+
+### Codigos operativos soportados
+
+Se soportan como asignaciones operativas:
+
+```text
+A
+B
+C
+```
+
+Cada codigo se transforma en una `Asignacion` con:
+
+- `fecha`
+- `turno`
+- `controlador`
+
+Usando esquema horario 8H.
+
+---
+
+### Codigos no operativos soportados
+
+Se soportan como eventos no operativos:
+
+```text
+LA
+PSI
+RTA
+RTB
+REM
+RET
+SIM
+TW
+```
+
+Estos codigos:
+
+- generan `EventoNoOperativoImportado`
+- generan warning `CODIGO_NO_OPERATIVO_IGNORADO`
+- no generan `Asignacion`
+- quedan fuera del motor tecnico en V1
+
+---
+
+### Celdas vacias
+
+La celda vacia se interpreta como franco.
+
+No genera asignacion.
+
+No genera evento no operativo.
+
+---
+
+### Politica strict
+
+Con `strict=True`:
+
+```text
+codigo desconocido -> error
+```
+
+Con `strict=False`:
+
+```text
+codigo desconocido -> warning
+```
+
+---
+
+### Validaciones estructurales implementadas
+
+Errores:
+
+- matriz vacia
+- encabezado de controlador invalido
+- dia vacio
+- dia invalido
+- dia fuera de mes
+- dia duplicado
+- controlador vacio
+- controlador duplicado
+- codigo desconocido con `strict=True`
+- anio/mes invalido mediante `ValueError`
+
+Warnings:
+
+- controlador normalizado
+- codigo no operativo conocido ignorado por motor tecnico
+- codigo desconocido con `strict=False`
+- controlador sin turnos operativos
+
+---
+
+### Metadata de importacion
+
+`ImportMetadata` registra:
+
+- `anio`
+- `mes`
+- `total_controladores`
+- `total_asignaciones_operativas`
+- `total_eventos_no_operativos`
+- `strict`
+- `source_type`
+
+`source_type` puede ser:
+
+- `MATRIZ_SIMPLE`
+- `CSV_SIMPLE`
+
+---
+
+### Creacion explicita de RosterVersion
+
+Se agrego:
+
+```python
+crear_roster_version_desde_importacion
+```
+
+Comportamiento:
+
+- no crea `RosterVersion` si la importacion tiene errores
+- crea `RosterVersion` si la importacion no tiene errores
+- delega en `crear_roster_version_inicial`
+- usa `regimen_horario="8H"` por defecto
+- asigna el roster creado a `result.roster_version`
+
+Esto es accion explicita y separada del parseo.
+
+---
+
+### Restricciones respetadas
+
+El importador no:
+
+- llama `simulator`
+- llama `engine` para validacion tecnica profunda
+- evalua swaps
+- crea requests
+- resuelve requests
+- aplica requests
+- modifica requests existentes
+- infiere supervisores
+- infiere puestos TMA/SUR/NORTE
+- crea roles
+- crea permisos
+- crea locks
+- crea workflow bilateral
+- interpreta Excel generico
+- depende de colores, formulas o celdas combinadas
+- persiste automaticamente al parsear
+
+---
+
+### Tests agregados
+
+Se agrego:
+
+- `tests/test_roster_import_service.py`
+
+Cobertura principal:
+
+- matriz simple con A/B/C genera asignaciones operativas
+- celda vacia no genera asignacion
+- LA/PSI/RTA/RTB generan eventos no operativos
+- codigo desconocido con `strict=True` produce error
+- codigo desconocido con `strict=False` produce warning
+- controlador vacio produce error
+- controlador duplicado produce error
+- dia invalido produce error
+- dia fuera de mes produce error
+- nombre con espacios se normaliza y genera warning
+- controlador sin turnos operativos genera warning
+- metadata cuenta controladores/asignaciones/eventos
+- importar desde CSV delega correctamente en matriz
+- importar no persiste automaticamente RosterVersion
+- importador no llama simulator
+- importador no crea requests
+- importador no aplica
+- codigos no operativos quedan fuera del motor tecnico
+- no crea RosterVersion si hay errores
+- crea RosterVersion si no hay errores
+- roster_store recibe asignaciones normalizadas mediante accion explicita
+
+---
+
+### Resultados observados
+
+Test focalizado:
+
+```text
+tests/test_roster_import_service.py passed
+```
+
+Tests relacionados:
+
+```text
+tests/test_swap_service.py passed
+tests/test_roster_store.py passed
+```
+
+Suite completa:
+
+```text
+385 passed
+```
+
+---
+
+### Limitaciones conscientes
+
+No se implemento:
+
+- parser generico de Excel
+- lectura de colores
+- lectura de celdas combinadas
+- lectura de formulas
+- UI
+- API
+- roles/permisos
+- workflow bilateral
+- locks
+- carga multiusuario
+- inferencia de supervisores
+- inferencia de puestos
+- import incremental complejo
+- merge automatico con roster vigente
+- validacion profunda de reglas ATC dentro del importador
+- contexto intermensual
+- contexto posterior
+- deteccion de dotacion minima
+- exportacion de reportes
+
+---
+
+### Notas
+
+Este checkpoint inicia la rama de roster real/importacion acotada.
+
+El importador queda separado del workflow formal de `SwapRequest`.
+
+La salida del importador puede alimentar una `RosterVersion` inicial mediante accion explicita.
+
+No se tocaron `swap_service`, `simulator`, `scoring`, `candidate_selection`, `offer_service`, `offer_to_request_service`, `offer_workflow_service`, `request_store` ni `roster_store`.
+
+---
