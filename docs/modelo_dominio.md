@@ -18,6 +18,19 @@
 - [9. Separacion conceptual](#9-separacion-conceptual)
 - [10. Reglas del dominio](#10-reglas-del-dominio)
 - [11. Proposito del modelo](#11-proposito-del-modelo)
+- [12. Frontera futura de roster real, perfil operativo y elegibilidad](#12-frontera-futura-de-roster-real-perfil-operativo-y-elegibilidad)
+
+  - [12.1 Estado](#121-estado)
+  - [12.2 Contexto](#122-contexto)
+  - [12.3 Conceptos reconocidos](#123-conceptos-reconocidos)
+  - [12.4 Modelo actual preservado](#124-modelo-actual-preservado)
+  - [12.5 Elegibilidad funcional](#125-elegibilidad-funcional)
+  - [12.6 Estado operativo general](#126-estado-operativo-general)
+  - [12.7 Habilitaciones](#127-habilitaciones)
+  - [12.8 Configuracion por dependencia](#128-configuracion-por-dependencia)
+  - [12.9 Fronteras preservadas](#129-fronteras-preservadas)
+  - [12.10 Decision de alcance](#1210-decision-de-alcance)
+  - [12.11 Regla corta](#1211-regla-corta)
 - [Nota de frontera con simulacion](#nota-de-frontera-con-simulacion)
 - [Nota de estados, resolucion y aplicacion](#nota-de-estados-resolucion-y-aplicacion)
 
@@ -214,7 +227,7 @@ No existen bifurcaciones en la línea de versiones dentro del flujo operativo no
 
 #### Definicion
 
-Unidad operativa del roster que asigna un controlador a un turno en una fecha específica dentro de una versión.
+Unidad operativa del roster que asigna un controlador a un turno operativo en una fecha específica dentro de una versión.
 
 #### Naturaleza
 
@@ -222,9 +235,9 @@ Entidad de dominio base.
 
 #### Componentes
 
-- controlador
-- fecha
-- turno
+* controlador
+* fecha
+* turno operativo
 
 #### Identidad
 
@@ -232,22 +245,109 @@ Una Asignacion existe dentro de una RosterVersion.
 
 Su identidad está dada por:
 
-- la versión a la que pertenece
-- su contenido operativo
+* la versión a la que pertenece
+* su contenido operativo
 
 El contenido operativo incluye, al menos:
 
-- controlador
-- fecha
-- turno
+* controlador
+* fecha
+* turno operativo
 
-Y puede extenderse con otros atributos operativos relevantes (ej: posición, sector, rol).
+Y puede extenderse con otros atributos operativos relevantes si el roster los define explicitamente, por ejemplo:
+
+* posición
+* sector
+* puesto
+* rol operativo contextual
 
 #### Propiedad clave
 
 Una asignación no es una posición en una lista, sino una unidad operativa del sistema.
 
+#### Frontera con eventos no operativos
+
+No todo codigo de roster genera una Asignacion operativa.
+
+Codigos no operativos, administrativos, de ausencia, capacitacion, comision, gestion, psicofisico o practica deben conservarse fuera de `Asignacion` operativa en V1.
+
+Ejemplos:
+
+```text
+LA
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+CIPE
+EN
+CO
+TW
+OF
+```
+
+Estos eventos pueden conservarse para trazabilidad de importacion, pero no participan como turnos operativos en `candidate_generation`, `engine`, `scoring` ni `simulator`.
+
 ---
+
+### 4.5 Turno
+
+#### Definicion
+
+Tipo de turno operativo asignado en una fecha.
+
+#### Ejemplos operativos actuales
+
+Para el contexto actual ACC:
+
+* A
+* B
+* C
+
+#### Codigos operativos configurables
+
+Existen codigos oficiales que podrian ser operativos si la configuracion de dependencia los habilita:
+
+* D
+* X
+
+#### Frontera conceptual
+
+No todo codigo de roster es un Turno operativo.
+
+Codigos de licencia, ausencia, capacitacion, comision, gestion, psicofisico, practica o eventos administrativos no deben confundirse con `Turno` operativo en V1.
+
+Ejemplos de codigos que no son Turno operativo en V1:
+
+```text
+LA
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+CIPE
+EN
+CO
+TW
+OF
+AE
+AEC
+REM
+RET
+```
+
+Algunos codigos pueden normalizarse durante la importacion:
+
+```text
+IN -> EN
+REM -> RTA
+RET -> RTB
+```
+
 
 ### 4.4 Controlador
 
@@ -508,3 +608,290 @@ La simulación compara escenarios hipotéticos; la gestión de versiones pertene
 - APROBADO no significa APLICADO.
 - APLICADO significa que el swap aprobado fue ejecutado sobre roster versionado.
 - CANCELADO por obsolescencia no significa RECHAZADO operativo.
+
+---
+
+## 12. Frontera futura de roster real, perfil operativo y elegibilidad
+
+### 12.1 Estado
+
+Conceptual / no implementado todavia.
+
+Esta seccion describe conceptos de dominio identificados durante el analisis de roster real, codigos oficiales de listas de turno y elegibilidad funcional para swaps normales.
+
+No implica cambios inmediatos en `models.py`.
+
+No introduce entidades persistidas nuevas.
+
+No modifica el workflow formal de `SwapRequest`.
+
+---
+
+### 12.2 Contexto
+
+El sistema opera actualmente sobre asignaciones operativas normalizadas.
+
+El workflow formal vigente se mantiene:
+
+```text
+PENDIENTE
+-> EVALUADO
+-> APROBADO / RECHAZADO / CANCELADO
+-> APLICADO
+```
+
+La importacion de roster real incorpora una nueva frontera conceptual:
+
+```text
+matriz real
+-> normalizacion
+-> asignaciones operativas
+-> eventos no operativos
+-> roster versionado
+```
+
+A partir del analisis documental y operativo se identifica que la elegibilidad para swaps normales no depende solamente del codigo del roster.
+
+---
+
+### 12.3 Conceptos reconocidos
+
+Se reconocen como conceptos de dominio futuros:
+
+```text
+catalogo oficial de codigos
+configuracion por dependencia
+codigo operativo activo
+codigo operativo configurable
+codigo no operativo
+codigo legacy
+codigo fuera de alcance
+evento no operativo
+perfil operativo para swaps
+universo operativo intercambiable
+estado operativo general
+CMA / psicofisico
+override administrativo CMA
+habilitacion RADAR
+habilitacion TMA
+compatibilidad por puesto
+elegibilidad funcional para swap
+```
+
+Estos conceptos se documentan para preservar semantica, pero no se implementan todavia como clases, enums, tablas ni servicios nuevos.
+
+---
+
+### 12.4 Modelo actual preservado
+
+El modelo actual conserva como entidades principales:
+
+```text
+Controlador
+Turno
+Asignacion
+RosterVersion
+SwapRequest
+```
+
+La `Asignacion` representa un turno operativo interno.
+
+Los eventos no operativos no deben confundirse con `Asignacion` operativa.
+
+Ejemplos de eventos no operativos:
+
+```text
+LA
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+CIPE
+EN
+CO
+TW
+OF
+```
+
+Estos eventos pueden conservarse para trazabilidad de importacion, pero no participan como turnos operativos en `candidate_generation`, `engine`, `scoring` ni `simulator`.
+
+---
+
+### 12.5 Elegibilidad funcional
+
+La elegibilidad para swap normal se reconoce como una evaluacion funcional del conjunto:
+
+```text
+persona
+estado operativo general
+asignacion/evento
+configuracion de dependencia
+puesto, si existe
+habilitaciones, si corresponde
+```
+
+Regla conceptual:
+
+```text
+El codigo del roster describe el evento; la elegibilidad para swap se determina por persona, aptitud, asignacion y contexto.
+```
+
+Para V1, el sistema mantiene la frontera simple:
+
+```text
+candidate_generation opera sobre asignaciones operativas normalizadas.
+eventos no operativos quedan fuera de asignaciones swappeables.
+si el puesto no esta definido, no se aplica filtro TMA.
+```
+
+---
+
+### 12.6 Estado operativo general
+
+El estado operativo general indica si una persona puede operar en terminos generales.
+
+Reglas conceptuales futuras:
+
+```text
+si fecha_vencimiento_cma <= fecha_actual
+entonces estado_operativo_general = false
+```
+
+y:
+
+```text
+si cma_override_operativo = false
+entonces estado_operativo_general = false
+```
+
+Todo override administrativo CMA debe tener trazabilidad minima:
+
+```text
+actor
+motivo
+fecha
+```
+
+Estas reglas no se implementan todavia.
+
+---
+
+### 12.7 Habilitaciones
+
+Se reconocen conceptualmente:
+
+```text
+RADAR
+TMA
+```
+
+No se incorporan en esta etapa habilitaciones `SUR` ni `NORTE`.
+
+La falta de habilitacion TMA no vuelve necesariamente no operativa a la persona.
+
+Limita la compatibilidad con puestos TMA si el puesto esta definido.
+
+Si el roster no define puestos, en V1 no se aplica filtro TMA.
+
+---
+
+### 12.8 Configuracion por dependencia
+
+La configuracion por dependencia permite interpretar codigos de roster segun el contexto operativo.
+
+Para el contexto actual ACC:
+
+```text
+OPERATIVO_ACTIVO:
+  A
+  B
+  C
+
+OPERATIVO_CONFIGURABLE:
+  D
+  X
+
+NO_OPERATIVO:
+  LA
+  PSI
+  RTA
+  RTB
+  OJT
+  SIM
+  CAM
+  CIPE
+  EN
+  CO
+  TW
+  OF
+
+NORMALIZABLE:
+  IN -> EN
+  REM -> RTA
+  RET -> RTB
+
+FUERA_DE_ALCANCE:
+  AE
+  AEC
+```
+
+El catalogo oficial de codigos no implica activacion local.
+
+---
+
+### 12.9 Fronteras preservadas
+
+El importador:
+
+```text
+normaliza codigos
+separa asignaciones operativas de eventos no operativos
+emite warnings/errores
+conserva trazabilidad de importacion
+```
+
+El importador no:
+
+```text
+evalua swaps
+decide workflow
+infiere puestos
+infiere roles
+calcula elegibilidad compleja
+llama simulator
+crea requests
+resuelve requests
+aplica requests
+```
+
+El `engine` sigue validando reglas tecnicas sobre asignaciones operativas ya normalizadas.
+
+`technical_prefilter` queda reconocido como posible frontera futura para elegibilidad fina, pero no se implementa todavia.
+
+---
+
+### 12.10 Decision de alcance
+
+No se agregan todavia al modelo implementado:
+
+```text
+PersonaProfile
+EligibilityService
+PerfilDependencia
+EventoRoster formal
+tabla de CMA
+habilitaciones persistidas
+compatibilidad por puesto
+motor RAAC 67
+```
+
+Esta seccion solo fija el lenguaje de dominio para futuras decisiones.
+
+---
+
+### 12.11 Regla corta
+
+El modelo actual se mantiene; la elegibilidad funcional queda documentada como frontera futura de dominio.
+
