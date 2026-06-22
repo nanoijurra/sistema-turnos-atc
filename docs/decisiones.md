@@ -2286,3 +2286,426 @@ No se modifica `engine`, `scoring`, `simulator`, `swap_service` ni `candidate_se
 
 El importador normaliza datos reales; no evalua swaps ni decide workflow.
 
+---
+
+# Decision 51 - Elegibilidad funcional inicial para swaps normales
+
+## TOC
+
+- [51.1 Estado](#511-estado)
+- [51.2 Contexto](#512-contexto)
+- [51.3 Decision](#513-decision)
+- [51.4 Regla general de elegibilidad](#514-regla-general-de-elegibilidad)
+- [51.5 Rol institucional y perfil operativo](#515-rol-institucional-y-perfil-operativo)
+- [51.6 Estado operativo general](#516-estado-operativo-general)
+- [51.7 CMA / psicofisico](#517-cma--psicofisico)
+- [51.8 Override administrativo CMA](#518-override-administrativo-cma)
+- [51.9 Habilitaciones RADAR y TMA](#519-habilitaciones-radar-y-tma)
+- [51.10 Codigos de roster y elegibilidad](#5110-codigos-de-roster-y-elegibilidad)
+- [51.11 Eventos no operativos](#5111-eventos-no-operativos)
+- [51.12 Puestos no definidos en V1](#5112-puestos-no-definidos-en-v1)
+- [51.13 Configuracion por dependencia](#5113-configuracion-por-dependencia)
+- [51.14 Relacion con importador](#5114-relacion-con-importador)
+- [51.15 Relacion con candidate_generation y technical_prefilter](#5115-relacion-con-candidategeneration-y-technicalprefilter)
+- [51.16 Consecuencias](#5116-consecuencias)
+- [51.17 Decision negativa explicita](#5117-decision-negativa-explicita)
+- [51.18 Regla corta](#5118-regla-corta)
+
+---
+
+## 51.1 Estado
+
+Aceptada.
+
+---
+
+## 51.2 Contexto
+
+A partir del analisis documental del PR-GOPE-044 y de aclaraciones operativas del ACC Cordoba, se identifica que la elegibilidad para swaps normales no depende solamente del codigo de roster.
+
+Un codigo operativo como `A`, `B` o `C` puede representar un turno operativo, pero no alcanza por si solo para determinar si una persona puede participar en un swap.
+
+La elegibilidad depende de una combinacion de:
+
+```text
+persona
+estado operativo general
+perfil operativo
+codigo/evento de roster
+configuracion de dependencia
+puesto afectado, si existe
+```
+
+---
+
+## 51.3 Decision
+
+Se reconoce la elegibilidad funcional para swaps normales como una regla de dominio compuesta.
+
+Para V1, el sistema debe mantener una frontera simple:
+
+```text
+asignacion operativa swappeable
++ persona incluida en universo operativo intercambiable
++ estado operativo general vigente
+```
+
+Las reglas mas finas por puesto, habilitacion y dependencia quedan documentadas como dominio futuro, sin implementacion inmediata.
+
+---
+
+## 51.4 Regla general de elegibilidad
+
+Para que una asignacion pueda participar en un swap normal deben cumplirse, conceptualmente, estas condiciones:
+
+```text
+1. La persona pertenece al universo operativo intercambiable.
+2. La persona tiene estado operativo general = true.
+3. La celda del roster corresponde a una asignacion operativa swappeable.
+4. El codigo operativo esta activo para la dependencia.
+5. Si el puesto esta definido, la persona cumple la habilitacion requerida para ese puesto.
+```
+
+Si alguna condicion bloqueante falla, la asignacion no debe considerarse elegible para swap normal.
+
+---
+
+## 51.5 Rol institucional y perfil operativo
+
+El rol institucional no debe confundirse con elegibilidad automatica.
+
+Ejemplos:
+
+```text
+Supervisor en puesto operativo -> puede intercambiar como controlador.
+Instructor en A/B/C -> elegible igual que controlador.
+Adscripto -> perfil administrativo, no participa en swaps normales.
+Practicante -> aparece solo como OJT/SIM, no participa en swaps normales.
+```
+
+La decision no introduce todavia un modelo formal de roles.
+
+Se distingue conceptualmente:
+
+```text
+rol_institucional
+```
+
+de:
+
+```text
+perfil_operativo_para_swaps
+```
+
+---
+
+## 51.6 Estado operativo general
+
+El estado operativo general representa si la persona puede operar en terminos generales.
+
+Si:
+
+```text
+estado_operativo_general = false
+```
+
+entonces la persona no puede participar en swaps operativos normales, aunque tenga un codigo `A`, `B` o `C` en el roster.
+
+Este estado puede caer por vencimiento del CMA / psicofisico o por override administrativo negativo.
+
+---
+
+## 51.7 CMA / psicofisico
+
+El vencimiento del CMA / psicofisico afecta directamente el estado operativo general.
+
+Regla conceptual:
+
+```text
+si fecha_vencimiento_cma <= fecha_actual
+entonces estado_operativo_general = false
+```
+
+Por lo tanto:
+
+```text
+CMA vencido -> persona no operativa
+```
+
+Esta regla no se implementa todavia en codigo.
+
+Queda documentada como dominio futuro para perfil operativo de persona.
+
+---
+
+## 51.8 Override administrativo CMA
+
+Puede existir un override administrativo sobre la aptitud operativa asociada al CMA / psicofisico.
+
+Regla conceptual:
+
+```text
+si cma_override_operativo = false
+entonces estado_operativo_general = false
+```
+
+El override administrativo debe tener trazabilidad obligatoria:
+
+```text
+actor
+motivo
+fecha
+```
+
+No debe existir override administrativo sin actor, motivo y fecha.
+
+El override no representa un permiso de sistema.
+
+Representa una decision administrativa registrada que afecta el estado operativo general de la persona.
+
+---
+
+## 51.9 Habilitaciones RADAR y TMA
+
+Para este nivel conceptual inicial, solo se reconocen como habilitaciones relevantes:
+
+```text
+RADAR
+TMA
+```
+
+No se incorporan habilitaciones `SUR` ni `NORTE` en esta decision.
+
+La falta de una habilitacion especifica no vuelve necesariamente no operativa a la persona completa.
+
+Ejemplo:
+
+```text
+estado_operativo_general = true
+habilitado_radar = true
+habilitado_tma = false
+```
+
+Resultado conceptual:
+
+```text
+persona operativa para puestos compatibles
+persona no elegible para puestos TMA
+```
+
+La compatibilidad por puesto queda fuera de V1 si el roster no define puestos.
+
+---
+
+## 51.10 Codigos de roster y elegibilidad
+
+Para el contexto actual ACC, los codigos operativos activos son:
+
+```text
+A
+B
+C
+```
+
+Los codigos:
+
+```text
+D
+X
+```
+
+existen oficialmente y deben considerarse validos solo si estan activos por configuracion de dependencia.
+
+Los codigos no operativos, administrativos, de ausencia, capacitacion, comision, gestion, psicofisico o practica no son elegibles para swaps normales.
+
+Normalizaciones vigentes:
+
+```text
+IN -> EN
+REM -> RTA
+RET -> RTB
+```
+
+---
+
+## 51.11 Eventos no operativos
+
+Los eventos no operativos deben existir fuera de `Asignacion` operativa.
+
+Ejemplos:
+
+```text
+LA
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+CIPE
+EN
+CO
+TW
+OF
+```
+
+Estos eventos deben conservarse para trazabilidad, importacion y analisis, pero no deben participar en `candidate_generation`, `engine`, `scoring` ni `simulator` como turnos operativos.
+
+Regla:
+
+```text
+evento no operativo -> no elegible para swap normal
+```
+
+---
+
+## 51.12 Puestos no definidos en V1
+
+Si el roster importado no define puestos, el sistema no debe inferirlos.
+
+En V1:
+
+```text
+si puesto no esta definido
+entonces no se aplica filtro de TMA
+```
+
+La elegibilidad por puesto/habilitacion queda fuera de V1 y se reserva para V2.
+
+Esto evita falsos rechazos por falta de datos.
+
+---
+
+## 51.13 Configuracion por dependencia
+
+La configuracion por dependencia es necesaria para determinar:
+
+```text
+codigos operativos activos
+codigos operativos configurables
+codigos no operativos
+codigos legacy
+codigos fuera de alcance
+normalizaciones
+reglas de importacion
+```
+
+El perfil de dependencia debe seleccionar o modificar la configuracion aplicable.
+
+Los parametros de importacion deben estar separados de las reglas tecnicas del `engine`.
+
+Ejemplo conceptual:
+
+```text
+config
+├── dependencia
+├── importacion_roster
+├── codigos_roster
+├── elegibilidad
+└── reglas_tecnicas
+```
+
+---
+
+## 51.14 Relacion con importador
+
+El importador normaliza datos reales.
+
+Puede:
+
+```text
+normalizar codigos
+separar asignaciones operativas de eventos no operativos
+emitir warnings/errores
+conservar eventos no operativos para trazabilidad
+```
+
+No puede:
+
+```text
+decidir elegibilidad compleja
+evaluar swaps
+inferir puestos
+inferir roles
+inferir disponibilidad operativa por ausencia de codigo
+aplicar reglas de habilitacion por puesto
+```
+
+La ausencia de un evento no operativo, por ejemplo `OF` en fin de semana, no implica por si sola disponibilidad operativa.
+
+---
+
+## 51.15 Relacion con candidate_generation y technical_prefilter
+
+`candidate_generation` debe operar solo sobre asignaciones operativas swappeables.
+
+No debe generar candidatos sobre eventos no operativos.
+
+`technical_prefilter` se reconoce como posible frontera futura para aplicar elegibilidad funcional fina, por ejemplo:
+
+```text
+estado operativo general
+habilitaciones
+compatibilidad por puesto
+configuracion de dependencia
+```
+
+No se implementa todavia esta logica.
+
+---
+
+## 51.16 Consecuencias
+
+La elegibilidad queda reconocida como una frontera de dominio propia.
+
+No se modifica todavia:
+
+```text
+models
+engine
+simulator
+swap_service
+candidate_generation
+technical_prefilter
+roster_import_service
+```
+
+El sistema conserva su arquitectura actual.
+
+La decision solo documenta el dominio necesario para evitar confundir codigo de roster con elegibilidad automatica.
+
+---
+
+## 51.17 Decision negativa explicita
+
+No se implementa todavia:
+
+```text
+PersonaProfile
+EligibilityService
+perfil operativo persistido
+tabla de CMA
+roles formales
+permisos
+habilitaciones formales
+compatibilidad por puesto
+configuracion por dependencia en codigo
+motor RAAC 67
+filtro TMA
+```
+
+No se modifica `Asignacion`.
+
+No se modifica `Controlador`.
+
+No se modifica el `engine`.
+
+No se modifica `candidate_generation`.
+
+No se modifica el workflow formal de `SwapRequest`.
+
+---
+
+## 51.18 Regla corta
+
+El codigo del roster describe el evento; la elegibilidad para swap se determina por persona, aptitud, asignacion y contexto.

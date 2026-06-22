@@ -1090,3 +1090,187 @@ La creacion de `RosterVersion` desde una importacion debe ser una accion explici
 ## 14.11 Regla corta
 
 El importador prepara datos; el motor tecnico valida reglas; el workflow formal decide y ejecuta.
+
+---
+
+# Invariante 15 - El codigo del roster no alcanza para determinar elegibilidad
+
+## TOC
+
+- [15.1 Regla principal](#151-regla-principal)
+- [15.2 A/B/C son necesarios pero no suficientes](#152-abc-son-necesarios-pero-no-suficientes)
+- [15.3 Persona no operativa no participa](#153-persona-no-operativa-no-participa)
+- [15.4 CMA vencido bloquea operatividad general](#154-cma-vencido-bloquea-operatividad-general)
+- [15.5 Override administrativo negativo bloquea operatividad general](#155-override-administrativo-negativo-bloquea-operatividad-general)
+- [15.6 Override administrativo requiere trazabilidad](#156-override-administrativo-requiere-trazabilidad)
+- [15.7 Habilitacion TMA limita puesto, no operatividad general](#157-habilitacion-tma-limita-puesto-no-operatividad-general)
+- [15.8 Sin puesto definido no se aplica filtro TMA en V1](#158-sin-puesto-definido-no-se-aplica-filtro-tma-en-v1)
+- [15.9 Eventos no operativos no generan swaps](#159-eventos-no-operativos-no-generan-swaps)
+- [15.10 La ausencia de OF no implica disponibilidad](#1510-la-ausencia-de-of-no-implica-disponibilidad)
+- [15.11 El importador no decide elegibilidad compleja](#1511-el-importador-no-decide-elegibilidad-compleja)
+- [15.12 Regla corta](#1512-regla-corta)
+
+---
+
+## 15.1 Regla principal
+
+El codigo del roster no alcanza para determinar elegibilidad para swaps normales.
+
+La elegibilidad depende del conjunto:
+
+```text
+persona
+estado operativo general
+asignacion/evento
+configuracion de dependencia
+puesto, si existe
+```
+
+---
+
+## 15.2 A/B/C son necesarios pero no suficientes
+
+Los codigos:
+
+```text
+A
+B
+C
+```
+
+representan turnos operativos activos para el contexto actual.
+
+Pero no bastan por si solos para habilitar un swap.
+
+La persona tambien debe estar operativa y pertenecer al universo operativo intercambiable.
+
+---
+
+## 15.3 Persona no operativa no participa
+
+Si:
+
+```text
+estado_operativo_general = false
+```
+
+entonces la persona no participa en swaps operativos normales.
+
+Esto aplica aunque tenga una asignacion `A`, `B` o `C`.
+
+---
+
+## 15.4 CMA vencido bloquea operatividad general
+
+Regla conceptual:
+
+```text
+si fecha_vencimiento_cma <= fecha_actual
+entonces estado_operativo_general = false
+```
+
+Un CMA / psicofisico vencido hace caer la operatividad general.
+
+---
+
+## 15.5 Override administrativo negativo bloquea operatividad general
+
+Regla conceptual:
+
+```text
+si cma_override_operativo = false
+entonces estado_operativo_general = false
+```
+
+Un override administrativo negativo bloquea la participacion de la persona en swaps operativos normales.
+
+---
+
+## 15.6 Override administrativo requiere trazabilidad
+
+Todo override administrativo debe registrar:
+
+```text
+actor
+motivo
+fecha
+```
+
+No debe existir override administrativo valido sin trazabilidad minima.
+
+---
+
+## 15.7 Habilitacion TMA limita puesto, no operatividad general
+
+No tener habilitacion TMA no vuelve necesariamente no operativa a la persona.
+
+Limita su elegibilidad para puestos TMA si el puesto esta definido.
+
+La persona puede seguir siendo elegible para otros puestos compatibles.
+
+---
+
+## 15.8 Sin puesto definido no se aplica filtro TMA en V1
+
+Si el roster no define puestos, el sistema no debe inferirlos.
+
+Regla V1:
+
+```text
+puesto no definido -> no aplicar filtro TMA
+```
+
+La compatibilidad por puesto queda reservada para V2.
+
+---
+
+## 15.9 Eventos no operativos no generan swaps
+
+Eventos como:
+
+```text
+LA
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+CIPE
+EN
+CO
+TW
+OF
+```
+
+no generan swaps normales.
+
+Deben conservarse fuera de `Asignacion` operativa.
+
+---
+
+## 15.10 La ausencia de OF no implica disponibilidad
+
+Que una persona no tenga `OF` en un dia determinado no implica automaticamente que este disponible para swaps.
+
+La disponibilidad requiere perfil operativo y estado operativo general compatible.
+
+---
+
+## 15.11 El importador no decide elegibilidad compleja
+
+El importador normaliza y separa datos.
+
+No decide elegibilidad funcional compleja.
+
+No evalua swaps.
+
+No infiere puestos.
+
+No infiere roles.
+
+---
+
+## 15.12 Regla corta
+
+El evento del roster informa que hay asignado; no decide por si solo si puede intercambiarse.

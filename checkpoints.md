@@ -13377,3 +13377,243 @@ La salida del importador puede alimentar una `RosterVersion` inicial mediante ac
 No se tocaron `swap_service`, `simulator`, `scoring`, `candidate_selection`, `offer_service`, `offer_to_request_service`, `offer_workflow_service`, `request_store` ni `roster_store`.
 
 ---
+
+# Checkpoint v87 - Contrato documental de elegibilidad funcional inicial
+
+## Estado
+
+Documental / arquitectonico.
+
+## Contexto
+
+Luego de consolidar:
+
+```text
+workflow formal de SwapRequest
+auditoria estructurada minima
+semantic_guard
+importacion CSV/matriz simple de roster real acotado
+```
+
+se analiza la frontera de dominio entre:
+
+```text
+roles de personas
+codigos/eventos de roster
+disponibilidad operativa
+elegibilidad para swaps
+```
+
+El analisis surge del PR-GOPE-044 y de aclaraciones operativas propias del ACC Cordoba.
+
+## Decision
+
+Se documenta que la elegibilidad para swaps normales no depende solamente del codigo de roster.
+
+Depende conceptualmente de:
+
+```text
+persona
+estado operativo general
+perfil operativo
+codigo/evento de roster
+configuracion de dependencia
+puesto, si existe
+```
+
+## Regla principal
+
+```text
+El codigo del roster describe el evento; la elegibilidad para swap se determina por persona, aptitud, asignacion y contexto.
+```
+
+## Reglas documentadas
+
+Se documenta:
+
+```text
+A/B/C son turnos operativos activos para el contexto actual.
+D/X son codigos oficiales validos, activables por configuracion.
+IN se normaliza a EN.
+REM se normaliza a RTA.
+RET se normaliza a RTB.
+Eventos no operativos quedan fuera de Asignacion operativa.
+Supervisor en puesto operativo puede intercambiar como controlador.
+Instructor en A/B/C es elegible igual que controlador.
+Adscripto es administrativo y no participa en swaps normales.
+Practicante aparece como OJT/SIM y no participa en swaps normales.
+```
+
+## Estado operativo general
+
+Se documenta conceptualmente:
+
+```text
+fecha_vencimiento_cma <= fecha_actual
+-> estado_operativo_general = false
+```
+
+y:
+
+```text
+cma_override_operativo = false
+-> estado_operativo_general = false
+```
+
+El override administrativo requiere:
+
+```text
+actor
+motivo
+fecha
+```
+
+## Habilitaciones
+
+Para esta etapa conceptual solo se consideran:
+
+```text
+RADAR
+TMA
+```
+
+No se incorporan habilitaciones `SUR` ni `NORTE`.
+
+La falta de habilitacion TMA limita compatibilidad por puesto, pero no vuelve necesariamente no operativa a la persona.
+
+## Puestos
+
+Si el roster no define puestos:
+
+```text
+no se infiere puesto
+no se aplica filtro TMA en V1
+```
+
+La elegibilidad por puesto queda reservada para V2.
+
+## Eventos no operativos
+
+Eventos como:
+
+```text
+LA
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+CIPE
+EN
+CO
+TW
+OF
+```
+
+deben conservarse fuera de `Asignacion` operativa para trazabilidad, pero no participan en swaps normales.
+
+## Importador
+
+El importador puede:
+
+```text
+normalizar codigos
+separar asignaciones operativas de eventos no operativos
+emitir warnings/errores
+conservar eventos no operativos para trazabilidad
+```
+
+El importador no puede:
+
+```text
+decidir elegibilidad funcional compleja
+inferir puestos
+inferir roles
+evaluar swaps
+llamar simulator
+crear requests
+resolver requests
+aplicar requests
+```
+
+## candidate_generation
+
+`candidate_generation` debe mirar solo asignaciones operativas swappeables.
+
+No debe generar candidatos sobre eventos no operativos.
+
+## technical_prefilter
+
+`technical_prefilter` queda reconocido como posible frontera futura para aplicar reglas finas de elegibilidad, tales como:
+
+```text
+estado operativo general
+habilitaciones
+compatibilidad por puesto
+configuracion de dependencia
+```
+
+No se implementa en este checkpoint.
+
+## No incluido
+
+No se implementa todavia:
+
+```text
+PersonaProfile
+EligibilityService
+perfil operativo persistido
+tabla de CMA
+roles formales
+permisos
+habilitaciones formales
+compatibilidad por puesto
+configuracion por dependencia en codigo
+motor RAAC 67
+filtro TMA
+```
+
+No se modifica:
+
+```text
+models
+engine
+simulator
+swap_service
+candidate_generation
+technical_prefilter
+roster_import_service
+```
+
+## Documentos asociados
+
+Se agregan o actualizan:
+
+```text
+Decision 51 - Elegibilidad funcional inicial para swaps normales
+Contrato 23 - Frontera de elegibilidad funcional para swaps normales
+Invariante 15 - El codigo del roster no alcanza para determinar elegibilidad
+```
+
+## Proximo paso recomendado
+
+Mantener este bloque como documentacion de dominio.
+
+Posibles pasos futuros:
+
+```text
+v88 - Configuracion por dependencia y codigos de roster
+v89 - Perfil operativo de persona como concepto documental
+v90 - Implementacion controlada minima de configuracion si corresponde
+```
+
+## Resultado
+
+Queda documentada la frontera de elegibilidad funcional inicial sin modificar codigo.
+
+Regla final:
+
+```text
+Solo una persona operativa, con asignacion operativa y contexto compatible, puede participar en swaps normales.
+```

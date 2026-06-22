@@ -2752,3 +2752,285 @@ PENDIENTE
 
 Importar roster convierte datos reales en asignaciones internas; no evalua, no decide y no aplica.
 
+---
+
+# Contrato 23 - Frontera de elegibilidad funcional para swaps normales
+
+## TOC
+
+- [23.1 Proposito](#231-proposito)
+- [23.2 Contexto](#232-contexto)
+- [23.3 Principio contractual](#233-principio-contractual)
+- [23.4 Condiciones conceptuales de elegibilidad](#234-condiciones-conceptuales-de-elegibilidad)
+- [23.5 Persona operativa general](#235-persona-operativa-general)
+- [23.6 CMA / psicofisico](#236-cma--psicofisico)
+- [23.7 Override administrativo](#237-override-administrativo)
+- [23.8 Habilitaciones RADAR y TMA](#238-habilitaciones-radar-y-tma)
+- [23.9 Codigos operativos y no operativos](#239-codigos-operativos-y-no-operativos)
+- [23.10 Eventos no operativos](#2310-eventos-no-operativos)
+- [23.11 Puestos no definidos](#2311-puestos-no-definidos)
+- [23.12 Responsabilidades permitidas del importador](#2312-responsabilidades-permitidas-del-importador)
+- [23.13 Responsabilidades prohibidas del importador](#2313-responsabilidades-prohibidas-del-importador)
+- [23.14 Relacion con candidate_generation](#2314-relacion-con-candidategeneration)
+- [23.15 Relacion futura con technical_prefilter](#2315-relacion-futura-con-technicalprefilter)
+- [23.16 Regla corta](#2316-regla-corta)
+
+---
+
+## 23.1 Proposito
+
+Definir la frontera conceptual de elegibilidad funcional para swaps normales.
+
+El contrato evita confundir codigo de roster con elegibilidad automatica.
+
+---
+
+## 23.2 Contexto
+
+El sistema importa rosters reales y genera asignaciones operativas internas.
+
+Sin embargo, una asignacion operativa solo puede participar en un swap normal si la persona y el contexto permiten esa participacion.
+
+La elegibilidad funcional depende de:
+
+```text
+persona
+estado operativo general
+codigo/evento de roster
+configuracion de dependencia
+puesto afectado, si existe
+```
+
+---
+
+## 23.3 Principio contractual
+
+El codigo del roster no alcanza para determinar elegibilidad.
+
+La elegibilidad para swap es una evaluacion funcional del conjunto:
+
+```text
+persona + asignacion + contexto
+```
+
+---
+
+## 23.4 Condiciones conceptuales de elegibilidad
+
+Para que una asignacion pueda participar en un swap normal, conceptualmente deben cumplirse:
+
+```text
+persona pertenece al universo operativo intercambiable
+estado_operativo_general = true
+codigo del dia corresponde a asignacion operativa swappeable
+codigo operativo activo por configuracion
+puesto compatible si el puesto esta definido
+```
+
+---
+
+## 23.5 Persona operativa general
+
+Una persona con:
+
+```text
+estado_operativo_general = false
+```
+
+no participa en swaps operativos normales.
+
+Esto bloquea cualquier asignacion operativa, incluso si el roster muestra `A`, `B` o `C`.
+
+---
+
+## 23.6 CMA / psicofisico
+
+El CMA / psicofisico afecta el estado operativo general.
+
+Regla conceptual:
+
+```text
+si fecha_vencimiento_cma <= fecha_actual
+entonces estado_operativo_general = false
+```
+
+Esta regla queda documentada como dominio futuro.
+
+No se implementa en este contrato.
+
+---
+
+## 23.7 Override administrativo
+
+El override administrativo puede afectar la aptitud operativa.
+
+Regla conceptual:
+
+```text
+si cma_override_operativo = false
+entonces estado_operativo_general = false
+```
+
+Todo override administrativo debe tener:
+
+```text
+actor
+motivo
+fecha
+```
+
+Sin esos datos, el override no debe considerarse trazable.
+
+---
+
+## 23.8 Habilitaciones RADAR y TMA
+
+Las habilitaciones reconocidas conceptualmente en esta etapa son:
+
+```text
+RADAR
+TMA
+```
+
+La falta de habilitacion TMA no vuelve necesariamente no operativa a la persona.
+
+Limita su compatibilidad con puestos TMA si el puesto esta definido.
+
+Si el puesto no esta definido, la compatibilidad TMA queda fuera de V1.
+
+---
+
+## 23.9 Codigos operativos y no operativos
+
+Codigos operativos activos para el contexto actual:
+
+```text
+A
+B
+C
+```
+
+Codigos operativos configurables futuros:
+
+```text
+D
+X
+```
+
+Normalizaciones vigentes:
+
+```text
+IN -> EN
+REM -> RTA
+RET -> RTB
+```
+
+Codigos como `AE` y `AEC` corresponden a contextos de dependencias no H24 y quedan fuera del alcance operativo actual ACC.
+
+Su aplicacion futura debe depender de configuracion por dependencia.
+
+---
+
+## 23.10 Eventos no operativos
+
+Los eventos no operativos deben conservarse fuera de `Asignacion` operativa.
+
+Ejemplos:
+
+```text
+LA
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+CIPE
+EN
+CO
+TW
+OF
+```
+
+Estos eventos pueden conservarse para trazabilidad, pero no generan swaps normales.
+
+---
+
+## 23.11 Puestos no definidos
+
+Si el roster no define puestos, el sistema no debe inferirlos.
+
+Regla V1:
+
+```text
+puesto no definido -> no aplicar filtro TMA
+```
+
+La elegibilidad por puesto queda reservada para V2.
+
+---
+
+## 23.12 Responsabilidades permitidas del importador
+
+El importador puede:
+
+```text
+normalizar codigos
+normalizar nombres
+separar asignaciones operativas
+registrar eventos no operativos
+emitir warnings
+emitir errores
+preservar trazabilidad de eventos no operativos
+```
+
+---
+
+## 23.13 Responsabilidades prohibidas del importador
+
+El importador no puede:
+
+```text
+decidir elegibilidad funcional compleja
+evaluar swaps
+llamar simulator
+llamar engine para reglas profundas
+inferir puestos
+inferir roles
+inferir supervisores
+inferir disponibilidad operativa por ausencia de OF
+aplicar reglas de habilitacion TMA
+crear requests
+resolver requests
+aplicar requests
+```
+
+---
+
+## 23.14 Relacion con candidate_generation
+
+`candidate_generation` solo debe generar candidatos desde asignaciones operativas swappeables.
+
+No debe generar candidatos sobre eventos no operativos.
+
+---
+
+## 23.15 Relacion futura con technical_prefilter
+
+`technical_prefilter` se reconoce como posible frontera futura para evaluar:
+
+```text
+estado operativo general
+habilitaciones
+compatibilidad por puesto
+configuracion por dependencia
+restricciones funcionales previas al simulator
+```
+
+Esta logica no se implementa todavia.
+
+---
+
+## 23.16 Regla corta
+
+Solo una persona operativa, con asignacion operativa y contexto compatible, puede participar en swaps normales.
