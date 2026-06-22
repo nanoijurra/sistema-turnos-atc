@@ -3034,3 +3034,318 @@ Esta logica no se implementa todavia.
 ## 23.16 Regla corta
 
 Solo una persona operativa, con asignacion operativa y contexto compatible, puede participar en swaps normales.
+
+---
+
+# Contrato 24 - Interpretacion configurable de codigos de roster
+
+## TOC
+
+- [24.1 Proposito](#241-proposito)
+- [24.2 Contexto](#242-contexto)
+- [24.3 Principio contractual](#243-principio-contractual)
+- [24.4 Catalogo oficial](#244-catalogo-oficial)
+- [24.5 Configuracion de dependencia](#245-configuracion-de-dependencia)
+- [24.6 Categorias de codigos](#246-categorias-de-codigos)
+- [24.7 Configuracion conceptual ACC](#247-configuracion-conceptual-acc)
+- [24.8 Normalizaciones](#248-normalizaciones)
+- [24.9 Codigos fuera de alcance](#249-codigos-fuera-de-alcance)
+- [24.10 Politica de errores y warnings](#2410-politica-de-errores-y-warnings)
+- [24.11 Responsabilidades permitidas](#2411-responsabilidades-permitidas)
+- [24.12 Responsabilidades prohibidas](#2412-responsabilidades-prohibidas)
+- [24.13 Relacion con engine](#2413-relacion-con-engine)
+- [24.14 Relacion con elegibilidad](#2414-relacion-con-elegibilidad)
+- [24.15 Regla corta](#2415-regla-corta)
+
+---
+
+## 24.1 Proposito
+
+Definir el contrato conceptual para interpretar codigos de roster mediante configuracion por dependencia.
+
+---
+
+## 24.2 Contexto
+
+El PR-GOPE-044 define codigos oficiales o documentales para listas de turno.
+
+Sin embargo, la aplicabilidad de esos codigos depende del tipo de dependencia, regimen operativo y configuracion local.
+
+Por eso, el sistema debe distinguir entre:
+
+```text
+codigo conocido
+codigo aplicable
+codigo activo
+codigo operativo
+codigo no operativo
+codigo legacy
+codigo fuera de alcance
+```
+
+---
+
+## 24.3 Principio contractual
+
+El catalogo oficial no implica activacion local.
+
+Un codigo puede existir documentalmente y, aun asi, estar desactivado o fuera de alcance para una dependencia determinada.
+
+---
+
+## 24.4 Catalogo oficial
+
+El catalogo oficial representa codigos conocidos o documentados.
+
+Ejemplos:
+
+```text
+A
+B
+C
+D
+X
+AE
+AEC
+LA
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+CIPE
+EN
+IN
+CO
+TW
+OF
+REM
+RET
+```
+
+Este catalogo no decide por si solo si el codigo genera una `Asignacion` operativa.
+
+---
+
+## 24.5 Configuracion de dependencia
+
+La configuracion de dependencia define como interpretar codigos en un contexto operativo determinado.
+
+Debe poder expresar:
+
+```text
+tipo de dependencia
+regimen operativo
+codigos operativos activos
+codigos operativos configurables
+codigos no operativos
+codigos legacy
+codigos fuera de alcance
+normalizaciones
+politica strict
+```
+
+---
+
+## 24.6 Categorias de codigos
+
+Las categorias conceptuales son:
+
+```text
+OPERATIVO_ACTIVO
+OPERATIVO_CONFIGURABLE
+NO_OPERATIVO
+NORMALIZABLE
+LEGACY
+FUERA_DE_ALCANCE
+DESCONOCIDO
+```
+
+Solo los codigos `OPERATIVO_ACTIVO` deben generar `Asignacion` operativa en V1.
+
+Los codigos `NO_OPERATIVO` deben conservarse como eventos no operativos o datos auxiliares de importacion.
+
+---
+
+## 24.7 Configuracion conceptual ACC
+
+Para el contexto actual ACC:
+
+```text
+OPERATIVO_ACTIVO:
+  A
+  B
+  C
+
+OPERATIVO_CONFIGURABLE:
+  D
+  X
+
+NO_OPERATIVO:
+  LA
+  PSI
+  RTA
+  RTB
+  OJT
+  SIM
+  CAM
+  CIPE
+  EN
+  CO
+  TW
+  OF
+
+NORMALIZABLE:
+  IN -> EN
+  REM -> RTA
+  RET -> RTB
+
+FUERA_DE_ALCANCE:
+  AE
+  AEC
+```
+
+Esta configuracion es conceptual y documental.
+
+No implica implementacion inmediata.
+
+---
+
+## 24.8 Normalizaciones
+
+Las normalizaciones vigentes son:
+
+```text
+IN -> EN
+REM -> RTA
+RET -> RTB
+```
+
+Una normalizacion debe registrar o emitir warning de importacion si corresponde.
+
+La normalizacion no debe ocurrir silenciosamente si afecta trazabilidad.
+
+---
+
+## 24.9 Codigos fuera de alcance
+
+Un codigo fuera de alcance no es necesariamente invalido en todo el sistema.
+
+Ejemplo:
+
+```text
+AE
+AEC
+```
+
+Estos codigos quedan fuera de alcance para ACC actual, pero podrian aplicar a dependencias no H24 si la configuracion correspondiente los habilita.
+
+---
+
+## 24.10 Politica de errores y warnings
+
+Errores bloqueantes recomendados:
+
+```text
+codigo desconocido sin normalizacion
+codigo fuera de alcance en strict=True
+codigo operativo configurable no activo usado como operativo
+codigo ambiguo
+codigo incompatible con tipo de dependencia
+```
+
+Warnings recomendados:
+
+```text
+codigo legacy normalizado
+codigo normalizado
+codigo no operativo conocido
+codigo configurable desactivado, si la politica lo permite
+```
+
+La politica exacta debe depender de la configuracion de importacion.
+
+---
+
+## 24.11 Responsabilidades permitidas
+
+La configuracion de codigos puede ser usada para:
+
+```text
+normalizar codigos
+clasificar codigos
+validar codigos de entrada
+emitir warnings
+emitir errores
+determinar si un codigo genera Asignacion operativa
+determinar si un codigo queda como evento no operativo
+```
+
+---
+
+## 24.12 Responsabilidades prohibidas
+
+La configuracion de codigos no puede:
+
+```text
+evaluar swaps
+decidir workflow
+aprobar requests
+rechazar requests
+cancelar requests
+aplicar requests
+calcular permisos
+inferir roles
+inferir puestos
+reemplazar reglas tecnicas del engine
+```
+
+---
+
+## 24.13 Relacion con engine
+
+El `engine` valida reglas tecnicas.
+
+La configuracion de codigos prepara datos antes de que lleguen al motor tecnico.
+
+No deben mezclarse:
+
+```text
+validacion de codigo de roster
+```
+
+con:
+
+```text
+validacion tecnica de descanso, secuencias o noches
+```
+
+---
+
+## 24.14 Relacion con elegibilidad
+
+La configuracion de codigos es una condicion previa para elegibilidad funcional.
+
+Pero no define elegibilidad completa.
+
+Ejemplo:
+
+```text
+codigo = A
+categoria = OPERATIVO_ACTIVO
+```
+
+no alcanza si:
+
+```text
+estado_operativo_general = false
+```
+
+o si el puesto definido exige una habilitacion que la persona no tiene.
+
+---
+
+## 24.15 Regla corta
+
+El catalogo dice que codigos existen; la configuracion dice que codigos aplican.

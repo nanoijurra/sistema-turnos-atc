@@ -1274,3 +1274,179 @@ No infiere roles.
 ## 15.12 Regla corta
 
 El evento del roster informa que hay asignado; no decide por si solo si puede intercambiarse.
+
+---
+
+# Invariante 16 - El catalogo oficial no implica activacion local
+
+## TOC
+
+- [16.1 Regla principal](#161-regla-principal)
+- [16.2 Codigo conocido no equivale a codigo activo](#162-codigo-conocido-no-equivale-a-codigo-activo)
+- [16.3 Solo codigos operativos activos generan Asignacion](#163-solo-codigos-operativos-activos-generan-asignacion)
+- [16.4 Codigos no operativos quedan fuera de Asignacion](#164-codigos-no-operativos-quedan-fuera-de-asignacion)
+- [16.5 Codigos legacy requieren normalizacion explicita](#165-codigos-legacy-requieren-normalizacion-explicita)
+- [16.6 Codigos fuera de alcance no se aceptan silenciosamente](#166-codigos-fuera-de-alcance-no-se-aceptan-silenciosamente)
+- [16.7 La configuracion no evalua swaps](#167-la-configuracion-no-evalua-swaps)
+- [16.8 La configuracion no decide workflow](#168-la-configuracion-no-decide-workflow)
+- [16.9 Importacion y reglas tecnicas permanecen separadas](#169-importacion-y-reglas-tecnicas-permanecen-separadas)
+- [16.10 Regla corta](#1610-regla-corta)
+
+---
+
+## 16.1 Regla principal
+
+Que un codigo exista en el PR o en el catalogo documental no significa que este activo para una dependencia determinada.
+
+La activacion depende de configuracion.
+
+---
+
+## 16.2 Codigo conocido no equivale a codigo activo
+
+Un codigo puede ser:
+
+```text
+conocido
+oficial
+legacy
+fuera de alcance
+desactivado
+no operativo
+```
+
+sin ser operativo activo.
+
+---
+
+## 16.3 Solo codigos operativos activos generan Asignacion
+
+En V1, solo los codigos clasificados como:
+
+```text
+OPERATIVO_ACTIVO
+```
+
+pueden generar `Asignacion` operativa.
+
+Para el contexto actual ACC:
+
+```text
+A
+B
+C
+```
+
+---
+
+## 16.4 Codigos no operativos quedan fuera de Asignacion
+
+Codigos como:
+
+```text
+LA
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+CIPE
+EN
+CO
+TW
+OF
+```
+
+no generan `Asignacion` operativa.
+
+Deben conservarse como eventos no operativos o informacion auxiliar de importacion.
+
+---
+
+## 16.5 Codigos legacy requieren normalizacion explicita
+
+Los codigos legacy no deben aceptarse silenciosamente.
+
+Normalizaciones vigentes:
+
+```text
+IN -> EN
+REM -> RTA
+RET -> RTB
+```
+
+La normalizacion debe ser explicita y trazable.
+
+---
+
+## 16.6 Codigos fuera de alcance no se aceptan silenciosamente
+
+Codigos oficiales pero fuera de alcance de una dependencia no deben aceptarse silenciosamente.
+
+Para ACC actual:
+
+```text
+AE
+AEC
+```
+
+quedan fuera de alcance.
+
+En otra dependencia no H24 podrian ser validos si la configuracion los habilita.
+
+---
+
+## 16.7 La configuracion no evalua swaps
+
+La configuracion de codigos no puede evaluar swaps.
+
+No llama a:
+
+```text
+engine
+scoring
+simulator
+```
+
+---
+
+## 16.8 La configuracion no decide workflow
+
+La configuracion de codigos no puede:
+
+```text
+crear request
+evaluar request
+resolver request
+aprobar request
+rechazar request
+cancelar request
+aplicar request
+```
+
+El workflow formal sigue perteneciendo a `swap_service`.
+
+---
+
+## 16.9 Importacion y reglas tecnicas permanecen separadas
+
+La configuracion de importacion no debe mezclarse con las reglas tecnicas del motor.
+
+No son equivalentes:
+
+```text
+codigo desconocido
+```
+
+y:
+
+```text
+descanso minimo incumplido
+```
+
+---
+
+## 16.10 Regla corta
+
+Un codigo oficial puede existir sin estar activo para una dependencia.

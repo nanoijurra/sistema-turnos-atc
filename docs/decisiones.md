@@ -2709,3 +2709,444 @@ No se modifica el workflow formal de `SwapRequest`.
 ## 51.18 Regla corta
 
 El codigo del roster describe el evento; la elegibilidad para swap se determina por persona, aptitud, asignacion y contexto.
+
+---
+
+# Decision 52 - Configuracion por dependencia y codigos de roster
+
+## TOC
+
+- [52.1 Estado](#521-estado)
+- [52.2 Contexto](#522-contexto)
+- [52.3 Decision](#523-decision)
+- [52.4 Catalogo oficial y configuracion local](#524-catalogo-oficial-y-configuracion-local)
+- [52.5 Categorias de codigos](#525-categorias-de-codigos)
+- [52.6 Configuracion para ACC actual](#526-configuracion-para-acc-actual)
+- [52.7 Dependencias no H24](#527-dependencias-no-h24)
+- [52.8 Normalizaciones](#528-normalizaciones)
+- [52.9 Error y warning de importacion](#529-error-y-warning-de-importacion)
+- [52.10 Separacion de configuracion](#5210-separacion-de-configuracion)
+- [52.11 Relacion con importador](#5211-relacion-con-importador)
+- [52.12 Relacion con elegibilidad](#5212-relacion-con-elegibilidad)
+- [52.13 Consecuencias](#5213-consecuencias)
+- [52.14 Decision negativa explicita](#5214-decision-negativa-explicita)
+- [52.15 Regla corta](#5215-regla-corta)
+
+---
+
+## 52.1 Estado
+
+Aceptada.
+
+---
+
+## 52.2 Contexto
+
+El PR-GOPE-044 define un catalogo de codigos posibles para listas de turno.
+
+Sin embargo, no todos los codigos oficiales aplican igual en todas las dependencias.
+
+Ejemplos:
+
+```text
+A/B/C -> turnos operativos activos para el contexto actual ACC
+D/X -> codigos oficiales, activables por configuracion
+AE/AEC -> codigos propios de dependencias no H24
+IN -> normalizable a EN
+REM -> normalizable a RTA
+RET -> normalizable a RTB
+```
+
+Por lo tanto, el sistema no debe asumir que todo codigo oficial esta activo o es aplicable en toda dependencia.
+
+---
+
+## 52.3 Decision
+
+Se introduce conceptualmente una configuracion por dependencia para interpretar codigos de roster.
+
+La configuracion por dependencia define:
+
+```text
+codigos operativos activos
+codigos operativos configurables
+codigos no operativos
+codigos legacy
+codigos fuera de alcance
+normalizaciones
+politica de errores y warnings
+```
+
+La configuracion por dependencia no evalua swaps.
+
+La configuracion por dependencia no decide workflow.
+
+La configuracion por dependencia no reemplaza al `engine`.
+
+---
+
+## 52.4 Catalogo oficial y configuracion local
+
+Se separan dos niveles conceptuales.
+
+El catalogo oficial responde:
+
+```text
+¿El codigo existe documentalmente o es conocido?
+```
+
+La configuracion de dependencia responde:
+
+```text
+¿Este codigo aplica en esta dependencia?
+¿Esta activo?
+¿Es operativo?
+¿Es no operativo?
+¿Es legacy?
+¿Debe normalizarse?
+¿Debe bloquear importacion?
+¿Debe generar warning?
+```
+
+Regla:
+
+```text
+El PR define codigos posibles.
+La dependencia define como se interpretan en su contexto.
+```
+
+---
+
+## 52.5 Categorias de codigos
+
+La configuracion por dependencia debe poder clasificar codigos en categorias conceptuales.
+
+### Operativo activo
+
+Codigo que genera `Asignacion` operativa en la dependencia actual.
+
+Ejemplo actual ACC:
+
+```text
+A
+B
+C
+```
+
+### Operativo configurable
+
+Codigo oficial que podria generar `Asignacion` operativa si la configuracion lo habilita.
+
+Ejemplos:
+
+```text
+D
+X
+```
+
+### No operativo
+
+Codigo que representa licencia, ausencia, capacitacion, comision, gestion, psicofisico, practica o evento no swappeable.
+
+Ejemplos:
+
+```text
+LA
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+CIPE
+EN
+CO
+TW
+OF
+```
+
+### Normalizable
+
+Codigo aceptado como entrada, pero convertido al estandar vigente.
+
+Ejemplos:
+
+```text
+IN -> EN
+REM -> RTA
+RET -> RTB
+```
+
+### Legacy
+
+Codigo conocido por historia o uso anterior, pero no estandar vigente.
+
+Ejemplos:
+
+```text
+REM
+RET
+```
+
+### Fuera de alcance de dependencia
+
+Codigo oficial o conocido, pero no aplicable a la dependencia actual.
+
+Ejemplos para ACC actual:
+
+```text
+AE
+AEC
+```
+
+---
+
+## 52.6 Configuracion para ACC actual
+
+Para el contexto actual ACC, la configuracion conceptual es:
+
+```text
+operativos_activos:
+  A
+  B
+  C
+
+operativos_configurables:
+  D
+  X
+
+no_operativos:
+  LA
+  PSI
+  RTA
+  RTB
+  OJT
+  SIM
+  CAM
+  CIPE
+  EN
+  CO
+  TW
+  OF
+
+normalizaciones:
+  IN -> EN
+  REM -> RTA
+  RET -> RTB
+
+fuera_de_alcance:
+  AE
+  AEC
+```
+
+`D` y `X` son codigos oficiales conocidos, pero no deben activarse por defecto si la configuracion de dependencia no los habilita.
+
+---
+
+## 52.7 Dependencias no H24
+
+Los codigos `AE` y `AEC` no se consideran invalidos globalmente.
+
+Quedan fuera de alcance para el contexto ACC actual.
+
+En dependencias no H24, como determinadas torres con horarios operativos particulares, `AE` y `AEC` podrian ser validos si la configuracion de dependencia los habilita.
+
+Por lo tanto, no debe hardcodearse una regla global que rechace siempre `AE` o `AEC`.
+
+---
+
+## 52.8 Normalizaciones
+
+Las normalizaciones vigentes son:
+
+```text
+IN -> EN
+REM -> RTA
+RET -> RTB
+```
+
+La normalizacion pertenece a la capa de importacion/configuracion.
+
+No pertenece al `engine`.
+
+No pertenece a `simulator`.
+
+No pertenece al workflow formal de `SwapRequest`.
+
+---
+
+## 52.9 Error y warning de importacion
+
+La configuracion debe permitir distinguir errores bloqueantes y warnings.
+
+Errores bloqueantes recomendados:
+
+```text
+codigo desconocido sin normalizacion
+codigo fuera de alcance con strict=True
+codigo operativo configurable no activo usado como operativo
+codigo ambiguo
+codigo incompatible con tipo de dependencia
+```
+
+Warnings recomendados:
+
+```text
+codigo legacy normalizado
+codigo no operativo conocido
+codigo normalizado
+codigo configurable desactivado, si la politica lo permite
+```
+
+Para ACC actual se recomienda:
+
+```text
+AE/AEC -> error de fuera de alcance
+D/X -> error o warning segun configuracion strict
+REM/RET -> warning + normalizacion
+IN -> warning + normalizacion
+```
+
+---
+
+## 52.10 Separacion de configuracion
+
+La configuracion debe mantener separadas las responsabilidades.
+
+Estructura conceptual recomendada:
+
+```text
+config
+├── dependencia
+├── importacion_roster
+├── codigos_roster
+├── normalizaciones
+├── elegibilidad
+└── reglas_tecnicas
+```
+
+La configuracion de importacion no debe mezclarse con reglas tecnicas del motor.
+
+Ejemplos de reglas tecnicas:
+
+```text
+descanso_minimo
+maximo_consecutivos
+maximo_noches
+horas_mensuales
+```
+
+Ejemplos de reglas de importacion:
+
+```text
+strict
+normalizar_codigos
+permitir_legacy
+rechazar_fuera_de_alcance
+```
+
+---
+
+## 52.11 Relacion con importador
+
+El importador puede usar la configuracion para:
+
+```text
+normalizar codigos
+clasificar codigos
+determinar si un codigo genera Asignacion operativa
+registrar eventos no operativos
+emitir warnings
+emitir errores
+producir reporte de importacion
+```
+
+El importador no puede usar la configuracion para:
+
+```text
+evaluar swaps
+decidir workflow
+resolver requests
+aplicar requests
+inferir puestos
+inferir roles
+calcular permisos
+llamar simulator
+```
+
+---
+
+## 52.12 Relacion con elegibilidad
+
+La configuracion de codigos es una entrada para la elegibilidad funcional futura.
+
+Pero no equivale por si sola a elegibilidad final.
+
+Ejemplo:
+
+```text
+A/B/C -> codigo operativo activo
+```
+
+no implica automaticamente que la persona sea elegible.
+
+La elegibilidad tambien depende de:
+
+```text
+estado operativo general
+perfil operativo de persona
+puesto, si existe
+habilitaciones, si corresponde
+```
+
+---
+
+## 52.13 Consecuencias
+
+El sistema queda preparado para interpretar codigos de roster segun dependencia sin hardcodear ACC Cordoba.
+
+El importador puede evolucionar usando configuracion sin contaminar `engine`, `simulator` ni `swap_service`.
+
+Los codigos oficiales quedan separados de su activacion local.
+
+---
+
+## 52.14 Decision negativa explicita
+
+No se implementa todavia:
+
+```text
+configuracion por dependencia en codigo
+parser nuevo
+perfil de dependencia persistido
+UI
+API
+roles
+permisos
+workflow bilateral
+filtro TMA
+activacion real de D/X
+soporte operativo real de AE/AEC
+```
+
+No se modifica:
+
+```text
+models
+engine
+simulator
+swap_service
+candidate_generation
+technical_prefilter
+roster_import_service
+```
+
+No se convierte el catalogo oficial en enum rigido global.
+
+No se hardcodea ACC Cordoba como caso especial.
+
+---
+
+## 52.15 Regla corta
+
+El codigo existe en el PR; la dependencia define como se interpreta en ese contexto.

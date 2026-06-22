@@ -13617,3 +13617,214 @@ Regla final:
 ```text
 Solo una persona operativa, con asignacion operativa y contexto compatible, puede participar en swaps normales.
 ```
+
+---
+
+# Checkpoint v88 - Contrato documental de configuracion por dependencia y codigos de roster
+
+## Estado
+
+Documental / arquitectonico.
+
+## Contexto
+
+Luego de documentar la elegibilidad funcional inicial para swaps normales, se identifica que la interpretacion de codigos de roster depende de la configuracion de la dependencia.
+
+El PR-GOPE-044 define codigos oficiales o conocidos, pero no todos aplican igual en todas las dependencias.
+
+## Decision
+
+Se documenta una configuracion por dependencia para interpretar codigos de roster.
+
+La configuracion distingue:
+
+```text
+catalogo oficial
+codigos operativos activos
+codigos operativos configurables
+codigos no operativos
+codigos normalizables
+codigos legacy
+codigos fuera de alcance
+codigos desconocidos
+```
+
+## Regla principal
+
+```text
+El PR define codigos posibles.
+La configuracion de dependencia define codigos aplicables.
+```
+
+## Configuracion conceptual ACC actual
+
+```text
+OPERATIVO_ACTIVO:
+  A
+  B
+  C
+
+OPERATIVO_CONFIGURABLE:
+  D
+  X
+
+NO_OPERATIVO:
+  LA
+  PSI
+  RTA
+  RTB
+  OJT
+  SIM
+  CAM
+  CIPE
+  EN
+  CO
+  TW
+  OF
+
+NORMALIZABLE:
+  IN -> EN
+  REM -> RTA
+  RET -> RTB
+
+FUERA_DE_ALCANCE:
+  AE
+  AEC
+```
+
+## Dependencias no H24
+
+Los codigos:
+
+```text
+AE
+AEC
+```
+
+no son invalidos globalmente.
+
+Quedan fuera de alcance para ACC actual, pero pueden ser validos en dependencias no H24 si la configuracion los habilita.
+
+## Separacion de configuracion
+
+Se documenta una estructura conceptual:
+
+```text
+config
+├── dependencia
+├── importacion_roster
+├── codigos_roster
+├── normalizaciones
+├── elegibilidad
+└── reglas_tecnicas
+```
+
+Los parametros de importacion deben estar separados de las reglas tecnicas del `engine`.
+
+## Politica de errores y warnings
+
+Errores bloqueantes recomendados:
+
+```text
+codigo desconocido sin normalizacion
+codigo fuera de alcance con strict=True
+codigo operativo configurable no activo usado como operativo
+codigo ambiguo
+codigo incompatible con tipo de dependencia
+```
+
+Warnings recomendados:
+
+```text
+codigo legacy normalizado
+codigo normalizado
+codigo no operativo conocido
+codigo configurable desactivado, si la politica lo permite
+```
+
+## Relacion con importador
+
+El importador puede usar configuracion para:
+
+```text
+normalizar codigos
+clasificar codigos
+determinar si un codigo genera Asignacion operativa
+registrar eventos no operativos
+emitir warnings
+emitir errores
+producir reporte de importacion
+```
+
+El importador no puede:
+
+```text
+evaluar swaps
+decidir workflow
+inferir puestos
+inferir roles
+calcular permisos
+llamar simulator
+crear requests
+resolver requests
+aplicar requests
+```
+
+## No incluido
+
+No se implementa todavia:
+
+```text
+configuracion por dependencia en codigo
+perfil de dependencia persistido
+parser nuevo
+UI
+API
+roles
+permisos
+workflow bilateral
+filtro TMA
+activacion real de D/X
+soporte operativo real de AE/AEC
+```
+
+No se modifica:
+
+```text
+models
+engine
+simulator
+swap_service
+candidate_generation
+technical_prefilter
+roster_import_service
+```
+
+## Documentos asociados
+
+Se agregan o actualizan:
+
+```text
+Decision 52 - Configuracion por dependencia y codigos de roster
+Contrato 24 - Interpretacion configurable de codigos de roster
+Invariante 16 - El catalogo oficial no implica activacion local
+```
+
+## Proximo paso recomendado
+
+Posibles pasos futuros:
+
+```text
+v89 - Perfil operativo de persona como concepto documental
+v90 - Implementacion controlada minima de configuracion de codigos para importacion
+```
+
+## Resultado
+
+Queda documentada la frontera entre catalogo oficial de codigos y configuracion local por dependencia.
+
+Regla final:
+
+```text
+El codigo existe en el PR; la dependencia define como se interpreta en ese contexto.
+```
