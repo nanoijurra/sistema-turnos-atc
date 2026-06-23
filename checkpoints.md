@@ -14997,3 +14997,33 @@ roster_import_service
 ```
 
 ---
+
+## checkpoint-v94-smoke-workflow-roster-importado
+Fecha: 2026-06-23
+
+---
+
+### Estado general
+
+Se valido el workflow formal de swaps sobre una `RosterVersion` creada desde CSV real acotado.
+
+El objetivo de v94 fue comprobar integracion entre:
+
+- importacion real
+- creacion de `RosterVersion`
+- creacion de `SwapRequest`
+- evaluacion formal
+- resolucion operativa
+- aplicacion
+- versionado posterior del roster
+
+El smoke no modifica reglas operativas ni agrega logica nueva.
+
+---
+
+### Insumo usado
+
+CSV real acotado ubicado localmente en:
+
+```text
+data/imports/csv_ok.csv
