@@ -3150,3 +3150,382 @@ No se hardcodea ACC Cordoba como caso especial.
 ## 52.15 Regla corta
 
 El codigo existe en el PR; la dependencia define como se interpreta en ese contexto.
+
+---
+
+# Decision 53 - Perfil operativo de persona
+
+## TOC
+
+- [53.1 Estado](#531-estado)
+- [53.2 Contexto](#532-contexto)
+- [53.3 Decision](#533-decision)
+- [53.4 Rol institucional y perfil operativo](#534-rol-institucional-y-perfil-operativo)
+- [53.5 Universo operativo intercambiable](#535-universo-operativo-intercambiable)
+- [53.6 Estado operativo general](#536-estado-operativo-general)
+- [53.7 CMA / psicofisico](#537-cma--psicofisico)
+- [53.8 Override administrativo CMA](#538-override-administrativo-cma)
+- [53.9 Habilitaciones RADAR y TMA](#539-habilitaciones-radar-y-tma)
+- [53.10 Operatividad general y compatibilidad por puesto](#5310-operatividad-general-y-compatibilidad-por-puesto)
+- [53.11 Relacion con configuracion por dependencia](#5311-relacion-con-configuracion-por-dependencia)
+- [53.12 Relacion con importador](#5312-relacion-con-importador)
+- [53.13 Relacion con elegibilidad funcional](#5313-relacion-con-elegibilidad-funcional)
+- [53.14 Consecuencias](#5314-consecuencias)
+- [53.15 Decision negativa explicita](#5315-decision-negativa-explicita)
+- [53.16 Regla corta](#5316-regla-corta)
+
+---
+
+## 53.1 Estado
+
+Aceptada.
+
+---
+
+## 53.2 Contexto
+
+Luego de documentar la elegibilidad funcional inicial y la configuracion por dependencia, queda identificada una frontera de dominio adicional: el perfil operativo de persona.
+
+La elegibilidad para swaps normales no depende solamente del codigo de roster.
+
+Tambien depende de si la persona puede operar, si pertenece al universo operativo intercambiable y si posee las habilitaciones necesarias para el contexto o puesto afectado.
+
+---
+
+## 53.3 Decision
+
+Se reconoce conceptualmente el perfil operativo de persona como una frontera de dominio futura.
+
+El perfil operativo de persona permite diferenciar:
+
+```text
+rol institucional
+estado operativo general
+aptitud psicofisica / CMA
+override administrativo
+habilitaciones
+universo operativo intercambiable
+compatibilidad por puesto
+```
+
+Esta decision no implementa todavia una entidad `PersonaProfile`, tabla, enum ni servicio nuevo.
+
+---
+
+## 53.4 Rol institucional y perfil operativo
+
+El rol institucional describe la funcion o posicion de una persona.
+
+Ejemplos:
+
+```text
+Jefe de Dependencia
+Representante ANS / Coordinador
+Instructor
+Supervisor
+Controlador
+Practicante
+Adscripto
+```
+
+El perfil operativo describe si esa persona puede participar en swaps operativos normales y bajo que condiciones.
+
+No son equivalentes.
+
+Ejemplos:
+
+```text
+Supervisor en puesto operativo -> puede intercambiar como controlador.
+Instructor en A/B/C -> elegible igual que controlador.
+Adscripto -> perfil administrativo, no participa en swaps normales.
+Practicante -> aparece como OJT/SIM, no participa en swaps normales.
+```
+
+---
+
+## 53.5 Universo operativo intercambiable
+
+El universo operativo intercambiable representa el conjunto de personas que pueden participar en swaps normales si cumplen las demas condiciones.
+
+No debe inferirse solamente por la presencia de codigos `A`, `B` o `C` en el roster.
+
+Depende conceptualmente de:
+
+```text
+perfil de persona
+estado operativo general
+configuracion de dependencia
+```
+
+La ausencia de un evento no operativo, por ejemplo `OF` en un fin de semana, no convierte por si sola a una persona administrativa en candidata a swap.
+
+---
+
+## 53.6 Estado operativo general
+
+El estado operativo general indica si una persona puede operar en terminos generales.
+
+Si:
+
+```text
+estado_operativo_general = false
+```
+
+entonces la persona no participa en swaps operativos normales, aunque tenga un codigo `A`, `B` o `C` en el roster.
+
+El estado operativo general puede caer por:
+
+```text
+CMA / psicofisico vencido
+override administrativo CMA negativo
+```
+
+---
+
+## 53.7 CMA / psicofisico
+
+El CMA / psicofisico afecta directamente el estado operativo general.
+
+Regla conceptual:
+
+```text
+si fecha_vencimiento_cma <= fecha_actual
+entonces estado_operativo_general = false
+```
+
+Por lo tanto:
+
+```text
+CMA vencido -> persona no operativa
+```
+
+Esta regla queda documentada como dominio futuro.
+
+No se implementa todavia en codigo.
+
+---
+
+## 53.8 Override administrativo CMA
+
+Puede existir un override administrativo sobre la aptitud operativa asociada al CMA / psicofisico.
+
+Regla conceptual:
+
+```text
+si cma_override_operativo = false
+entonces estado_operativo_general = false
+```
+
+Todo override administrativo debe tener trazabilidad minima obligatoria:
+
+```text
+actor
+motivo
+fecha
+```
+
+No debe existir override administrativo valido sin actor, motivo y fecha.
+
+El override administrativo no representa permiso de sistema.
+
+Representa una decision administrativa registrada que afecta el estado operativo general de la persona.
+
+---
+
+## 53.9 Habilitaciones RADAR y TMA
+
+Para esta etapa conceptual se reconocen como habilitaciones relevantes:
+
+```text
+RADAR
+TMA
+```
+
+No se incorporan en esta etapa habilitaciones:
+
+```text
+SUR
+NORTE
+```
+
+La falta de una habilitacion especifica no vuelve necesariamente no operativa a la persona completa.
+
+Puede limitar la compatibilidad con determinados puestos o contextos.
+
+---
+
+## 53.10 Operatividad general y compatibilidad por puesto
+
+Se separan dos conceptos:
+
+```text
+operatividad general
+```
+
+y:
+
+```text
+compatibilidad por puesto
+```
+
+Ejemplo de no operatividad general:
+
+```text
+cma_override_operativo = false
+-> estado_operativo_general = false
+-> no participa en swaps normales
+```
+
+Ejemplo de compatibilidad parcial:
+
+```text
+estado_operativo_general = true
+habilitado_radar = true
+habilitado_tma = false
+```
+
+Resultado conceptual:
+
+```text
+persona operativa para puestos compatibles
+persona no compatible con puestos TMA
+```
+
+Si el roster no define puestos, en V1 no se aplica filtro TMA.
+
+---
+
+## 53.11 Relacion con configuracion por dependencia
+
+La configuracion por dependencia define el contexto donde se interpreta el perfil operativo.
+
+Puede determinar:
+
+```text
+codigos operativos activos
+codigos configurables
+codigos no operativos
+reglas de importacion
+reglas de elegibilidad futura
+```
+
+El perfil operativo de persona no reemplaza la configuracion por dependencia.
+
+Ambos conceptos son complementarios.
+
+---
+
+## 53.12 Relacion con importador
+
+El importador de roster no debe calcular el perfil operativo completo de una persona.
+
+El importador puede:
+
+```text
+normalizar codigos
+separar asignaciones operativas de eventos no operativos
+emitir warnings/errores
+conservar trazabilidad de importacion
+```
+
+El importador no debe:
+
+```text
+calcular estado operativo general
+evaluar CMA
+aplicar override administrativo
+inferir habilitaciones
+inferir puestos
+inferir roles
+decidir elegibilidad compleja
+```
+
+Los datos de perfil operativo pertenecen a una frontera futura distinta del roster mensual.
+
+---
+
+## 53.13 Relacion con elegibilidad funcional
+
+El perfil operativo de persona es una entrada conceptual para la elegibilidad funcional.
+
+La elegibilidad para swap normal depende de:
+
+```text
+persona
+estado operativo general
+asignacion/evento
+configuracion de dependencia
+puesto, si existe
+habilitaciones, si corresponde
+```
+
+El perfil operativo no evalua swaps por si mismo.
+
+No reemplaza al `engine`.
+
+No reemplaza al `simulator`.
+
+No decide workflow.
+
+---
+
+## 53.14 Consecuencias
+
+Queda documentado que la persona necesita una frontera conceptual propia para determinar disponibilidad operativa.
+
+Se evita confundir:
+
+```text
+rol institucional
+```
+
+con:
+
+```text
+elegibilidad para swap
+```
+
+Se prepara el sistema para una futura implementacion controlada de perfil operativo sin modificar todavia `models.py`.
+
+---
+
+## 53.15 Decision negativa explicita
+
+No se implementa todavia:
+
+```text
+PersonaProfile
+tabla de perfil operativo
+tabla de CMA
+motor RAAC 67
+override persistido
+habilitaciones persistidas
+filtro TMA
+compatibilidad por puesto
+roles formales
+permisos
+UI
+API
+```
+
+No se modifica:
+
+```text
+models
+engine
+simulator
+swap_service
+candidate_generation
+technical_prefilter
+roster_import_service
+```
+
+No se infiere elegibilidad por rol institucional.
+
+No se infiere disponibilidad por ausencia de codigo no operativo.
+
+---
+
+## 53.16 Regla corta
+
+El rol describe la funcion; el perfil operativo determina si y donde puede operar.

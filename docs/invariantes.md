@@ -1450,3 +1450,155 @@ descanso minimo incumplido
 ## 16.10 Regla corta
 
 Un codigo oficial puede existir sin estar activo para una dependencia.
+
+---
+
+# Invariante 17 - Persona operativa no equivale a rol institucional
+
+## TOC
+
+- [17.1 Regla principal](#171-regla-principal)
+- [17.2 Rol institucional no define elegibilidad](#172-rol-institucional-no-define-elegibilidad)
+- [17.3 Estado operativo general bloquea swaps](#173-estado-operativo-general-bloquea-swaps)
+- [17.4 CMA vencido bloquea operatividad](#174-cma-vencido-bloquea-operatividad)
+- [17.5 Override administrativo negativo bloquea operatividad](#175-override-administrativo-negativo-bloquea-operatividad)
+- [17.6 Override requiere trazabilidad](#176-override-requiere-trazabilidad)
+- [17.7 Habilitacion limita compatibilidad](#177-habilitacion-limita-compatibilidad)
+- [17.8 Sin puesto definido no se aplica filtro TMA](#178-sin-puesto-definido-no-se-aplica-filtro-tma)
+- [17.9 El importador no calcula perfil operativo](#179-el-importador-no-calcula-perfil-operativo)
+- [17.10 Regla corta](#1710-regla-corta)
+
+---
+
+## 17.1 Regla principal
+
+El rol institucional de una persona no equivale a su elegibilidad para swaps normales.
+
+La elegibilidad depende del perfil operativo, estado operativo general, asignacion y contexto.
+
+---
+
+## 17.2 Rol institucional no define elegibilidad
+
+No debe inferirse elegibilidad solo por rol.
+
+Ejemplos:
+
+```text
+Supervisor en puesto operativo -> puede intercambiar como controlador.
+Instructor en A/B/C -> elegible igual que controlador.
+Adscripto -> administrativo, no participa en swaps normales.
+Practicante -> OJT/SIM, no participa en swaps normales.
+```
+
+---
+
+## 17.3 Estado operativo general bloquea swaps
+
+Si:
+
+```text
+estado_operativo_general = false
+```
+
+entonces la persona no participa en swaps operativos normales.
+
+Esto aplica aunque el roster tenga:
+
+```text
+A
+B
+C
+```
+
+---
+
+## 17.4 CMA vencido bloquea operatividad
+
+Regla conceptual:
+
+```text
+si fecha_vencimiento_cma <= fecha_actual
+entonces estado_operativo_general = false
+```
+
+El CMA / psicofisico vencido bloquea la operatividad general.
+
+---
+
+## 17.5 Override administrativo negativo bloquea operatividad
+
+Regla conceptual:
+
+```text
+si cma_override_operativo = false
+entonces estado_operativo_general = false
+```
+
+Un override administrativo negativo bloquea la participacion en swaps normales.
+
+---
+
+## 17.6 Override requiere trazabilidad
+
+Todo override administrativo debe tener:
+
+```text
+actor
+motivo
+fecha
+```
+
+No debe existir override administrativo valido sin trazabilidad minima.
+
+---
+
+## 17.7 Habilitacion limita compatibilidad
+
+La falta de una habilitacion especifica no vuelve necesariamente no operativa a la persona completa.
+
+Puede limitar compatibilidad por puesto.
+
+Ejemplo:
+
+```text
+habilitado_tma = false
+puesto = TMA
+-> no compatible
+```
+
+---
+
+## 17.8 Sin puesto definido no se aplica filtro TMA
+
+Si el roster no define puestos, el sistema no debe inferirlos.
+
+Regla V1:
+
+```text
+puesto no definido -> no aplicar filtro TMA
+```
+
+La compatibilidad por puesto queda reservada para V2.
+
+---
+
+## 17.9 El importador no calcula perfil operativo
+
+El importador de roster no calcula:
+
+```text
+estado_operativo_general
+CMA
+override administrativo
+habilitaciones
+compatibilidad por puesto
+```
+
+El importador normaliza roster y separa asignaciones operativas de eventos no operativos.
+
+---
+
+## 17.10 Regla corta
+
+El rol describe la funcion; el perfil operativo define si y donde puede operar.

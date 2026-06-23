@@ -13828,3 +13828,221 @@ Regla final:
 ```text
 El codigo existe en el PR; la dependencia define como se interpreta en ese contexto.
 ```
+
+---
+
+# Checkpoint v89 - Contrato documental de perfil operativo de persona
+
+## Estado
+
+Documental / arquitectonico.
+
+## Contexto
+
+Luego de documentar:
+
+```text
+v87 - elegibilidad funcional inicial
+v88 - configuracion por dependencia y codigos de roster
+```
+
+queda identificada una frontera conceptual adicional: el perfil operativo de persona.
+
+La elegibilidad para swaps normales no depende solamente del codigo de roster ni del rol institucional.
+
+Depende tambien de:
+
+```text
+estado operativo general
+CMA / psicofisico
+override administrativo
+habilitaciones
+compatibilidad por puesto
+configuracion de dependencia
+```
+
+## Decision
+
+Se documenta conceptualmente el perfil operativo de persona.
+
+No se implementa todavia una entidad, tabla, dataclass ni servicio nuevo.
+
+## Rol institucional vs perfil operativo
+
+Se separa:
+
+```text
+rol institucional
+```
+
+de:
+
+```text
+perfil operativo para swaps
+```
+
+Ejemplos documentados:
+
+```text
+Supervisor en puesto operativo -> puede intercambiar como controlador.
+Instructor en A/B/C -> elegible igual que controlador.
+Adscripto -> administrativo, no participa en swaps normales.
+Practicante -> OJT/SIM, no participa en swaps normales.
+```
+
+## Estado operativo general
+
+Si:
+
+```text
+estado_operativo_general = false
+```
+
+entonces la persona no participa en swaps normales.
+
+Reglas conceptuales:
+
+```text
+fecha_vencimiento_cma <= fecha_actual
+-> estado_operativo_general = false
+```
+
+y:
+
+```text
+cma_override_operativo = false
+-> estado_operativo_general = false
+```
+
+## Override administrativo CMA
+
+Todo override administrativo debe tener trazabilidad minima:
+
+```text
+actor
+motivo
+fecha
+```
+
+El override administrativo no representa permiso de sistema.
+
+Representa una decision administrativa registrada que afecta el estado operativo general.
+
+## Habilitaciones
+
+Se reconocen conceptualmente:
+
+```text
+RADAR
+TMA
+```
+
+No se incorporan en esta etapa:
+
+```text
+SUR
+NORTE
+```
+
+La falta de habilitacion TMA limita compatibilidad con puestos TMA si el puesto esta definido.
+
+No vuelve necesariamente no operativa a la persona completa.
+
+## Puestos
+
+Si el roster no define puestos:
+
+```text
+no se infiere puesto
+no se aplica filtro TMA en V1
+```
+
+La compatibilidad por puesto queda reservada para V2.
+
+## Importador
+
+El importador no calcula:
+
+```text
+estado_operativo_general
+CMA
+override administrativo
+habilitaciones
+compatibilidad por puesto
+```
+
+El importador solo normaliza roster, separa asignaciones operativas de eventos no operativos y produce reporte.
+
+## technical_prefilter
+
+`technical_prefilter` queda reconocido como posible frontera futura para aplicar:
+
+```text
+estado operativo general
+habilitaciones
+compatibilidad por puesto
+configuracion de dependencia
+```
+
+No se implementa en este checkpoint.
+
+## No incluido
+
+No se implementa todavia:
+
+```text
+PersonaProfile
+tabla de perfil operativo
+tabla de CMA
+motor RAAC 67
+override persistido
+habilitaciones persistidas
+filtro TMA
+compatibilidad por puesto
+roles formales
+permisos
+UI
+API
+```
+
+No se modifica:
+
+```text
+models
+engine
+simulator
+swap_service
+candidate_generation
+technical_prefilter
+roster_import_service
+```
+
+## Documentos asociados
+
+Se agregan o actualizan:
+
+```text
+Decision 53 - Perfil operativo de persona
+Contrato 25 - Estado operativo general y habilitaciones
+Invariante 17 - Persona operativa no equivale a rol institucional
+```
+
+## Proximo paso recomendado
+
+Posibles pasos futuros:
+
+```text
+v90 - Implementacion controlada minima de configuracion de codigos para importacion
+v90 - Documentacion de frontera futura de technical_prefilter y elegibilidad fina
+v90 - Implementacion controlada minima de perfil operativo basico, si se decide avanzar
+```
+
+## Resultado
+
+Queda documentado el perfil operativo de persona como frontera conceptual futura.
+
+Regla final:
+
+```text
+El rol describe la funcion; el perfil operativo determina si y donde puede operar.
+```

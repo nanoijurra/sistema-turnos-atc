@@ -3349,3 +3349,255 @@ o si el puesto definido exige una habilitacion que la persona no tiene.
 ## 24.15 Regla corta
 
 El catalogo dice que codigos existen; la configuracion dice que codigos aplican.
+
+---
+
+# Contrato 25 - Estado operativo general y habilitaciones
+
+## TOC
+
+- [25.1 Proposito](#251-proposito)
+- [25.2 Contexto](#252-contexto)
+- [25.3 Principio contractual](#253-principio-contractual)
+- [25.4 Perfil operativo de persona](#254-perfil-operativo-de-persona)
+- [25.5 Estado operativo general](#255-estado-operativo-general)
+- [25.6 CMA / psicofisico](#256-cma--psicofisico)
+- [25.7 Override administrativo CMA](#257-override-administrativo-cma)
+- [25.8 Habilitaciones reconocidas](#258-habilitaciones-reconocidas)
+- [25.9 Compatibilidad por puesto](#259-compatibilidad-por-puesto)
+- [25.10 Puesto no definido](#2510-puesto-no-definido)
+- [25.11 Responsabilidades permitidas futuras](#2511-responsabilidades-permitidas-futuras)
+- [25.12 Responsabilidades prohibidas actuales](#2512-responsabilidades-prohibidas-actuales)
+- [25.13 Relacion con importacion](#2513-relacion-con-importacion)
+- [25.14 Relacion con technical_prefilter](#2514-relacion-con-technicalprefilter)
+- [25.15 Regla corta](#2515-regla-corta)
+
+---
+
+## 25.1 Proposito
+
+Definir el contrato conceptual del estado operativo general y las habilitaciones como parte del perfil operativo de persona.
+
+Este contrato no implica implementacion inmediata.
+
+---
+
+## 25.2 Contexto
+
+La elegibilidad para swaps normales requiere conocer si la persona puede operar en terminos generales y si posee habilitaciones compatibles con el contexto o puesto afectado.
+
+El codigo de roster no alcanza para responder esto.
+
+---
+
+## 25.3 Principio contractual
+
+El perfil operativo de persona determina si una persona puede operar y, cuando corresponda, donde puede operar.
+
+No reemplaza al workflow formal.
+
+No reemplaza al `engine`.
+
+No reemplaza al `simulator`.
+
+---
+
+## 25.4 Perfil operativo de persona
+
+Conceptualmente, el perfil operativo de persona puede incluir:
+
+```text
+rol institucional
+estado_operativo_general
+fecha_vencimiento_cma
+cma_override_operativo
+cma_override_actor
+cma_override_motivo
+cma_override_fecha
+habilitado_radar
+habilitado_tma
+```
+
+Este contrato no obliga todavia a crear una clase, tabla o dataclass.
+
+---
+
+## 25.5 Estado operativo general
+
+El estado operativo general indica si una persona puede operar en terminos generales.
+
+Regla:
+
+```text
+estado_operativo_general = false
+-> no participa en swaps normales
+```
+
+Esto bloquea cualquier asignacion operativa de esa persona para swaps normales.
+
+---
+
+## 25.6 CMA / psicofisico
+
+El vencimiento del CMA / psicofisico hace caer el estado operativo general.
+
+Regla conceptual:
+
+```text
+si fecha_vencimiento_cma <= fecha_actual
+entonces estado_operativo_general = false
+```
+
+Esta regla debe interpretarse como dominio futuro.
+
+No se implementa todavia.
+
+---
+
+## 25.7 Override administrativo CMA
+
+El override administrativo puede bloquear la operatividad general aunque el CMA se encuentre dentro de fecha.
+
+Regla conceptual:
+
+```text
+si cma_override_operativo = false
+entonces estado_operativo_general = false
+```
+
+Todo override administrativo debe registrar:
+
+```text
+actor
+motivo
+fecha
+```
+
+No debe existir override valido sin trazabilidad minima.
+
+---
+
+## 25.8 Habilitaciones reconocidas
+
+Las habilitaciones reconocidas conceptualmente en esta etapa son:
+
+```text
+RADAR
+TMA
+```
+
+No se incorporan en esta etapa:
+
+```text
+SUR
+NORTE
+```
+
+Las habilitaciones pueden limitar compatibilidad por puesto.
+
+No necesariamente bloquean la operatividad general completa.
+
+---
+
+## 25.9 Compatibilidad por puesto
+
+La compatibilidad por puesto evalua si una persona puede cubrir un puesto determinado segun sus habilitaciones.
+
+Ejemplo:
+
+```text
+habilitado_tma = false
+puesto = TMA
+-> no compatible
+```
+
+Esto no implica necesariamente:
+
+```text
+estado_operativo_general = false
+```
+
+La persona puede seguir operativa para otros puestos compatibles.
+
+---
+
+## 25.10 Puesto no definido
+
+Si el roster no define puestos, el sistema no debe inferirlos.
+
+Regla V1:
+
+```text
+puesto no definido -> no aplicar filtro TMA
+```
+
+La compatibilidad por puesto queda reservada para V2.
+
+---
+
+## 25.11 Responsabilidades permitidas futuras
+
+Una futura capa de perfil operativo podria:
+
+```text
+calcular estado_operativo_general
+evaluar vencimiento CMA
+aplicar override administrativo
+exponer habilitaciones
+informar compatibilidad por puesto
+proveer datos a elegibilidad funcional
+```
+
+---
+
+## 25.12 Responsabilidades prohibidas actuales
+
+En la etapa actual, este contrato no habilita:
+
+```text
+modificar models
+crear PersonaProfile
+crear tabla de CMA
+persistir habilitaciones
+implementar motor RAAC 67
+filtrar TMA
+modificar candidate_generation
+modificar engine
+modificar simulator
+modificar swap_service
+```
+
+---
+
+## 25.13 Relacion con importacion
+
+El importador de roster no calcula el estado operativo general.
+
+El importador no aplica override administrativo.
+
+El importador no infiere habilitaciones.
+
+El importador normaliza el roster mensual y separa asignaciones operativas de eventos no operativos.
+
+---
+
+## 25.14 Relacion con technical_prefilter
+
+`technical_prefilter` queda reconocido como posible frontera futura para usar el perfil operativo de persona.
+
+Podria evaluar:
+
+```text
+estado_operativo_general
+habilitaciones
+compatibilidad por puesto
+configuracion de dependencia
+```
+
+No se implementa esta logica todavia.
+
+---
+
+## 25.15 Regla corta
+
+La aptitud general define si la persona puede operar; las habilitaciones definen donde puede operar.
