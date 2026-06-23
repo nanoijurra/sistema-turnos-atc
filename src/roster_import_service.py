@@ -3,6 +3,7 @@ from __future__ import annotations
 import calendar
 import csv
 from dataclasses import dataclass, field
+from enum import Enum
 from datetime import date
 from io import StringIO
 from pathlib import Path
@@ -17,17 +18,75 @@ from src.models import (
 )
 
 
-CODIGOS_OPERATIVOS = {"A", "B", "C"}
-CODIGOS_NO_OPERATIVOS = {
-    "LA",
-    "PSI",
-    "RTA",
-    "RTB",
-    "REM",
-    "RET",
-    "SIM",
-    "TW",
-}
+class RosterCodeCategory(str, Enum):
+    OPERATIVO_ACTIVO = "OPERATIVO_ACTIVO"
+    OPERATIVO_CONFIGURABLE = "OPERATIVO_CONFIGURABLE"
+    NO_OPERATIVO = "NO_OPERATIVO"
+    FUERA_DE_ALCANCE = "FUERA_DE_ALCANCE"
+    DESCONOCIDO = "DESCONOCIDO"
+
+
+@dataclass(frozen=True)
+class RosterCodeConfig:
+    operativos_activos: set[str]
+    operativos_configurables: set[str]
+    no_operativos: set[str]
+    normalizaciones: dict[str, str]
+    fuera_de_alcance: set[str]
+
+
+def obtener_config_acc_default() -> RosterCodeConfig:
+    return RosterCodeConfig(
+        operativos_activos={"A", "B", "C"},
+        operativos_configurables={"D", "X"},
+        no_operativos={
+            "LA",
+            "PSI",
+            "RTA",
+            "RTB",
+            "OJT",
+            "SIM",
+            "CAM",
+            "CIPE",
+            "EN",
+            "CO",
+            "TW",
+            "OF",
+        },
+        normalizaciones={
+            "IN": "EN",
+            "REM": "RTA",
+            "RET": "RTB",
+        },
+        fuera_de_alcance={"AE", "AEC"},
+    )
+
+
+def normalizar_codigo_roster(
+    codigo: str,
+    config: RosterCodeConfig,
+) -> tuple[str, bool]:
+    normalizado = config.normalizaciones.get(codigo, codigo)
+    return normalizado, normalizado != codigo
+
+
+def clasificar_codigo_roster(
+    codigo: str,
+    config: RosterCodeConfig,
+) -> RosterCodeCategory:
+    if codigo in config.operativos_activos:
+        return RosterCodeCategory.OPERATIVO_ACTIVO
+
+    if codigo in config.operativos_configurables:
+        return RosterCodeCategory.OPERATIVO_CONFIGURABLE
+
+    if codigo in config.no_operativos:
+        return RosterCodeCategory.NO_OPERATIVO
+
+    if codigo in config.fuera_de_alcance:
+        return RosterCodeCategory.FUERA_DE_ALCANCE
+
+    return RosterCodeCategory.DESCONOCIDO
 
 
 @dataclass(frozen=True)
@@ -160,11 +219,13 @@ def importar_roster_desde_matriz(
     mes: int,
     strict: bool = True,
     source_type: str = "MATRIZ_SIMPLE",
+    code_config: RosterCodeConfig | None = None,
 ) -> RosterImportResult:
     _validar_anio_mes(anio, mes)
 
     result = RosterImportResult()
     esquema = crear_esquema_8h()
+    config = code_config or obtener_config_acc_default()
     ultimo_dia = calendar.monthrange(anio, mes)[1]
 
     if not matriz:
@@ -294,8 +355,31 @@ def importar_roster_desde_matriz(
 
             fecha = date(anio, mes, dia)
 
-            if codigo in CODIGOS_OPERATIVOS:
-                turno = esquema.obtener_turno(codigo)
+            codigo_normalizado, fue_normalizado = normalizar_codigo_roster(
+                codigo,
+                config,
+            )
+            categoria = clasificar_codigo_roster(codigo_normalizado, config)
+
+            if fue_normalizado:
+                result.warnings.append(
+                    _crear_issue(
+                        code="CODIGO_NORMALIZADO",
+                        message=(
+                            f"Codigo de roster normalizado: "
+                            f"{codigo} -> {codigo_normalizado}."
+                        ),
+                        severity="WARNING",
+                        row=row,
+                        column=column,
+                        controlador=controlador,
+                        fecha=fecha,
+                        raw_value=str(raw_value),
+                    )
+                )
+
+            if categoria == RosterCodeCategory.OPERATIVO_ACTIVO:
+                turno = esquema.obtener_turno(codigo_normalizado)
                 result.asignaciones_operativas.append(
                     Asignacion(
                         fecha=fecha,
@@ -306,14 +390,14 @@ def importar_roster_desde_matriz(
                 asignaciones_controlador += 1
                 continue
 
-            if codigo in CODIGOS_NO_OPERATIVOS:
+            if categoria == RosterCodeCategory.NO_OPERATIVO:
                 result.eventos_no_operativos.append(
                     EventoNoOperativoImportado(
                         controlador=controlador,
                         fecha=fecha,
-                        codigo=codigo,
+                        codigo=codigo_normalizado,
                         raw_value=str(raw_value),
-                        tipo="NO_OPERATIVO",
+                        tipo=RosterCodeCategory.NO_OPERATIVO.value,
                     )
                 )
                 result.warnings.append(
@@ -333,21 +417,50 @@ def importar_roster_desde_matriz(
                 )
                 continue
 
-            issue = _crear_issue(
-                code="CODIGO_DESCONOCIDO",
-                message=f"Codigo desconocido: {codigo}.",
-                severity="ERROR" if strict else "WARNING",
-                row=row,
-                column=column,
-                controlador=controlador,
-                fecha=fecha,
-                raw_value=str(raw_value),
-            )
+            if categoria == RosterCodeCategory.OPERATIVO_CONFIGURABLE:
+                issue = _crear_issue(
+                    code="CODIGO_OPERATIVO_CONFIGURABLE_NO_ACTIVO",
+                    message=(
+                        f"Codigo operativo configurable no activo para esta "
+                        f"configuracion: {codigo_normalizado}."
+                    ),
+                    severity="ERROR" if strict else "WARNING",
+                    row=row,
+                    column=column,
+                    controlador=controlador,
+                    fecha=fecha,
+                    raw_value=str(raw_value),
+                )
+            elif categoria == RosterCodeCategory.FUERA_DE_ALCANCE:
+                issue = _crear_issue(
+                    code="CODIGO_FUERA_DE_ALCANCE",
+                    message=(
+                        f"Codigo fuera de alcance para la configuracion actual: "
+                        f"{codigo_normalizado}."
+                    ),
+                    severity="ERROR" if strict else "WARNING",
+                    row=row,
+                    column=column,
+                    controlador=controlador,
+                    fecha=fecha,
+                    raw_value=str(raw_value),
+                )
+            else:
+                issue = _crear_issue(
+                    code="CODIGO_DESCONOCIDO",
+                    message=f"Codigo desconocido: {codigo_normalizado}.",
+                    severity="ERROR" if strict else "WARNING",
+                    row=row,
+                    column=column,
+                    controlador=controlador,
+                    fecha=fecha,
+                    raw_value=str(raw_value),
+                )
 
             if strict:
                 result.errors.append(issue)
             else:
-                result.warnings.append(issue)
+                result.warnings.append(issue)    
 
         if asignaciones_controlador == 0:
             result.warnings.append(
@@ -380,6 +493,7 @@ def importar_roster_desde_csv(
     anio: int,
     mes: int,
     strict: bool = True,
+    code_config: RosterCodeConfig | None = None,
 ) -> RosterImportResult:
     if isinstance(csv_input, Path):
         csv_text = csv_input.read_text(encoding="utf-8-sig")
@@ -399,6 +513,7 @@ def importar_roster_desde_csv(
         mes=mes,
         strict=strict,
         source_type="CSV_SIMPLE",
+        code_config=code_config,
     )
 
 

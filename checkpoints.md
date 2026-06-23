@@ -14046,3 +14046,338 @@ Regla final:
 ```text
 El rol describe la funcion; el perfil operativo determina si y donde puede operar.
 ```
+## checkpoint-v90-configuracion-codigos-roster-importacion
+Fecha: 2026-06-22
+
+---
+
+### Estado general
+
+Se implemento la configuracion minima de codigos de roster para importacion.
+
+El importador ya no depende solamente de listas hardcodeadas simples para decidir si un codigo genera asignacion operativa, evento no operativo, advertencia o error.
+
+La importacion sigue siendo una capa de normalizacion y clasificacion de datos reales.
+
+No evalua swaps.
+
+No decide workflow.
+
+No crea requests.
+
+No aplica swaps.
+
+No toca engine, simulator, scoring ni swap_service.
+
+Suite completa en verde.
+
+---
+
+### Objetivo
+
+Centralizar la clasificacion de codigos de roster usados durante la importacion.
+
+Separar tres decisiones:
+
+```text
+1. normalizacion de codigo
+2. clasificacion de codigo
+3. decision de importacion sobre ese codigo
+```
+
+---
+
+### Archivos modificados
+
+Se modificaron:
+
+- `src/roster_import_service.py`
+- `tests/test_roster_import_service.py`
+
+No se agregaron archivos nuevos.
+
+---
+
+### Estructura de configuracion agregada
+
+Se agrego una configuracion Python simple y testeable para ACC actual.
+
+Conceptos agregados:
+
+- `RosterCodeCategory`
+- `RosterCodeConfig`
+- `obtener_config_acc_default`
+- `normalizar_codigo_roster`
+- `clasificar_codigo_roster`
+
+---
+
+### Categorias implementadas
+
+Se implementaron categorias de codigo:
+
+```text
+OPERATIVO_ACTIVO
+OPERATIVO_CONFIGURABLE
+NO_OPERATIVO
+FUERA_DE_ALCANCE
+DESCONOCIDO
+```
+
+---
+
+### Configuracion ACC default
+
+Para ACC actual, la configuracion default queda:
+
+#### OPERATIVO_ACTIVO
+
+```text
+A
+B
+C
+```
+
+Estos codigos generan `Asignacion` operativa.
+
+#### OPERATIVO_CONFIGURABLE
+
+```text
+D
+X
+```
+
+Estos codigos no generan `Asignacion` por defecto.
+
+Si aparecen sin activacion local, generan issue segun politica `strict`.
+
+#### NO_OPERATIVO
+
+```text
+LA
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+CIPE
+EN
+CO
+TW
+OF
+```
+
+Estos codigos generan `EventoNoOperativoImportado`.
+
+No generan `Asignacion`.
+
+No entran al motor tecnico.
+
+#### NORMALIZABLE
+
+```text
+IN  -> EN
+REM -> RTA
+RET -> RTB
+```
+
+La importacion conserva el valor original en `raw_value`.
+
+El codigo normalizado queda en `evento.codigo`.
+
+#### FUERA_DE_ALCANCE
+
+```text
+AE
+AEC
+```
+
+Estos codigos se clasifican como fuera de alcance para ACC actual.
+
+No generan `Asignacion`.
+
+Con `strict=True`, generan error.
+
+---
+
+### Comportamiento implementado
+
+#### A/B/C
+
+- se clasifican como `OPERATIVO_ACTIVO`
+- generan `Asignacion`
+- no generan evento no operativo
+
+#### LA/PSI/RTA/RTB/etc.
+
+- se clasifican como `NO_OPERATIVO`
+- generan `EventoNoOperativoImportado`
+- no generan `Asignacion`
+- generan warning `CODIGO_NO_OPERATIVO_IGNORADO`
+
+#### IN
+
+- se normaliza a `EN`
+- se clasifica como `NO_OPERATIVO`
+- genera evento no operativo con `codigo="EN"`
+- conserva `raw_value="IN"`
+- genera warning `CODIGO_NORMALIZADO`
+
+#### REM
+
+- se normaliza a `RTA`
+- se clasifica como `NO_OPERATIVO`
+- genera evento no operativo con `codigo="RTA"`
+- conserva `raw_value="REM"`
+- genera warning `CODIGO_NORMALIZADO`
+
+#### RET
+
+- se normaliza a `RTB`
+- se clasifica como `NO_OPERATIVO`
+- genera evento no operativo con `codigo="RTB"`
+- conserva `raw_value="RET"`
+- genera warning `CODIGO_NORMALIZADO`
+
+#### D/X
+
+- se clasifican como `OPERATIVO_CONFIGURABLE`
+- no generan `Asignacion`
+- no se activan por defecto
+- generan `CODIGO_OPERATIVO_CONFIGURABLE_NO_ACTIVO`
+- respetan `strict=True/False`
+
+#### AE/AEC
+
+- se clasifican como `FUERA_DE_ALCANCE`
+- no generan `Asignacion`
+- generan `CODIGO_FUERA_DE_ALCANCE`
+- con `strict=True` generan error
+
+#### Codigo desconocido
+
+- se clasifica como `DESCONOCIDO`
+- no genera `Asignacion`
+- con `strict=True` genera error `CODIGO_DESCONOCIDO`
+- con `strict=False` genera warning `CODIGO_DESCONOCIDO`
+
+---
+
+### Compatibilidad mantenida
+
+Se mantiene el comportamiento anterior para:
+
+- A/B/C
+- LA/PSI/RTA/RTB
+- celdas vacias
+- codigo desconocido con `strict=True`
+- codigo desconocido con `strict=False`
+- metadata de importacion
+- eventos no operativos
+- warnings/errors existentes
+- no persistencia automatica al importar
+- creacion explicita de `RosterVersion`
+
+---
+
+### Tests agregados/reforzados
+
+En `tests/test_roster_import_service.py` se agregaron/reforzaron casos para:
+
+- `IN -> EN`
+- `REM -> RTA`
+- `RET -> RTB`
+- `D` operativo configurable no activo
+- `X` operativo configurable no activo
+- `AE` fuera de alcance
+- `AEC` fuera de alcance
+- clasificacion mediante configuracion ACC default
+- normalizacion mediante configuracion ACC default
+
+Tests existentes siguen cubriendo:
+
+- A/B/C generan asignaciones
+- LA/PSI/RTA/RTB generan eventos no operativos
+- celda vacia no genera asignacion
+- codigo desconocido strict true/false
+- importador no persiste automaticamente
+- importador no llama simulator
+- importador no crea requests
+- importador no aplica swaps
+- codigos no operativos quedan fuera del motor tecnico
+
+---
+
+### Restricciones respetadas
+
+No se implemento:
+
+- perfil operativo de persona
+- `PersonaProfile`
+- CMA
+- override administrativo
+- habilitaciones RADAR/TMA
+- filtro TMA
+- compatibilidad por puesto
+- perfil de dependencia persistido
+- soporte real para AE/AEC
+- activacion real de D/X salvo por config simple de prueba
+- UI
+- API
+- roles
+- permisos
+- workflow bilateral
+- locks
+- cambios en engine
+- cambios en simulator
+- cambios en scoring
+- cambios en swap_service
+- cambios en candidate_generation
+- cambios en technical_prefilter
+
+---
+
+### Resultados pytest
+
+Prueba focalizada:
+
+```text
+python -m pytest tests/test_roster_import_service.py -q
+26 passed in 0.12s
+```
+
+Pruebas core relacionadas:
+
+```text
+python -m pytest tests/test_swap_service.py -q
+29 passed in 1.14s
+
+python -m pytest tests/test_roster_store.py -q
+9 passed in 0.34s
+```
+
+Suite completa:
+
+```text
+python -m pytest -q
+393 passed in 6.41s
+```
+
+---
+
+### Decision arquitectonica
+
+La configuracion de codigos queda por ahora dentro de `roster_import_service.py`.
+
+No se crea todavia `roster_code_config.py` para evitar proliferacion prematura de archivos.
+
+Esta decision puede revisarse cuando aparezcan multiples dependencias, multiples perfiles de importacion o configuracion persistida.
+
+---
+
+### Estado final
+
+v90 deja al importador preparado para trabajar con catalogo minimo de codigos por contexto ACC actual, sin contaminar el motor tecnico ni el workflow formal.
+
+---

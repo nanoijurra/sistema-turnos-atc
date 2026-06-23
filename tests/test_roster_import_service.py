@@ -322,3 +322,140 @@ def test_crea_roster_version_si_no_hay_errores() -> None:
     assert len(roster.asignaciones) == len(result.asignaciones_operativas)
     assert result.roster_version == roster
     assert obtener_roster_vigente() == roster
+
+def test_codigo_in_se_normaliza_a_en_y_queda_no_operativo() -> None:
+    from src.roster_import_service import importar_roster_desde_matriz
+
+    matriz = [
+        ["controlador", "01"],
+        ["CONTROLADOR A", "IN"],
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6)
+
+    assert not result.errors
+    assert result.asignaciones_operativas == []
+    assert len(result.eventos_no_operativos) == 1
+    assert result.eventos_no_operativos[0].codigo == "EN"
+    assert result.eventos_no_operativos[0].raw_value == "IN"
+    assert any(warning.code == "CODIGO_NORMALIZADO" for warning in result.warnings)
+
+
+def test_codigo_rem_se_normaliza_a_rta_y_queda_no_operativo() -> None:
+    from src.roster_import_service import importar_roster_desde_matriz
+
+    matriz = [
+        ["controlador", "01"],
+        ["CONTROLADOR A", "REM"],
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6)
+
+    assert not result.errors
+    assert result.asignaciones_operativas == []
+    assert len(result.eventos_no_operativos) == 1
+    assert result.eventos_no_operativos[0].codigo == "RTA"
+    assert result.eventos_no_operativos[0].raw_value == "REM"
+    assert any(warning.code == "CODIGO_NORMALIZADO" for warning in result.warnings)
+
+
+def test_codigo_ret_se_normaliza_a_rtb_y_queda_no_operativo() -> None:
+    from src.roster_import_service import importar_roster_desde_matriz
+
+    matriz = [
+        ["controlador", "01"],
+        ["CONTROLADOR A", "RET"],
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6)
+
+    assert not result.errors
+    assert result.asignaciones_operativas == []
+    assert len(result.eventos_no_operativos) == 1
+    assert result.eventos_no_operativos[0].codigo == "RTB"
+    assert result.eventos_no_operativos[0].raw_value == "RET"
+    assert any(warning.code == "CODIGO_NORMALIZADO" for warning in result.warnings)
+
+
+def test_codigo_d_no_activado_no_genera_asignacion_y_error_strict_true() -> None:
+    from src.roster_import_service import importar_roster_desde_matriz
+
+    matriz = [
+        ["controlador", "01"],
+        ["CONTROLADOR A", "D"],
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6, strict=True)
+
+    assert result.asignaciones_operativas == []
+    assert any(
+        error.code == "CODIGO_OPERATIVO_CONFIGURABLE_NO_ACTIVO"
+        for error in result.errors
+    )
+
+
+def test_codigo_x_no_activado_no_genera_asignacion_y_warning_strict_false() -> None:
+    from src.roster_import_service import importar_roster_desde_matriz
+
+    matriz = [
+        ["controlador", "01"],
+        ["CONTROLADOR A", "X"],
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6, strict=False)
+
+    assert not result.errors
+    assert result.asignaciones_operativas == []
+    assert any(
+        warning.code == "CODIGO_OPERATIVO_CONFIGURABLE_NO_ACTIVO"
+        for warning in result.warnings
+    )
+
+
+def test_codigo_ae_fuera_de_alcance_error_strict_true() -> None:
+    from src.roster_import_service import importar_roster_desde_matriz
+
+    matriz = [
+        ["controlador", "01"],
+        ["CONTROLADOR A", "AE"],
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6, strict=True)
+
+    assert result.asignaciones_operativas == []
+    assert any(error.code == "CODIGO_FUERA_DE_ALCANCE" for error in result.errors)
+
+
+def test_codigo_aec_fuera_de_alcance_error_strict_true() -> None:
+    from src.roster_import_service import importar_roster_desde_matriz
+
+    matriz = [
+        ["controlador", "01"],
+        ["CONTROLADOR A", "AEC"],
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6, strict=True)
+
+    assert result.asignaciones_operativas == []
+    assert any(error.code == "CODIGO_FUERA_DE_ALCANCE" for error in result.errors)
+
+
+def test_clasificar_codigo_roster_usa_configuracion_acc_default() -> None:
+    from src.roster_import_service import (
+        RosterCodeCategory,
+        clasificar_codigo_roster,
+        normalizar_codigo_roster,
+        obtener_config_acc_default,
+    )
+
+    config = obtener_config_acc_default()
+
+    assert clasificar_codigo_roster("A", config) == RosterCodeCategory.OPERATIVO_ACTIVO
+    assert (
+        clasificar_codigo_roster("D", config)
+        == RosterCodeCategory.OPERATIVO_CONFIGURABLE
+    )
+    assert clasificar_codigo_roster("LA", config) == RosterCodeCategory.NO_OPERATIVO
+    assert clasificar_codigo_roster("AE", config) == RosterCodeCategory.FUERA_DE_ALCANCE
+    assert clasificar_codigo_roster("XYZ", config) == RosterCodeCategory.DESCONOCIDO
+    assert normalizar_codigo_roster("IN", config) == ("EN", True)
