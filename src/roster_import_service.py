@@ -41,6 +41,8 @@ def obtener_config_acc_default() -> RosterCodeConfig:
         operativos_activos={"A", "B", "C"},
         operativos_configurables={"D", "X"},
         no_operativos={
+            "ACA",
+            "ASA",
             "CAM",
             "CIPE",
             "CO",
@@ -61,6 +63,7 @@ def obtener_config_acc_default() -> RosterCodeConfig:
             "OF",
             "OJT",
             "PSI",
+            "RT",
             "RTA",
             "RTB",
             "SIM",

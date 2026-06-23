@@ -14655,3 +14655,345 @@ Se agrego test para validar que:
 
 ```text
 LD es no operativo en configuracion ACC default
+```
+--- 
+
+## checkpoint-v93-catalogo-documental-codigos-roster
+Fecha: 2026-06-22
+
+---
+
+### Estado general
+
+Se implemento el catalogo documental inicial de codigos de roster.
+
+El catalogo separa el significado documental de cada codigo de la configuracion tecnica de importacion.
+
+La importacion mantiene su comportamiento controlado:
+
+- solo A/B/C generan asignacion operativa en ACC actual
+- D/X quedan como operativos configurables no activos
+- AE/AEC quedan fuera de alcance para ACC actual
+- codigos no operativos generan eventos no operativos
+- codigos normalizables se conservan con su raw_value y normalizan al codigo vigente
+
+Suite completa en verde.
+
+---
+
+### Archivos agregados
+
+Se agrego:
+
+- `src/roster_code_catalog.py`
+- `tests/test_roster_code_catalog.py`
+
+---
+
+### Archivos modificados
+
+Se modifico:
+
+- `src/roster_import_service.py`
+- `tests/test_roster_import_service.py`
+- `checkpoints.md`
+
+---
+
+### Conceptos agregados
+
+En `src/roster_code_catalog.py` se agregaron:
+
+- `RosterCodeDocumentCategory`
+- `RosterCodeImportCategory`
+- `RosterCodeDefinition`
+- `obtener_catalogo_codigos_acc_default`
+- `obtener_definicion_codigo_roster`
+- `listar_codigos_por_categoria_importacion`
+- `listar_codigos_elegibles_swap_acc_actual`
+
+---
+
+### Categorias documentales
+
+Se definieron categorias documentales:
+
+```text
+TURNO_BLOQUE_HORARIO
+INSTRUCCION_CAPACITACION
+LICENCIA_AUSENCIA_ADMINISTRATIVA
+OTRO
+LOCAL_ACC
+LEGACY
+```
+
+---
+
+### Categorias de importacion
+
+Se definieron categorias de importacion:
+
+```text
+OPERATIVO_ACTIVO
+OPERATIVO_CONFIGURABLE
+NO_OPERATIVO
+NORMALIZABLE
+FUERA_DE_ALCANCE
+```
+
+---
+
+### Codigos documentados
+
+Se documento el catalogo consolidado:
+
+#### Turnos / bloques horarios
+
+```text
+A   - Turno operativo A / mañana
+B   - Turno operativo B / tarde
+C   - Turno operativo C / noche
+D   - Turno operativo D / trasnoche, esquema 6 h
+X   - Turno intermedio / refuerzo
+OF  - Oficina / gestion
+AE  - Apertura o extension asignada
+AEC - Apertura o extension cumplimentada
+```
+
+#### Instruccion / capacitacion
+
+```text
+OJT  - Instruccion OJT
+SIM  - Instruccion en simulador
+CAM  - Instruccion / capacitacion en Campus
+CIPE - Curso o comision en CIPE
+RT   - Recurrente teorico
+EN   - Ingles
+```
+
+#### Licencias / ausencias / medidas administrativas
+
+```text
+LA  - Licencia anual
+LC  - Licencia COVID
+LN  - Licencia nacimiento
+LF  - Familiar enfermo
+LL  - Fallecimiento
+LM  - Matrimonio
+LX  - Examen
+LE  - Extraordinaria
+LD  - Licencia medica
+LU  - Mudanza
+LR  - ART
+LP  - Preventiva
+ACA - Ausente con aviso
+ASA - Ausente sin aviso
+LG  - Licencia gremial
+SUS - Suspension
+```
+
+#### Otros
+
+```text
+TW - Taller / Workshop
+CO - Comision
+```
+
+#### Codigos locales / ACC Cordoba
+
+```text
+RTA - Recurrente teorico asociado al turno A / mañana
+RTB - Recurrente teorico asociado al turno B / tarde
+IN  - Ingles / English, normalizable a EN
+PSI - Psicofisico / turno medico para psicofisico
+```
+
+#### Legacy / historicos
+
+```text
+REM - Recurrente mañana del esquema viejo M/T/N, normalizable a RTA
+RET - Recurrente tarde del esquema viejo M/T/N, normalizable a RTB
+```
+
+---
+
+### Elegibles para swaps ACC actual
+
+El catalogo define como elegibles para swaps ACC actual:
+
+```text
+A
+B
+C
+```
+
+Estos codigos:
+
+- generan `Asignacion`
+- entran al motor tecnico
+- son elegibles para swap ACC actual
+
+---
+
+### Soporte normativo futuro
+
+El catalogo define como operativos configurables:
+
+```text
+D
+X
+```
+
+Estos codigos:
+
+- no generan `Asignacion` por defecto
+- no entran al motor tecnico por defecto
+- no son elegibles para swap ACC actual
+- quedan disponibles para activacion futura por configuracion
+
+---
+
+### Fuera de alcance ACC actual
+
+El catalogo define como fuera de alcance:
+
+```text
+AE
+AEC
+```
+
+Estos codigos:
+
+- no generan `Asignacion`
+- no entran al motor tecnico
+- no son elegibles para swap ACC actual
+- no se activan en esta etapa
+
+---
+
+### Normalizaciones documentadas
+
+El catalogo documenta:
+
+```text
+IN  -> EN
+REM -> RTA
+RET -> RTB
+```
+
+---
+
+### Sincronizacion con importador
+
+Se sincronizo la configuracion ACC default del importador con el catalogo documental para:
+
+```text
+RT
+ACA
+ASA
+```
+
+Estos codigos quedaron como `NO_OPERATIVO` en importacion.
+
+---
+
+### Tests agregados
+
+Se agrego `tests/test_roster_code_catalog.py`.
+
+Cobertura principal:
+
+- catalogo contiene todos los codigos consolidados
+- A/B/C son elegibles para swaps ACC actual
+- D/X son operativos configurables no activos
+- codigos no operativos consolidados no generan asignacion ni entran al motor
+- IN/REM/RET son normalizables
+- AE/AEC son fuera de alcance
+- busqueda de definicion normaliza entrada
+- codigo desconocido devuelve `None`
+- listado de elegibles ACC actual devuelve `A/B/C`
+- listado por categoria funciona
+- catalogo y configuracion de importacion ACC default estan alineados
+
+Tambien se reforzo `tests/test_roster_import_service.py` para validar:
+
+```text
+RT
+ACA
+ASA
+```
+
+como codigos no operativos de importacion.
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+- engine
+- simulator
+- scoring
+- swap_service
+- candidate_generation
+- technical_prefilter
+- workflow formal
+- roles
+- permisos
+- locks
+- UI
+- API
+- perfil operativo de persona
+- compatibilidad TMA/RADAR
+
+No se implemento logica especial por tipo de licencia.
+
+No se activo D/X.
+
+No se dio soporte funcional a AE/AEC.
+
+---
+
+### Resultado pytest
+
+Pruebas focalizadas:
+
+```text
+python -m pytest tests/test_roster_code_catalog.py -q
+```
+
+Resultado:
+
+```text
+11 passed
+```
+
+Suite completa:
+
+```text
+python -m pytest -q
+```
+
+Resultado:
+
+```text
+411 passed
+```
+
+---
+
+### Estado final
+
+v93 consolida el catalogo documental inicial de codigos de roster y lo mantiene alineado con la configuracion de importacion ACC actual.
+
+La arquitectura queda separada:
+
+```text
+catalogo documental
+-> significado / fuente / categoria / decision conceptual
+
+roster_import_service
+-> normalizacion / clasificacion tecnica / importacion
+```
+
+---
