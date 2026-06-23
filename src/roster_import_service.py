@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import calendar
 import csv
+from collections import Counter
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import date
@@ -133,6 +134,22 @@ class RosterImportResult:
     @property
     def tiene_errores(self) -> bool:
         return bool(self.errors)
+
+@dataclass(frozen=True)
+class RosterImportSummary:
+    total_controladores: int
+    total_asignaciones_operativas: int
+    total_eventos_no_operativos: int
+    total_warnings: int
+    total_errors: int
+    codigos_operativos: dict[str, int]
+    codigos_eventos_no_operativos: dict[str, int]
+    codigos_normalizados: dict[str, int]
+    warnings_por_tipo: dict[str, int]
+    errors_por_tipo: dict[str, int]
+    codigos_con_warning: dict[str, int]
+    codigos_con_error: dict[str, int]
+    puede_crear_roster_version: bool    
 
 
 def _normalizar_codigo(raw_value: Any) -> str:
@@ -516,6 +533,64 @@ def importar_roster_desde_csv(
         code_config=code_config,
     )
 
+def _contar_issues_por_tipo(issues: list[RosterImportIssue]) -> dict[str, int]:
+    return dict(Counter(issue.code for issue in issues))
+
+
+def _contar_codigos_en_issues(issues: list[RosterImportIssue]) -> dict[str, int]:
+    codigos: Counter[str] = Counter()
+
+    for issue in issues:
+        if not issue.code.startswith("CODIGO_"):
+            continue
+
+        codigo = _normalizar_codigo(issue.raw_value)
+        if codigo:
+            codigos[codigo] += 1
+
+    return dict(codigos)
+
+
+def generar_resumen_importacion(
+    result: RosterImportResult,
+) -> RosterImportSummary:
+    codigos_operativos = Counter(
+        asignacion.turno.codigo
+        for asignacion in result.asignaciones_operativas
+    )
+
+    codigos_eventos_no_operativos = Counter(
+        evento.codigo
+        for evento in result.eventos_no_operativos
+    )
+
+    codigos_normalizados: Counter[str] = Counter()
+    for evento in result.eventos_no_operativos:
+        raw_codigo = _normalizar_codigo(evento.raw_value)
+        if raw_codigo and raw_codigo != evento.codigo:
+            codigos_normalizados[f"{raw_codigo}->{evento.codigo}"] += 1
+
+    total_controladores = (
+        result.metadata.total_controladores
+        if result.metadata is not None
+        else 0
+    )
+
+    return RosterImportSummary(
+        total_controladores=total_controladores,
+        total_asignaciones_operativas=len(result.asignaciones_operativas),
+        total_eventos_no_operativos=len(result.eventos_no_operativos),
+        total_warnings=len(result.warnings),
+        total_errors=len(result.errors),
+        codigos_operativos=dict(codigos_operativos),
+        codigos_eventos_no_operativos=dict(codigos_eventos_no_operativos),
+        codigos_normalizados=dict(codigos_normalizados),
+        warnings_por_tipo=_contar_issues_por_tipo(result.warnings),
+        errors_por_tipo=_contar_issues_por_tipo(result.errors),
+        codigos_con_warning=_contar_codigos_en_issues(result.warnings),
+        codigos_con_error=_contar_codigos_en_issues(result.errors),
+        puede_crear_roster_version=not result.tiene_errores,
+    )
 
 def crear_roster_version_desde_importacion(
     result: RosterImportResult,

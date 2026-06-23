@@ -14381,3 +14381,228 @@ Esta decision puede revisarse cuando aparezcan multiples dependencias, multiples
 v90 deja al importador preparado para trabajar con catalogo minimo de codigos por contexto ACC actual, sin contaminar el motor tecnico ni el workflow formal.
 
 ---
+
+## checkpoint-v91-reporte-minimo-importacion-roster
+Fecha: 2026-06-22
+
+---
+
+### Estado general
+
+Se implemento un resumen minimo de importacion de roster.
+
+El resumen permite auditar rapidamente que produjo una importacion antes de crear una `RosterVersion`.
+
+La funcion agregada no importa archivos, no persiste datos, no crea requests, no evalua swaps y no decide workflow.
+
+Suite completa en verde.
+
+---
+
+### Objetivo
+
+Agregar una salida resumida y testeable para `RosterImportResult`.
+
+El objetivo es poder ver:
+
+```text
+que entro al motor tecnico
+que quedo afuera
+que se normalizo
+que genero warnings
+que genero errors
+si la importacion puede crear una RosterVersion
+```
+
+---
+
+### Archivos modificados
+
+Se modificaron:
+
+- `src/roster_import_service.py`
+- `tests/test_roster_import_service.py`
+
+No se agregaron archivos nuevos.
+
+---
+
+### Estructura agregada
+
+Se agrego:
+
+- `RosterImportSummary`
+
+Campos principales:
+
+- `total_controladores`
+- `total_asignaciones_operativas`
+- `total_eventos_no_operativos`
+- `total_warnings`
+- `total_errors`
+- `codigos_operativos`
+- `codigos_eventos_no_operativos`
+- `codigos_normalizados`
+- `warnings_por_tipo`
+- `errors_por_tipo`
+- `codigos_con_warning`
+- `codigos_con_error`
+- `puede_crear_roster_version`
+
+---
+
+### Funcion agregada
+
+Se agrego:
+
+```python
+generar_resumen_importacion(result: RosterImportResult) -> RosterImportSummary
+```
+
+Tambien se agregaron helpers internos:
+
+- `_contar_issues_por_tipo`
+- `_contar_codigos_en_issues`
+
+---
+
+### Comportamiento implementado
+
+El resumen cuenta codigos operativos desde:
+
+```text
+result.asignaciones_operativas
+```
+
+El resumen cuenta codigos no operativos desde:
+
+```text
+result.eventos_no_operativos
+```
+
+El resumen detecta normalizaciones comparando:
+
+```text
+evento.raw_value
+evento.codigo
+```
+
+Ejemplos:
+
+```text
+IN->EN
+REM->RTA
+RET->RTB
+```
+
+El resumen cuenta warnings y errors por tipo desde:
+
+```text
+result.warnings
+result.errors
+```
+
+El resumen calcula:
+
+```text
+puede_crear_roster_version = not result.tiene_errores
+```
+
+---
+
+### Casos cubiertos
+
+Se agregaron tests para:
+
+- resumen de importacion limpia con turnos operativos A/B/C
+- resumen con eventos no operativos
+- resumen con normalizaciones IN/REM/RET
+- resumen con D/AE/XYZ en `strict=True`
+- resumen con D/X/XYZ en `strict=False`
+- resumen no llama workflow ni simulacion
+
+---
+
+### Compatibilidad mantenida
+
+Se mantiene el comportamiento previo de:
+
+- importacion desde matriz
+- importacion desde CSV
+- normalizacion de codigos
+- clasificacion por configuracion ACC default
+- eventos no operativos
+- warnings/errors
+- creacion explicita de `RosterVersion`
+- no persistencia automatica al importar
+
+---
+
+### Restricciones respetadas
+
+No se implemento:
+
+- UI
+- API
+- Excel generico
+- perfil operativo de persona
+- CMA
+- habilitaciones
+- filtro TMA
+- workflow bilateral
+- roles
+- permisos
+- locks
+- cambios en engine
+- cambios en simulator
+- cambios en scoring
+- cambios en swap_service
+- cambios en candidate_generation
+- cambios en technical_prefilter
+
+---
+
+### Resultado pytest
+
+Prueba focalizada:
+
+```text
+python -m pytest tests/test_roster_import_service.py -q
+```
+
+Resultado:
+
+```text
+31 passed
+```
+
+Suite completa:
+
+```text
+python -m pytest -q
+```
+
+Resultado:
+
+```text
+398 passed
+```
+
+---
+
+### Estado final
+
+v91 deja disponible una capa de auditoria minima para importaciones de roster real.
+
+La importacion queda ahora dividida conceptualmente en:
+
+```text
+CSV / matriz
+-> normalizacion
+-> clasificacion de codigos
+-> asignaciones/eventos/issues
+-> resumen auditable
+-> creacion explicita opcional de RosterVersion
+```
+
+---

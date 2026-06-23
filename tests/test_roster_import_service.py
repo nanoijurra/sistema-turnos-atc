@@ -459,3 +459,133 @@ def test_clasificar_codigo_roster_usa_configuracion_acc_default() -> None:
     assert clasificar_codigo_roster("AE", config) == RosterCodeCategory.FUERA_DE_ALCANCE
     assert clasificar_codigo_roster("XYZ", config) == RosterCodeCategory.DESCONOCIDO
     assert normalizar_codigo_roster("IN", config) == ("EN", True)
+
+def test_resumen_importacion_limpia_con_turnos_operativos() -> None:
+    from src.roster_import_service import (
+        generar_resumen_importacion,
+        importar_roster_desde_matriz,
+    )
+
+    result = importar_roster_desde_matriz(_matriz_base(), anio=2026, mes=6)
+
+    resumen = generar_resumen_importacion(result)
+
+    assert resumen.total_controladores == 2
+    assert resumen.total_asignaciones_operativas == 5
+    assert resumen.total_eventos_no_operativos == 0
+    assert resumen.total_errors == 0
+    assert resumen.codigos_operativos == {"A": 2, "B": 1, "C": 2}
+    assert resumen.codigos_eventos_no_operativos == {}
+    assert resumen.codigos_normalizados == {}
+    assert resumen.puede_crear_roster_version is True
+
+
+def test_resumen_importacion_con_no_operativos_y_normalizaciones() -> None:
+    from src.roster_import_service import (
+        generar_resumen_importacion,
+        importar_roster_desde_matriz,
+    )
+
+    matriz = [
+        ["controlador", "01", "02", "03", "04", "05"],
+        ["CONTROLADOR A", "A", "IN", "REM", "RET", "LA"],
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6)
+
+    resumen = generar_resumen_importacion(result)
+
+    assert not result.errors
+    assert resumen.total_asignaciones_operativas == 1
+    assert resumen.total_eventos_no_operativos == 4
+    assert resumen.codigos_operativos == {"A": 1}
+    assert resumen.codigos_eventos_no_operativos == {
+        "EN": 1,
+        "RTA": 1,
+        "RTB": 1,
+        "LA": 1,
+    }
+    assert resumen.codigos_normalizados == {
+        "IN->EN": 1,
+        "REM->RTA": 1,
+        "RET->RTB": 1,
+    }
+    assert resumen.warnings_por_tipo["CODIGO_NORMALIZADO"] == 3
+    assert resumen.warnings_por_tipo["CODIGO_NO_OPERATIVO_IGNORADO"] == 4
+    assert resumen.puede_crear_roster_version is True
+
+
+def test_resumen_importacion_con_errores_de_codigos_strict_true() -> None:
+    from src.roster_import_service import (
+        generar_resumen_importacion,
+        importar_roster_desde_matriz,
+    )
+
+    matriz = [
+        ["controlador", "01", "02", "03"],
+        ["CONTROLADOR A", "D", "AE", "XYZ"],
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6, strict=True)
+
+    resumen = generar_resumen_importacion(result)
+
+    assert resumen.total_asignaciones_operativas == 0
+    assert resumen.total_eventos_no_operativos == 0
+    assert resumen.total_errors == 3
+    assert resumen.errors_por_tipo == {
+        "CODIGO_OPERATIVO_CONFIGURABLE_NO_ACTIVO": 1,
+        "CODIGO_FUERA_DE_ALCANCE": 1,
+        "CODIGO_DESCONOCIDO": 1,
+    }
+    assert resumen.codigos_con_error == {
+        "D": 1,
+        "AE": 1,
+        "XYZ": 1,
+    }
+    assert resumen.puede_crear_roster_version is False
+
+
+def test_resumen_importacion_con_warnings_de_codigos_strict_false() -> None:
+    from src.roster_import_service import (
+        generar_resumen_importacion,
+        importar_roster_desde_matriz,
+    )
+
+    matriz = [
+        ["controlador", "01", "02", "03"],
+        ["CONTROLADOR A", "D", "X", "XYZ"],
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6, strict=False)
+
+    resumen = generar_resumen_importacion(result)
+
+    assert not result.errors
+    assert resumen.total_asignaciones_operativas == 0
+    assert resumen.total_eventos_no_operativos == 0
+    assert resumen.warnings_por_tipo["CODIGO_OPERATIVO_CONFIGURABLE_NO_ACTIVO"] == 2
+    assert resumen.warnings_por_tipo["CODIGO_DESCONOCIDO"] == 1
+    assert resumen.codigos_con_warning == {
+        "D": 1,
+        "X": 1,
+        "XYZ": 1,
+    }
+    assert resumen.puede_crear_roster_version is True
+
+
+def test_resumen_importacion_no_llama_workflow_ni_simulacion(monkeypatch) -> None:
+    import src.roster_import_service as modulo
+
+    def prohibido(*args, **kwargs) -> None:
+        raise AssertionError("El resumen de importacion no debe ejecutar workflow.")
+
+    monkeypatch.setattr(modulo, "evaluar_swap", prohibido, raising=False)
+    monkeypatch.setattr(modulo, "crear_swap_request", prohibido, raising=False)
+    monkeypatch.setattr(modulo, "aplicar_swap_request", prohibido, raising=False)
+
+    result = modulo.importar_roster_desde_matriz(_matriz_base(), anio=2026, mes=6)
+    resumen = modulo.generar_resumen_importacion(result)
+
+    assert resumen.total_asignaciones_operativas == 5
+    assert resumen.puede_crear_roster_version is True
