@@ -14606,3 +14606,52 @@ CSV / matriz
 ```
 
 ---
+
+## checkpoint-v92-ld-no-operativo-smoke-importacion-real
+Fecha: 2026-06-22
+
+---
+
+### Estado general
+
+Se incorporo `LD` como codigo no operativo para la configuracion ACC default.
+
+`LD` queda definido operativamente como Licencia Medica, segun documento madre PR GOPE 044, pagina 5.
+
+Se valido el importador con un CSV real acotado.
+
+La importacion con `strict=True` quedo sin errores.
+
+Se creo una `RosterVersion` explicita desde la importacion real.
+
+---
+
+### Archivos modificados
+
+Se modificaron:
+
+- `src/roster_import_service.py`
+- `tests/test_roster_import_service.py`
+
+---
+
+### Cambio implementado
+
+Se agrego `LD` al conjunto de codigos `NO_OPERATIVO` de la configuracion ACC default.
+
+`LD`:
+
+- no genera `Asignacion`
+- genera `EventoNoOperativoImportado`
+- queda fuera del motor tecnico
+- no bloquea importacion con `strict=True`
+- se conserva como `raw_value` cuando aparece en el CSV
+
+---
+
+### Test agregado
+
+Se agrego test para validar que:
+
+```text
+LD es no operativo en configuracion ACC default

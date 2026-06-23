@@ -589,3 +589,63 @@ def test_resumen_importacion_no_llama_workflow_ni_simulacion(monkeypatch) -> Non
 
     assert resumen.total_asignaciones_operativas == 5
     assert resumen.puede_crear_roster_version is True
+
+def test_codigo_ld_es_no_operativo_en_configuracion_acc_default() -> None:
+    from src.roster_import_service import importar_roster_desde_matriz
+
+    matriz = [
+        ["controlador", "01"],
+        ["CONTROLADOR A", "LD"],
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6)
+
+    assert not result.errors
+    assert result.asignaciones_operativas == []
+    assert len(result.eventos_no_operativos) == 1
+    assert result.eventos_no_operativos[0].codigo == "LD"
+    assert result.eventos_no_operativos[0].raw_value == "LD"
+    assert any(
+        warning.code == "CODIGO_NO_OPERATIVO_IGNORADO"
+        for warning in result.warnings
+    )    
+def test_codigos_adicionales_de_licencia_y_suspension_son_no_operativos() -> None:
+    from src.roster_import_service import importar_roster_desde_matriz
+
+    codigos = [
+        "LC",
+        "LN",
+        "LF",
+        "LL",
+        "LM",
+        "LX",
+        "LE",
+        "LU",
+        "LR",
+        "LP",
+        "LG",
+        "SUS",
+    ]
+
+    encabezado = ["controlador"] + [
+        str(indice).zfill(2)
+        for indice in range(1, len(codigos) + 1)
+    ]
+    matriz = [
+        encabezado,
+        ["CONTROLADOR A"] + codigos,
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6)
+
+    assert not result.errors
+    assert result.asignaciones_operativas == []
+    assert len(result.eventos_no_operativos) == len(codigos)
+    assert {
+        evento.codigo
+        for evento in result.eventos_no_operativos
+    } == set(codigos)
+    assert all(
+        evento.raw_value in codigos
+        for evento in result.eventos_no_operativos
+    )    
