@@ -17,7 +17,7 @@ from src.models import (
     RosterVersion,
     crear_esquema_8h,
 )
-
+from src.roster_day_timeline import RosterDayStatus, RosterDiaImportado
 
 class RosterCodeCategory(str, Enum):
     OPERATIVO_ACTIVO = "OPERATIVO_ACTIVO"
@@ -142,6 +142,7 @@ class ImportMetadata:
 class RosterImportResult:
     asignaciones_operativas: list[Asignacion] = field(default_factory=list)
     eventos_no_operativos: list[EventoNoOperativoImportado] = field(default_factory=list)
+    dias_importados: list[RosterDiaImportado] = field(default_factory=list)
     warnings: list[RosterImportIssue] = field(default_factory=list)
     errors: list[RosterImportIssue] = field(default_factory=list)
     metadata: ImportMetadata | None = None
@@ -173,6 +174,27 @@ def _normalizar_codigo(raw_value: Any) -> str:
         return ""
 
     return str(raw_value).strip().upper()
+
+def _registrar_dia_importado(
+    result: RosterImportResult,
+    *,
+    controlador: str,
+    fecha: date,
+    estado: RosterDayStatus,
+    raw_value: Any,
+    codigo: str | None = None,
+    codigo_normalizado: str | None = None,
+) -> None:
+    result.dias_importados.append(
+        RosterDiaImportado(
+            controlador=controlador,
+            fecha=fecha,
+            estado=estado,
+            raw_value=str(raw_value) if raw_value is not None else "",
+            codigo=codigo,
+            codigo_normalizado=codigo_normalizado,
+        )
+    )
 
 
 def _normalizar_nombre_controlador(raw_value: Any) -> tuple[str, bool]:
@@ -382,11 +404,17 @@ def importar_roster_desde_matriz(
         for column, dia in dias_por_columna.items():
             raw_value = fila[column - 1] if column - 1 < len(fila) else ""
             codigo = _normalizar_codigo(raw_value)
+            fecha = date(anio, mes, dia)
 
             if codigo == "":
+                _registrar_dia_importado(
+                    result,
+                    controlador=controlador,
+                    fecha=fecha,
+                    estado=RosterDayStatus.LIBRE,
+                    raw_value=raw_value,
+                )
                 continue
-
-            fecha = date(anio, mes, dia)
 
             codigo_normalizado, fue_normalizado = normalizar_codigo_roster(
                 codigo,
@@ -412,6 +440,15 @@ def importar_roster_desde_matriz(
                 )
 
             if categoria == RosterCodeCategory.OPERATIVO_ACTIVO:
+                _registrar_dia_importado(
+                    result,
+                    controlador=controlador,
+                    fecha=fecha,
+                    estado=RosterDayStatus.OPERATIVO,
+                    raw_value=raw_value,
+                    codigo=codigo,
+                    codigo_normalizado=codigo_normalizado,
+                )
                 turno = esquema.obtener_turno(codigo_normalizado)
                 result.asignaciones_operativas.append(
                     Asignacion(
@@ -424,6 +461,15 @@ def importar_roster_desde_matriz(
                 continue
 
             if categoria == RosterCodeCategory.NO_OPERATIVO:
+                _registrar_dia_importado(
+                    result,
+                    controlador=controlador,
+                    fecha=fecha,
+                    estado=RosterDayStatus.NO_OPERATIVO_DOCUMENTADO,
+                    raw_value=raw_value,
+                    codigo=codigo,
+                    codigo_normalizado=codigo_normalizado,
+                )
                 result.eventos_no_operativos.append(
                     EventoNoOperativoImportado(
                         controlador=controlador,
@@ -451,6 +497,15 @@ def importar_roster_desde_matriz(
                 continue
 
             if categoria == RosterCodeCategory.OPERATIVO_CONFIGURABLE:
+                _registrar_dia_importado(
+                    result,
+                    controlador=controlador,
+                    fecha=fecha,
+                    estado=RosterDayStatus.OPERATIVO_CONFIGURABLE_NO_ACTIVO,
+                    raw_value=raw_value,
+                    codigo=codigo,
+                    codigo_normalizado=codigo_normalizado,
+                )
                 issue = _crear_issue(
                     code="CODIGO_OPERATIVO_CONFIGURABLE_NO_ACTIVO",
                     message=(
@@ -465,6 +520,15 @@ def importar_roster_desde_matriz(
                     raw_value=str(raw_value),
                 )
             elif categoria == RosterCodeCategory.FUERA_DE_ALCANCE:
+                _registrar_dia_importado(
+                    result,
+                    controlador=controlador,
+                    fecha=fecha,
+                    estado=RosterDayStatus.FUERA_DE_ALCANCE,
+                    raw_value=raw_value,
+                    codigo=codigo,
+                    codigo_normalizado=codigo_normalizado,
+                )                
                 issue = _crear_issue(
                     code="CODIGO_FUERA_DE_ALCANCE",
                     message=(
@@ -479,6 +543,15 @@ def importar_roster_desde_matriz(
                     raw_value=str(raw_value),
                 )
             else:
+                _registrar_dia_importado(
+                    result,
+                    controlador=controlador,
+                    fecha=fecha,
+                    estado=RosterDayStatus.DESCONOCIDO,
+                    raw_value=raw_value,
+                    codigo=codigo,
+                    codigo_normalizado=codigo_normalizado,
+                )                
                 issue = _crear_issue(
                     code="CODIGO_DESCONOCIDO",
                     message=f"Codigo desconocido: {codigo_normalizado}.",

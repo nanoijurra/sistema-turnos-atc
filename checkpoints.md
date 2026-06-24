@@ -15027,3 +15027,298 @@ CSV real acotado ubicado localmente en:
 
 ```text
 data/imports/csv_ok.csv
+```
+
+---
+
+## checkpoint-v95-timeline-diaria-importada
+
+Fecha: 2026-06-23
+
+---
+
+### Estado general
+
+Se implemento una timeline diaria importada por controlador.
+
+El objetivo fue separar correctamente:
+
+* dia operativo
+* dia libre por celda vacia
+* dia no operativo documentado
+* codigo operativo configurable no activo
+* codigo fuera de alcance
+* codigo desconocido
+
+Esta estructura permite dejar de razonar solamente sobre `asignaciones_operativas`, ya que esa lista pierde los dias vacios y los eventos no operativos.
+
+---
+
+### Problema detectado antes de v95
+
+El diagnostico del CSV real importado habia mostrado:
+
+```text
+32 hard
+5 Secuencia
+27 Noches consecutivas
+```
+
+Luego se verifico que esas violaciones eran falsos positivos generados porque el validador analizaba solamente asignaciones operativas A/B/C.
+
+Ejemplo del problema:
+
+```text
+C 02/06
+C 04/06
+C 05/06
+C 08/06
+```
+
+El validador anterior podia contarlo como una racha continua de noches, aunque existieran cortes calendario.
+
+---
+
+### Archivos agregados
+
+Se agrego:
+
+* `src/roster_day_timeline.py`
+* `tests/test_roster_day_timeline.py`
+
+---
+
+### Archivos modificados
+
+Se modifico:
+
+* `src/roster_import_service.py`
+* `checkpoints.md`
+
+---
+
+### Nuevos conceptos
+
+Se agrego `RosterDayStatus` con estados:
+
+```text
+OPERATIVO
+LIBRE
+NO_OPERATIVO_DOCUMENTADO
+OPERATIVO_CONFIGURABLE_NO_ACTIVO
+FUERA_DE_ALCANCE
+DESCONOCIDO
+```
+
+Se agrego `RosterDiaImportado` con campos:
+
+```text
+controlador
+fecha
+estado
+raw_value
+codigo
+codigo_normalizado
+```
+
+---
+
+### Diferencia conceptual consolidada
+
+#### LIBRE
+
+Representa celda vacia del roster:
+
+```text
+codigo: vacio
+estado: LIBRE
+cuenta como libre: SI
+cuenta como no operativo documentado: NO
+entra al motor tecnico: NO
+```
+
+#### NO_OPERATIVO_DOCUMENTADO
+
+Representa codigos explicitos como:
+
+```text
+LA
+LD
+EN
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+LG
+SUS
+etc.
+```
+
+Comportamiento:
+
+```text
+codigo: explicito
+estado: NO_OPERATIVO_DOCUMENTADO
+cuenta como libre: NO
+entra al motor tecnico: NO
+conserva significado documental: SI
+```
+
+---
+
+### Funciones agregadas
+
+En `src/roster_day_timeline.py`:
+
+```text
+agrupar_timeline_por_controlador
+contar_rachas_por_estado
+contar_rachas_por_codigos_operativos
+obtener_rachas_libres_mayores_a
+obtener_rachas_ab_mayores_a
+obtener_rachas_c_mayores_a
+```
+
+---
+
+### Cambios en importacion
+
+`RosterImportResult` ahora incluye:
+
+```text
+dias_importados
+```
+
+El importador registra un `RosterDiaImportado` por cada celda valida del roster:
+
+```text
+A/B/C -> OPERATIVO
+celda vacia -> LIBRE
+codigo no operativo conocido -> NO_OPERATIVO_DOCUMENTADO
+D/X no activo -> OPERATIVO_CONFIGURABLE_NO_ACTIVO
+AE/AEC -> FUERA_DE_ALCANCE
+codigo desconocido -> DESCONOCIDO
+```
+
+---
+
+### Tests agregados
+
+Se agrego `tests/test_roster_day_timeline.py`.
+
+Cobertura principal:
+
+* el importador registra timeline diaria completa
+* libre y no operativo documentado no son lo mismo
+* agrupacion por controlador ordena por fecha
+* rachas libres solo cuentan celdas vacias
+* rachas C respetan cortes de calendario
+* rachas A/B detectan mas de cinco dias consecutivos
+
+---
+
+### Reglas futuras soportadas por la timeline
+
+La nueva estructura deja preparada la base para:
+
+```text
+hard: no mas de 5 dias seguidos A/B
+hard: no mas de 3 dias seguidos C
+hard: descanso mayor a 12 h entre turnos consecutivos reales
+warning: no mas de 5 dias libres consecutivos
+```
+
+La regla de libres debe contar solo:
+
+```text
+estado == LIBRE
+```
+
+No debe contar:
+
+```text
+NO_OPERATIVO_DOCUMENTADO
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* `validator.py`
+* engine
+* simulator
+* scoring
+* swap_service
+* workflow formal
+* roster_store
+* request_store
+* catalogo documental
+* reglas tecnicas existentes
+
+No se corrigieron todavia las reglas hard.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+---
+
+### Resultado pytest
+
+Pruebas focalizadas:
+
+```powershell
+python -m pytest tests/test_roster_day_timeline.py -q
+python -m pytest tests/test_roster_import_service.py -q
+```
+
+Suite completa:
+
+```powershell
+python -m pytest -q
+```
+
+Resultado:
+
+```text
+417 passed
+```
+
+---
+
+### Estado final
+
+v95 agrega la base correcta para reglas calendar-aware.
+
+La cadena conceptual queda:
+
+```text
+CSV real
+-> importador
+-> asignaciones_operativas para motor actual
+-> eventos_no_operativos para auditoria
+-> dias_importados para timeline diaria completa
+```
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural sera:
+
+```text
+v96 - reglas calendar-aware sobre timeline diaria
+```
+
+Objetivo de v96:
+
+* corregir falsos positivos de noches consecutivas
+* corregir falsos positivos de secuencia
+* agregar warning por mas de 5 dias libres consecutivos
+* mantener separacion entre `LIBRE` y `NO_OPERATIVO_DOCUMENTADO`
+
+---
