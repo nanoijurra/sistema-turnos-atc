@@ -15322,3 +15322,283 @@ Objetivo de v96:
 * mantener separacion entre `LIBRE` y `NO_OPERATIVO_DOCUMENTADO`
 
 ---
+
+## checkpoint-v96-reglas-calendar-aware-timeline
+
+Fecha: 2026-06-23
+
+---
+
+### Estado general
+
+Se implementaron validadores calendar-aware sobre la timeline diaria importada.
+
+El objetivo fue validar reglas operativas reales usando `dias_importados`, sin depender solamente de `asignaciones_operativas`.
+
+Esta version no reemplaza todavia el motor general ni modifica el workflow formal.
+
+---
+
+### Problema corregido conceptualmente
+
+Antes de v96, el validador tradicional analizaba solo asignaciones operativas A/B/C.
+
+Eso generaba falsos positivos porque no veia:
+
+* dias libres
+* huecos calendario
+* no operativos documentados
+* cortes reales entre turnos
+
+El diagnostico previo habia mostrado:
+
+```text
+32 hard
+5 Secuencia
+27 Noches consecutivas
+```
+
+Luego se confirmo que esas violaciones eran falsos positivos por perdida de contexto calendario.
+
+---
+
+### Regla conceptual aplicada
+
+Las nuevas validaciones trabajan sobre una timeline completa por controlador:
+
+```text
+OPERATIVO
+LIBRE
+NO_OPERATIVO_DOCUMENTADO
+OPERATIVO_CONFIGURABLE_NO_ACTIVO
+FUERA_DE_ALCANCE
+DESCONOCIDO
+```
+
+Esto permite distinguir correctamente:
+
+```text
+LIBRE = celda vacia / sin asignacion
+NO_OPERATIVO_DOCUMENTADO = codigo explicito como LA, LD, EN, PSI, RTA, RTB, etc.
+```
+
+---
+
+### Archivos agregados
+
+Se agrego:
+
+* `src/roster_timeline_validator.py`
+* `tests/test_roster_timeline_validator.py`
+
+---
+
+### Reglas implementadas sobre timeline
+
+Se agregaron validadores para:
+
+```text
+hard: no mas de 5 dias consecutivos A/B
+hard: no mas de 3 dias consecutivos C
+hard: descanso mayor a 12 h entre turnos operativos consecutivos reales
+soft: warning por mas de 5 dias libres consecutivos
+```
+
+---
+
+### Funciones agregadas
+
+En `src/roster_timeline_validator.py`:
+
+```text
+validar_max_ab_consecutivos_timeline
+validar_max_c_consecutivos_timeline
+validar_libres_consecutivos_timeline
+validar_descanso_minimo_timeline
+validar_timeline_controlador
+validar_timeline_importada
+```
+
+---
+
+### Severidades consolidadas
+
+#### Hard
+
+```text
+EXCESO_AB_CONSECUTIVOS
+EXCESO_C_CONSECUTIVOS
+DESCANSO_INSUFICIENTE_TIMELINE
+```
+
+#### Soft
+
+```text
+EXCESO_LIBRES_CONSECUTIVOS
+```
+
+---
+
+### Validaciones principales
+
+#### Noches consecutivas
+
+Ahora las noches C solo cuentan como consecutivas si ocurren en fechas calendario consecutivas.
+
+Ejemplo que ya no genera falso positivo:
+
+```text
+C 02/06
+C 04/06
+C 05/06
+C 08/06
+```
+
+Las fechas con cortes calendario reinician la racha.
+
+#### A/B consecutivos
+
+Se valida como hard si hay mas de 5 dias consecutivos con turnos A/B.
+
+Ejemplo:
+
+```text
+A
+B
+A
+B
+A
+B
+```
+
+Resultado:
+
+```text
+EXCESO_AB_CONSECUTIVOS
+```
+
+#### Dias libres
+
+Se valida como soft si hay mas de 5 dias consecutivos con estado:
+
+```text
+LIBRE
+```
+
+No cuenta como libre:
+
+```text
+NO_OPERATIVO_DOCUMENTADO
+```
+
+Por lo tanto, codigos como `LD`, `LA`, `EN`, `PSI`, `RTA`, `RTB`, etc. cortan o separan la racha libre, pero no se cuentan como dias libres.
+
+---
+
+### Smoke sobre CSV real
+
+Se ejecuto validacion sobre el CSV real acotado:
+
+```text
+Dias importados: 450
+Asignaciones operativas: 213
+Eventos no operativos: 28
+Violaciones timeline: 1
+```
+
+Resultado por codigo:
+
+```text
+EXCESO_LIBRES_CONSECUTIVOS: 1
+```
+
+Resultado por severidad:
+
+```text
+soft: 1
+```
+
+Detalle:
+
+```text
+SOFT | EXCESO_LIBRES_CONSECUTIVOS |
+Mas de 5 dias libres consecutivos para CARREVEDO SARAI:
+6 dias entre 2026-06-02 y 2026-06-07.
+```
+
+---
+
+### Resultado interpretado
+
+El resultado esperado se cumplio:
+
+```text
+0 hard
+1 soft
+```
+
+Esto confirma que las 32 hard previas no eran problemas reales del CSV, sino falsos positivos del validador anterior.
+
+La unica observacion vigente corresponde a una racha libre mayor a 5 dias, correctamente clasificada como warning/soft.
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* `validator.py`
+* `engine.py`
+* simulator
+* scoring
+* swap_service
+* workflow formal
+* roster_store
+* request_store
+* catalogo documental
+* reglas tecnicas actuales del motor tradicional
+
+No se conecto todavia la timeline al engine general.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+---
+
+### Estado final
+
+v96 deja disponible un validador calendar-aware separado del motor actual.
+
+La cadena validada queda:
+
+```text
+CSV real
+-> importador
+-> dias_importados
+-> validar_timeline_importada
+-> 0 hard
+-> 1 soft por libres consecutivos
+```
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural sera decidir integracion controlada:
+
+```text
+v97 - conectar validacion calendar-aware al diagnostico tecnico
+```
+
+Opciones posibles:
+
+```text
+1. Mantener validator.py tradicional para fixtures antiguos y agregar diagnostico timeline aparte.
+2. Integrar reglas timeline al engine mediante nuevo entrypoint.
+3. Reemplazar progresivamente reglas antiguas por reglas calendar-aware.
+```
+
+La opcion mas segura es la 1 o la 2, no reemplazar directamente.
+
+---
