@@ -15602,3 +15602,13 @@ Opciones posibles:
 La opcion mas segura es la 1 o la 2, no reemplazar directamente.
 
 ---
+
+## v97 - diagnostico tecnico calendar-aware
+
+Se agrego un modulo de diagnostico calendar-aware separado del workflow formal.
+
+Archivos agregados:
+
+```text
+src/roster_timeline_diagnostics.py
+tests/test_roster_timeline_diagnostics.py
