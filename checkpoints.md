@@ -16172,3 +16172,303 @@ diagnostico calendar-aware paralelo
 Antes de integrar o reemplazar, conviene seguir acumulando evidencia tecnica y mantener compatibilidad con fixtures anteriores.
 
 ---
+
+---
+
+## checkpoint-v100-entrypoint-paralelo-calendar-aware
+
+Fecha: 2026-06-26
+
+---
+
+### Estado general
+
+Se agrego un entrypoint paralelo calendar-aware para diagnosticar rosters importados usando la timeline diaria.
+
+El objetivo fue crear una puerta de entrada publica, estable y separada del motor tradicional.
+
+Esta version no reemplaza `engine.py`.
+
+Esta version no modifica `validator.py`.
+
+Esta version no altera el workflow formal.
+
+---
+
+### Problema abordado
+
+Hasta v99 ya existian:
+
+```text
+validadores calendar-aware sobre timeline
+diagnostico tecnico sobre dias_importados
+comparacion tradicional vs timeline
+smoke sobre CSV real local
+```
+
+Pero para que capas superiores pudieran usar esa informacion, todavia habia que conocer modulos internos como:
+
+```text
+roster_timeline_validator
+roster_timeline_diagnostics
+dias_importados
+```
+
+v100 agrega un entrypoint paralelo y explicito para consumir ese diagnostico sin acoplarse a los detalles internos.
+
+---
+
+### Alcance implementado
+
+Se agrego una funcion publica para diagnosticar directamente dias importados:
+
+```text
+diagnosticar_dias_importados_calendar_aware
+```
+
+Se agrego una funcion publica para diagnosticar directamente un resultado de importacion:
+
+```text
+diagnosticar_importacion_calendar_aware
+```
+
+Ambas devuelven un resultado estable:
+
+```text
+ResultadoDiagnosticoCalendarAware
+```
+
+---
+
+### Archivos agregados
+
+Se agregaron:
+
+```text
+src/roster_calendar_aware_entrypoint.py
+tests/test_roster_calendar_aware_entrypoint.py
+```
+
+---
+
+### Archivos modificados
+
+Se modifico:
+
+```text
+checkpoints.md
+```
+
+---
+
+### Clases agregadas
+
+En `src/roster_calendar_aware_entrypoint.py` se agrego:
+
+```text
+ResultadoDiagnosticoCalendarAware
+```
+
+---
+
+### Funciones agregadas
+
+En `src/roster_calendar_aware_entrypoint.py` se agregaron:
+
+```text
+diagnosticar_dias_importados_calendar_aware
+diagnosticar_importacion_calendar_aware
+```
+
+---
+
+### Resultado devuelto por el entrypoint
+
+El resultado calendar-aware expone:
+
+```text
+total_dias_importados
+total_violaciones
+total_hard
+total_soft
+valido_sin_hard
+por_codigo
+por_severidad
+violaciones
+```
+
+---
+
+### Cadena disponible
+
+Para dias importados:
+
+```text
+dias_importados
+-> diagnosticar_dias_importados_calendar_aware
+-> ResultadoDiagnosticoCalendarAware
+```
+
+Para resultado de importacion:
+
+```text
+resultado_importacion
+-> diagnosticar_importacion_calendar_aware
+-> ResultadoDiagnosticoCalendarAware
+```
+
+Internamente, el entrypoint reutiliza el diagnostico ya existente:
+
+```text
+generar_diagnostico_timeline_importada
+generar_diagnostico_desde_importacion
+```
+
+---
+
+### Interpretacion conceptual
+
+v100 crea un camino paralelo:
+
+```text
+CAMINO TRADICIONAL
+swap_service
+-> engine.py
+-> validator.py tradicional
+-> resultado tecnico tradicional
+```
+
+```text
+CAMINO CALENDAR-AWARE PARALELO
+resultado_importacion / dias_importados
+-> roster_calendar_aware_entrypoint.py
+-> diagnostico timeline
+-> ResultadoDiagnosticoCalendarAware
+```
+
+El camino tradicional sigue igual.
+
+El camino calendar-aware queda disponible para diagnostico operativo y futuras capas superiores.
+
+---
+
+### Tests agregados
+
+Se agregaron tests para validar:
+
+```text
+diagnostico calendar-aware sin violaciones
+diagnostico calendar-aware con soft por libres consecutivos
+diagnostico desde resultado de importacion con dias_importados
+error controlado si el resultado de importacion no contiene dias_importados
+```
+
+---
+
+### Validaciones ejecutadas
+
+Se ejecuto test focalizado del nuevo entrypoint:
+
+```text
+python -m pytest tests/test_roster_calendar_aware_entrypoint.py -q
+```
+
+Resultado:
+
+```text
+4 passed
+```
+
+Se ejecutaron tests relacionados:
+
+```text
+python -m pytest tests/test_roster_timeline_diagnostics.py -q
+python -m pytest tests/test_smoke_diagnostico_csv_real.py -q
+```
+
+Resultado:
+
+```text
+8 passed
+1 passed
+```
+
+Se ejecuto suite completa:
+
+```text
+python -m pytest -q
+```
+
+Resultado:
+
+```text
+439 passed
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* `validator.py`
+* `engine.py`
+* `scoring.py`
+* `simulator.py`
+* `swap_service.py`
+* workflow formal
+* roster_store
+* request_store
+* catalogo documental
+* reglas tecnicas actuales del motor tradicional
+
+No se conecto todavia la timeline al engine general.
+
+No se reemplazo el validador tradicional.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+No se modifico el CSV real.
+
+---
+
+### Estado final
+
+v100 deja disponible un entrypoint paralelo calendar-aware estable y reusable.
+
+El sistema ahora cuenta con dos caminos claramente separados:
+
+```text
+engine tradicional
+diagnostico calendar-aware paralelo
+```
+
+Esto permite que futuras capas superiores consulten el diagnostico calendar-aware sin alterar el comportamiento actual del motor ni del workflow formal.
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural seria agregar un smoke o test de uso del entrypoint sobre el CSV real local:
+
+```text
+v101 - smoke entrypoint calendar-aware sobre CSV real
+```
+
+Objetivo sugerido:
+
+```text
+- importar data/imports/csv_ok.csv
+- llamar diagnosticar_importacion_calendar_aware
+- confirmar 0 hard y 1 soft
+- confirmar por_codigo EXCESO_LIBRES_CONSECUTIVOS
+- no tocar engine.py
+- no tocar validator.py
+- no cambiar workflow formal
+```
+
+La integracion con el motor general deberia seguir postergada hasta tener mas evidencia y una decision explicita.
+
+---
