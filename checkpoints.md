@@ -15886,3 +15886,289 @@ Opciones posibles:
 La opcion mas segura sigue siendo avanzar con entrypoint paralelo o smoke diagnostico, sin reemplazar directamente `validator.py`.
 
 ---
+
+---
+
+## checkpoint-v99-smoke-diagnostico-csv-real
+
+Fecha: 2026-06-26
+
+---
+
+### Estado general
+
+Se agrego un smoke diagnostico sobre el CSV real local importado.
+
+El objetivo fue ejecutar la cadena calendar-aware completa sobre el archivo real acotado `data/imports/csv_ok.csv`, usando la funcionalidad ya incorporada en v96, v97 y v98.
+
+Esta version no agrega reglas nuevas.
+
+Esta version no modifica el motor general ni el workflow formal.
+
+---
+
+### Problema abordado
+
+Hasta v98 ya existian:
+
+```text
+validadores calendar-aware sobre timeline
+diagnostico tecnico sobre dias_importados
+comparacion diagnostica entre tradicional y timeline
+```
+
+Pero faltaba una validacion reproducible sobre el CSV real local que confirmara la cadena completa:
+
+```text
+CSV real
+-> importacion strict=True
+-> dias_importados
+-> diagnostico timeline
+-> comparacion contra resumen tradicional conocido
+```
+
+v99 agrega ese smoke controlado.
+
+---
+
+### Alcance implementado
+
+Se agrego un test smoke local que:
+
+```text
+- verifica si existe data/imports/csv_ok.csv
+- si no existe, omite el test con pytest.skip
+- importa el CSV real con anio=2026 y mes=6
+- genera diagnostico timeline desde resultado de importacion
+- compara contra el resumen tradicional conocido
+- valida los totales esperados del roster real acotado
+```
+
+El CSV real no se sube al repositorio.
+
+El directorio `data/imports/` sigue ignorado por Git.
+
+---
+
+### Archivos agregados
+
+Se agrego:
+
+```text
+tests/test_smoke_diagnostico_csv_real.py
+```
+
+---
+
+### Archivos modificados
+
+Se modifico:
+
+```text
+checkpoints.md
+```
+
+---
+
+### Cadena validada
+
+La cadena validada por el smoke queda:
+
+```text
+data/imports/csv_ok.csv
+-> importar_roster_desde_csv(anio=2026, mes=6, strict=True)
+-> resultado_importacion.dias_importados
+-> generar_diagnostico_desde_importacion
+-> comparar_diagnostico_tradicional_vs_timeline
+```
+
+---
+
+### Resultado esperado de importacion
+
+El smoke confirma:
+
+```text
+dias_importados = 450
+asignaciones_operativas = 213
+eventos_no_operativos = 28
+```
+
+---
+
+### Resultado esperado timeline
+
+El diagnostico timeline confirma:
+
+```text
+total_dias_importados = 450
+total_violaciones = 1
+total_hard = 0
+total_soft = 1
+valido_sin_hard = True
+```
+
+Resultado por codigo:
+
+```text
+EXCESO_LIBRES_CONSECUTIVOS = 1
+```
+
+---
+
+### Comparacion contra resumen tradicional conocido
+
+Se usa como referencia diagnostica el resumen tradicional ya observado:
+
+```text
+tradicional:
+total = 32
+hard = 32
+soft = 0
+```
+
+Se compara contra:
+
+```text
+timeline:
+total = 1
+hard = 0
+soft = 1
+valido_sin_hard = True
+```
+
+Resultado esperado de comparacion:
+
+```text
+diferencia_total = 31
+diferencia_hard = 32
+requiere_revision_calendar_aware = True
+```
+
+---
+
+### Interpretacion
+
+El smoke confirma que, sobre el CSV real local:
+
+```text
+la validacion tradicional conocida informa 32 hard
+la validacion calendar-aware informa 0 hard y 1 soft
+```
+
+Esto refuerza la conclusion previa:
+
+```text
+las hard tradicionales eran falsos positivos por perdida de contexto calendario
+```
+
+La unica observacion vigente sobre timeline es soft:
+
+```text
+EXCESO_LIBRES_CONSECUTIVOS
+```
+
+---
+
+### Validaciones ejecutadas
+
+Se ejecuto test smoke focalizado:
+
+```text
+python -m pytest tests/test_smoke_diagnostico_csv_real.py -q
+```
+
+Resultado:
+
+```text
+1 passed
+```
+
+Se ejecuto suite completa:
+
+```text
+python -m pytest -q
+```
+
+Resultado:
+
+```text
+435 passed
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* `validator.py`
+* `engine.py`
+* `scoring.py`
+* `simulator.py`
+* `swap_service.py`
+* workflow formal
+* roster_store
+* request_store
+* catalogo documental
+* reglas tecnicas actuales del motor tradicional
+
+No se conecto todavia la timeline al engine general.
+
+No se reemplazo el validador tradicional.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+No se subio el CSV real al repositorio.
+
+---
+
+### Estado final
+
+v99 deja un smoke reproducible para validar el diagnostico calendar-aware sobre el CSV real local.
+
+La cadena consolidada queda:
+
+```text
+CSV real local
+-> importador
+-> dias_importados
+-> diagnostico timeline
+-> comparacion tradicional vs timeline
+-> 0 hard timeline
+-> 1 soft timeline
+```
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural seria crear un entrypoint paralelo calendar-aware, sin reemplazar el engine tradicional:
+
+```text
+v100 - entrypoint paralelo calendar-aware
+```
+
+Objetivo sugerido:
+
+```text
+- crear una funcion publica de diagnostico operativo calendar-aware
+- recibir resultado de importacion o dias_importados
+- devolver resumen usable por capas superiores
+- no tocar engine.py
+- no tocar validator.py
+- no cambiar workflow formal
+```
+
+La opcion segura sigue siendo mantener ambos caminos:
+
+```text
+engine tradicional
+diagnostico calendar-aware paralelo
+```
+
+Antes de integrar o reemplazar, conviene seguir acumulando evidencia tecnica y mantener compatibilidad con fixtures anteriores.
+
+---
