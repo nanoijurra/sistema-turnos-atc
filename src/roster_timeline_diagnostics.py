@@ -26,6 +26,19 @@ class DiagnosticoTimelineImportada:
     resumen: ResumenDiagnosticoTimeline
     violaciones: tuple[Any, ...]
 
+@dataclass(frozen=True)
+class ComparacionDiagnosticoValidadores:
+    total_tradicional: int
+    hard_tradicional: int
+    soft_tradicional: int
+    total_timeline: int
+    hard_timeline: int
+    soft_timeline: int
+    diferencia_total: int
+    diferencia_hard: int
+    timeline_valido_sin_hard: bool
+    requiere_revision_calendar_aware: bool    
+
 
 def resumir_violaciones_timeline(
     violaciones: Iterable[Any],
@@ -92,6 +105,87 @@ def generar_diagnostico_desde_importacion(
         resultado_importacion.dias_importados
     )
 
+def comparar_diagnostico_tradicional_vs_timeline(
+    *,
+    resumen_tradicional: Any,
+    diagnostico_timeline: DiagnosticoTimelineImportada,
+) -> ComparacionDiagnosticoValidadores:
+    total_tradicional = _obtener_entero_diagnostico(
+        resumen_tradicional,
+        nombres=("total", "total_violaciones"),
+    )
+    hard_tradicional = _obtener_entero_diagnostico(
+        resumen_tradicional,
+        nombres=("hard", "total_hard"),
+    )
+    soft_tradicional = _obtener_entero_diagnostico(
+        resumen_tradicional,
+        nombres=("soft", "total_soft"),
+    )
+
+    total_timeline = _obtener_entero_diagnostico(
+        diagnostico_timeline,
+        nombres=("total_violaciones", "total"),
+    )
+    hard_timeline = _obtener_entero_diagnostico(
+        diagnostico_timeline,
+        nombres=("total_hard", "hard"),
+    )
+    soft_timeline = _obtener_entero_diagnostico(
+        diagnostico_timeline,
+        nombres=("total_soft", "soft"),
+    )
+
+    timeline_valido_sin_hard = bool(
+        _obtener_valor(
+            diagnostico_timeline,
+            nombres=("valido_sin_hard",),
+            valor_default=hard_timeline == 0,
+        )
+    )
+
+    diferencia_total = total_tradicional - total_timeline
+    diferencia_hard = hard_tradicional - hard_timeline
+
+    requiere_revision_calendar_aware = (
+        hard_tradicional > hard_timeline
+        and timeline_valido_sin_hard
+    )
+
+    return ComparacionDiagnosticoValidadores(
+        total_tradicional=total_tradicional,
+        hard_tradicional=hard_tradicional,
+        soft_tradicional=soft_tradicional,
+        total_timeline=total_timeline,
+        hard_timeline=hard_timeline,
+        soft_timeline=soft_timeline,
+        diferencia_total=diferencia_total,
+        diferencia_hard=diferencia_hard,
+        timeline_valido_sin_hard=timeline_valido_sin_hard,
+        requiere_revision_calendar_aware=requiere_revision_calendar_aware,
+    )
+
+def _obtener_entero_diagnostico(
+    objeto: Any,
+    *,
+    nombres: tuple[str, ...],
+    valor_default: int = 0,
+) -> int:
+    valor = _obtener_valor(
+        objeto,
+        nombres=nombres,
+        valor_default=str(valor_default),
+    )
+
+    if hasattr(valor, "value"):
+        valor = valor.value
+
+    try:
+        return int(valor)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"No se pudo obtener un valor entero para {nombres}: {valor!r}"
+        ) from exc
 
 def _obtener_valor_normalizado(
     objeto: Any,

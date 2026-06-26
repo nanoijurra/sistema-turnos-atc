@@ -8,6 +8,7 @@ import pytest
 
 from src.roster_day_timeline import RosterDayStatus, RosterDiaImportado
 from src.roster_timeline_diagnostics import (
+    comparar_diagnostico_tradicional_vs_timeline,
     generar_diagnostico_desde_importacion,
     generar_diagnostico_timeline_importada,
     resumir_violaciones_timeline,
@@ -119,6 +120,64 @@ def test_generar_diagnostico_desde_importacion_falla_sin_dias_importados():
     with pytest.raises(ValueError, match="dias_importados"):
         generar_diagnostico_desde_importacion(SimpleNamespace())
 
+def test_comparar_diagnostico_tradicional_vs_timeline_detecta_diferencia_hard():
+    resumen_tradicional = {
+        "total": 32,
+        "hard": 32,
+        "soft": 0,
+    }
+    diagnostico_timeline = SimpleNamespace(
+        total_violaciones=1,
+        total_hard=0,
+        total_soft=1,
+        valido_sin_hard=True,
+    )
+
+    comparacion = comparar_diagnostico_tradicional_vs_timeline(
+        resumen_tradicional=resumen_tradicional,
+        diagnostico_timeline=diagnostico_timeline,
+    )
+
+    assert comparacion.total_tradicional == 32
+    assert comparacion.hard_tradicional == 32
+    assert comparacion.soft_tradicional == 0
+    assert comparacion.total_timeline == 1
+    assert comparacion.hard_timeline == 0
+    assert comparacion.soft_timeline == 1
+    assert comparacion.diferencia_total == 31
+    assert comparacion.diferencia_hard == 32
+    assert comparacion.timeline_valido_sin_hard is True
+    assert comparacion.requiere_revision_calendar_aware is True
+
+
+def test_comparar_diagnostico_tradicional_vs_timeline_sin_diferencia_hard():
+    resumen_tradicional = SimpleNamespace(
+        total=1,
+        hard=0,
+        soft=1,
+    )
+    diagnostico_timeline = SimpleNamespace(
+        total_violaciones=1,
+        total_hard=0,
+        total_soft=1,
+        valido_sin_hard=True,
+    )
+
+    comparacion = comparar_diagnostico_tradicional_vs_timeline(
+        resumen_tradicional=resumen_tradicional,
+        diagnostico_timeline=diagnostico_timeline,
+    )
+
+    assert comparacion.total_tradicional == 1
+    assert comparacion.hard_tradicional == 0
+    assert comparacion.soft_tradicional == 1
+    assert comparacion.total_timeline == 1
+    assert comparacion.hard_timeline == 0
+    assert comparacion.soft_timeline == 1
+    assert comparacion.diferencia_total == 0
+    assert comparacion.diferencia_hard == 0
+    assert comparacion.timeline_valido_sin_hard is True
+    assert comparacion.requiere_revision_calendar_aware is False
 
 def _dia_operativo(
     controlador: str,

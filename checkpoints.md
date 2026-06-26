@@ -15612,3 +15612,277 @@ Archivos agregados:
 ```text
 src/roster_timeline_diagnostics.py
 tests/test_roster_timeline_diagnostics.py
+```
+
+---
+
+## checkpoint-v98-comparacion-diagnostico-validadores
+
+Fecha: 2026-06-26
+
+---
+
+### Estado general
+
+Se agrego una comparacion controlada entre el diagnostico tradicional y el diagnostico calendar-aware basado en timeline.
+
+El objetivo fue dejar evidencia tecnica comparable entre ambos enfoques, sin modificar todavia el motor general ni reemplazar el validador tradicional.
+
+Esta version mantiene el diagnostico como una capa separada del workflow formal.
+
+---
+
+### Problema abordado
+
+Hasta v96 ya se habia confirmado que el validador tradicional podia generar falsos positivos sobre rosters importados porque analiza solo asignaciones operativas A/B/C.
+
+Ese enfoque no ve correctamente:
+
+* dias libres
+* huecos calendario
+* no operativos documentados
+* cortes reales entre turnos
+
+El diagnostico calendar-aware, en cambio, trabaja sobre `dias_importados`, por lo que puede evaluar las reglas operativas usando la timeline diaria completa.
+
+v98 no cambia reglas ni decisiones del sistema.
+
+v98 solo agrega una estructura de comparacion para observar diferencias entre:
+
+```text
+validador tradicional
+diagnostico timeline calendar-aware
+```
+
+---
+
+### Alcance implementado
+
+Se agrego una comparacion diagnostica que permite recibir:
+
+```text
+resumen tradicional ya calculado
+diagnostico timeline ya calculado
+```
+
+Y devuelve una comparacion con:
+
+```text
+total_tradicional
+hard_tradicional
+soft_tradicional
+total_timeline
+hard_timeline
+soft_timeline
+diferencia_total
+diferencia_hard
+timeline_valido_sin_hard
+requiere_revision_calendar_aware
+```
+
+---
+
+### Archivos modificados
+
+Se modificaron:
+
+* `src/roster_timeline_diagnostics.py`
+* `tests/test_roster_timeline_diagnostics.py`
+
+---
+
+### Clases agregadas
+
+En `src/roster_timeline_diagnostics.py` se agrego:
+
+```text
+ComparacionDiagnosticoValidadores
+```
+
+---
+
+### Funciones agregadas
+
+En `src/roster_timeline_diagnostics.py` se agrego:
+
+```text
+comparar_diagnostico_tradicional_vs_timeline
+```
+
+---
+
+### Comportamiento agregado
+
+La nueva comparacion permite:
+
+```text
+- aceptar un resumen tradicional como dict u objeto con atributos
+- aceptar un diagnostico timeline como objeto con atributos
+- normalizar valores numericos total / hard / soft
+- calcular diferencia total entre ambos diagnosticos
+- calcular diferencia hard entre ambos diagnosticos
+- marcar si corresponde revision calendar-aware
+```
+
+La marca:
+
+```text
+requiere_revision_calendar_aware
+```
+
+queda en `True` cuando:
+
+```text
+hard_tradicional > hard_timeline
+y
+timeline_valido_sin_hard == True
+```
+
+Esto permite identificar escenarios donde el validador tradicional informa mas hard que el diagnostico calendar-aware.
+
+---
+
+### Ejemplo conceptual cubierto
+
+Caso representativo:
+
+```text
+tradicional:
+total = 32
+hard = 32
+soft = 0
+
+timeline:
+total = 1
+hard = 0
+soft = 1
+valido_sin_hard = True
+```
+
+Resultado esperado:
+
+```text
+diferencia_total = 31
+diferencia_hard = 32
+requiere_revision_calendar_aware = True
+```
+
+Este caso representa el escenario ya diagnosticado en versiones anteriores: muchas violaciones hard del validador tradicional pueden corresponder a falsos positivos por perdida de contexto calendario.
+
+---
+
+### Tests agregados
+
+Se agregaron tests para validar:
+
+```text
+comparacion con diferencia hard entre tradicional y timeline
+comparacion sin diferencia hard entre tradicional y timeline
+```
+
+Tambien se mantuvieron verdes los tests previos de diagnostico timeline:
+
+```text
+resumen vacio sin violaciones
+conteo por codigo y severidad
+diagnostico timeline sin violaciones
+diagnostico timeline con soft por libres
+diagnostico desde resultado de importacion
+error controlado si falta dias_importados
+```
+
+---
+
+### Validaciones ejecutadas
+
+Se ejecuto test focalizado:
+
+```text
+python -m pytest tests/test_roster_timeline_diagnostics.py -q
+```
+
+Resultado:
+
+```text
+8 passed
+```
+
+Se ejecuto suite completa:
+
+```text
+python -m pytest -q
+```
+
+Resultado:
+
+```text
+434 passed
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* `validator.py`
+* `engine.py`
+* `scoring.py`
+* `simulator.py`
+* `swap_service.py`
+* workflow formal
+* roster_store
+* request_store
+* catalogo documental
+* reglas tecnicas actuales del motor tradicional
+
+No se conecto todavia la timeline al engine general.
+
+No se reemplazo el validador tradicional.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+---
+
+### Estado final
+
+v98 deja disponible una comparacion diagnostica entre validacion tradicional y validacion calendar-aware.
+
+La cadena conceptual disponible queda:
+
+```text
+resumen tradicional
++
+diagnostico timeline
+-> comparar_diagnostico_tradicional_vs_timeline
+-> diferencia_total
+-> diferencia_hard
+-> requiere_revision_calendar_aware
+```
+
+Esto permite documentar tecnicamente diferencias entre ambos enfoques antes de decidir cualquier integracion al motor general.
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural seria definir una integracion controlada sin reemplazo abrupto:
+
+```text
+v99 - entrypoint calendar-aware para diagnostico operativo o engine separado
+```
+
+Opciones posibles:
+
+```text
+1. Mantener el diagnostico separado y agregar smoke sobre CSV real.
+2. Crear un entrypoint calendar-aware paralelo al engine tradicional.
+3. Integrar timeline al engine solo para rosters importados con dias_importados.
+4. Reemplazar progresivamente reglas tradicionales despues de mas evidencia.
+```
+
+La opcion mas segura sigue siendo avanzar con entrypoint paralelo o smoke diagnostico, sin reemplazar directamente `validator.py`.
+
+---
