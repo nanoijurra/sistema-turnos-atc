@@ -16472,3 +16472,247 @@ Objetivo sugerido:
 La integracion con el motor general deberia seguir postergada hasta tener mas evidencia y una decision explicita.
 
 ---
+
+---
+
+## checkpoint-v101-smoke-entrypoint-calendar-aware-csv-real
+
+Fecha: 2026-06-26
+
+---
+
+### Estado general
+
+Se agrego un smoke sobre el CSV real local usando el entrypoint paralelo calendar-aware creado en v100.
+
+El objetivo fue validar que la nueva puerta de entrada publica funcione correctamente sobre el roster real acotado `data/imports/csv_ok.csv`.
+
+Esta version no agrega logica nueva.
+
+Esta version no modifica el motor general ni el workflow formal.
+
+---
+
+### Problema abordado
+
+Hasta v100 ya existia un entrypoint paralelo calendar-aware:
+
+```text
+diagnosticar_importacion_calendar_aware
+diagnosticar_dias_importados_calendar_aware
+```
+
+Pero faltaba confirmar que ese entrypoint funcionara directamente sobre el CSV real local.
+
+v101 agrega ese smoke controlado.
+
+---
+
+### Alcance implementado
+
+Se agrego un test smoke local que:
+
+```text
+- verifica si existe data/imports/csv_ok.csv
+- si no existe, omite el test con pytest.skip
+- importa el CSV real con anio=2026 y mes=6
+- llama diagnosticar_importacion_calendar_aware
+- valida el resultado calendar-aware esperado
+```
+
+El CSV real no se sube al repositorio.
+
+El directorio `data/imports/` sigue ignorado por Git.
+
+---
+
+### Archivos agregados
+
+Se agrego:
+
+```text
+tests/test_smoke_entrypoint_calendar_aware_csv_real.py
+```
+
+---
+
+### Archivos modificados
+
+Se modifico:
+
+```text
+checkpoints.md
+```
+
+---
+
+### Cadena validada
+
+La cadena validada por el smoke queda:
+
+```text
+data/imports/csv_ok.csv
+-> importar_roster_desde_csv(anio=2026, mes=6, strict=True)
+-> diagnosticar_importacion_calendar_aware
+-> ResultadoDiagnosticoCalendarAware
+```
+
+---
+
+### Resultado esperado calendar-aware
+
+El smoke confirma:
+
+```text
+total_dias_importados = 450
+total_violaciones = 1
+total_hard = 0
+total_soft = 1
+valido_sin_hard = True
+```
+
+Resultado por codigo:
+
+```text
+EXCESO_LIBRES_CONSECUTIVOS = 1
+```
+
+Resultado por severidad:
+
+```text
+SOFT = 1
+```
+
+---
+
+### Interpretacion
+
+El smoke confirma que el entrypoint paralelo calendar-aware puede diagnosticar el CSV real local sin pasar por el engine tradicional.
+
+El resultado sigue siendo consistente con el diagnostico previo:
+
+```text
+0 hard
+1 soft
+```
+
+La unica observacion vigente sobre timeline corresponde a:
+
+```text
+EXCESO_LIBRES_CONSECUTIVOS
+```
+
+---
+
+### Validaciones ejecutadas
+
+Se ejecuto test smoke focalizado:
+
+```text
+python -m pytest tests/test_smoke_entrypoint_calendar_aware_csv_real.py -q
+```
+
+Resultado:
+
+```text
+1 passed
+```
+
+Se ejecutaron tests relacionados:
+
+```text
+python -m pytest tests/test_roster_calendar_aware_entrypoint.py -q
+python -m pytest tests/test_smoke_diagnostico_csv_real.py -q
+```
+
+Resultado:
+
+```text
+4 passed
+1 passed
+```
+
+Se ejecuto suite completa:
+
+```text
+python -m pytest -q
+```
+
+Resultado:
+
+```text
+440 passed
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* `validator.py`
+* `engine.py`
+* `scoring.py`
+* `simulator.py`
+* `swap_service.py`
+* workflow formal
+* roster_store
+* request_store
+* catalogo documental
+* reglas tecnicas actuales del motor tradicional
+
+No se conecto todavia la timeline al engine general.
+
+No se reemplazo el validador tradicional.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+No se modifico el CSV real.
+
+No se subio el CSV real al repositorio.
+
+---
+
+### Estado final
+
+v101 deja validado que el entrypoint paralelo calendar-aware funciona sobre el CSV real local.
+
+La cadena consolidada queda:
+
+```text
+CSV real local
+-> importador
+-> diagnosticar_importacion_calendar_aware
+-> ResultadoDiagnosticoCalendarAware
+-> 0 hard
+-> 1 soft
+```
+
+Esto confirma que capas superiores podrian consumir el diagnostico calendar-aware sin alterar el engine tradicional ni el workflow formal.
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural seria construir una salida resumida mas legible para capas superiores:
+
+```text
+v102 - reporte operativo calendar-aware
+```
+
+Objetivo sugerido:
+
+```text
+- transformar ResultadoDiagnosticoCalendarAware en un reporte simple
+- exponer estado general, hard, soft y codigos principales
+- mantener la salida como diagnostico
+- no tocar engine.py
+- no tocar validator.py
+- no cambiar workflow formal
+```
+
+La integracion con el motor general deberia seguir postergada hasta tener una decision explicita.
+
+---
