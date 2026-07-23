@@ -17307,3 +17307,286 @@ Objetivo sugerido:
 ```
 
 ---
+
+## checkpoint-v104-actualizacion-contexto-resumen-y-estado-docs
+
+Fecha: 2026-06-26
+
+---
+
+### Estado general
+
+Se actualizaron los documentos resumen secundarios para reflejar el estado vigente del sistema luego de v96-v103.
+
+El objetivo fue alinear `docs/contexto_resumen.md` y `docs/estado_docs.md` con la arquitectura actual, especialmente con el camino calendar-aware paralelo.
+
+Esta version es exclusivamente documental.
+
+---
+
+### Problema abordado
+
+Los documentos secundarios todavia describian un estado anterior del proyecto.
+
+`docs/contexto_resumen.md` mencionaba:
+
+```text
+refactor en curso
+tests fallando tras refactor
+decisiones incorrectas VIABLE vs RECHAZAR
+inconsistencias entre indices y controladores
+```
+
+Ese contenido ya no representaba el estado actual del repo.
+
+`docs/estado_docs.md` tambien conservaba referencias antiguas, como:
+
+```text
+ultima seccion: 26
+ultima seccion: 16
+engine = unica fuente de reglas
+estado: en ajuste
+```
+
+Luego de v96-v103, la documentacion principal ya habia sido compatibilizada con:
+
+```text
+dias_importados
+timeline diaria importada
+diagnostico calendar-aware
+entrypoint paralelo calendar-aware
+ResultadoDiagnosticoCalendarAware
+```
+
+v104 actualiza los documentos resumen para que no contradigan ese estado consolidado.
+
+---
+
+### Alcance implementado
+
+Se reemplazo completo el contenido de:
+
+```text
+docs/contexto_resumen.md
+docs/estado_docs.md
+```
+
+La actualizacion mantiene los documentos como resumen, no como fuente principal de detalle.
+
+Para detalle completo se siguen usando:
+
+```text
+docs/contexto_sistema.md
+docs/decisiones.md
+docs/contratos.md
+docs/invariantes.md
+docs/modelo_dominio.md
+docs/diccionario.md
+checkpoints.md
+```
+
+---
+
+### Archivos modificados
+
+Se modificaron:
+
+```text
+docs/contexto_resumen.md
+docs/estado_docs.md
+checkpoints.md
+```
+
+---
+
+### Actualizacion de contexto_resumen.md
+
+`docs/contexto_resumen.md` ahora resume:
+
+```text
+- estructura general del sistema
+- camino tradicional del workflow formal
+- responsabilidades principales por modulo
+- camino calendar-aware paralelo
+- flujo formal de swaps
+- estado actual consolidado
+- resultado sobre CSV real local
+- reglas de oro
+- restricciones vigentes
+```
+
+Tambien documenta explicitamente que el camino calendar-aware:
+
+```text
+no reemplaza engine.py
+no reemplaza validator.py
+no decide swaps
+no modifica SwapRequest
+no aplica cambios de roster
+no altera el workflow formal
+```
+
+---
+
+### Actualizacion de estado_docs.md
+
+`docs/estado_docs.md` ahora refleja el estado de los documentos principales:
+
+```text
+decisiones.md -> consistente y compatibilizado con calendar-aware
+contratos.md -> consistente y compatibilizado con calendar-aware
+invariantes.md -> incluye invariantes calendar-aware
+modelo_dominio.md -> incluye timeline diaria importada
+diccionario.md -> incluye terminos calendar-aware
+contexto_sistema.md -> actualizado y compatibilizado con v96-v103
+contexto_resumen.md -> actualizado en v104
+```
+
+Tambien incorpora los checkpoints recientes:
+
+```text
+v96 -> validadores calendar-aware sobre timeline
+v97 -> diagnostico tecnico calendar-aware
+v98 -> comparacion tradicional vs timeline
+v99 -> smoke diagnostico sobre CSV real local
+v100 -> entrypoint paralelo calendar-aware
+v101 -> smoke entrypoint calendar-aware sobre CSV real local
+v102 -> compatibilizacion documental calendar-aware
+v103 -> actualizacion contexto_sistema calendar-aware
+```
+
+---
+
+### Estado arquitectonico reflejado
+
+Se documento nuevamente la convivencia de dos caminos.
+
+Camino tradicional:
+
+```text
+swap_service
+-> simulator
+-> engine.py
+-> validator.py
+```
+
+Camino calendar-aware paralelo:
+
+```text
+resultado_importacion / dias_importados
+-> roster_calendar_aware_entrypoint.py
+-> diagnostico timeline
+-> ResultadoDiagnosticoCalendarAware
+```
+
+Ambos caminos conviven.
+
+El camino calendar-aware no reemplaza al camino tradicional.
+
+---
+
+### Terminos criticos reafirmados
+
+Se reafirmaron las diferencias conceptuales:
+
+```text
+clasificacion tecnica != decision operativa
+decision operativa != estado del workflow
+diagnostico calendar-aware != decision de swap
+timeline diaria != Asignacion
+LIBRE != NO_OPERATIVO_DOCUMENTADO
+entrypoint calendar-aware != engine.py
+validator.py tradicional sigue vigente
+```
+
+---
+
+### Validaciones ejecutadas
+
+Se ejecuto suite completa desde Codex usando `uv` con `PYTHONPATH=.`:
+
+```text
+uv run pytest -q
+```
+
+Resultado:
+
+```text
+440 passed
+```
+
+Nota operativa:
+
+```text
+En VS Code del usuario, la validacion equivalente se ejecuta con py -m pytest -q.
+En el shell de Codex, py no esta disponible, por lo que se uso uv run pytest -q con PYTHONPATH=.
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* `src/`
+* `tests/`
+* `engine.py`
+* `validator.py`
+* `scoring.py`
+* `simulator.py`
+* `swap_service.py`
+* workflow formal
+* reglas tecnicas actuales
+* CSV real local
+
+No se conecto la timeline al engine general.
+
+No se reemplazo el validador tradicional.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+---
+
+### Estado final
+
+v104 deja actualizados los documentos resumen secundarios.
+
+La documentacion secundaria ya no describe un estado viejo con refactor inestable ni tests fallando.
+
+Ahora refleja el estado consolidado:
+
+```text
+workflow formal vigente
+engine tradicional vigente
+validator.py tradicional vigente
+camino calendar-aware paralelo disponible
+documentacion principal compatibilizada
+suite completa verde
+```
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural seria decidir si corresponde construir una salida mas legible del diagnostico calendar-aware:
+
+```text
+v105 - reporte operativo calendar-aware
+```
+
+Objetivo sugerido:
+
+```text
+- transformar ResultadoDiagnosticoCalendarAware en un reporte simple
+- exponer estado general, hard, soft y codigos principales
+- mantener la salida como diagnostico
+- no tocar engine.py
+- no tocar validator.py
+- no cambiar workflow formal
+```
+
+Tambien es valido pausar implementacion y revisar manualmente la documentacion antes de avanzar.
+
+---
