@@ -17888,3 +17888,258 @@ Objetivo sugerido:
 
 ---
 
+## checkpoint-v106-smoke-reporte-operativo-calendar-aware-csv-real
+
+Fecha: 2026-06-26
+
+---
+
+### Estado general
+
+Se agrego un smoke sobre el CSV real local usando el reporte operativo calendar-aware incorporado en v105.
+
+El objetivo fue validar que `ReporteOperativoCalendarAware` funcione correctamente sobre el roster real acotado `data/imports/csv_ok.csv`.
+
+Esta version no agrega logica de negocio nueva.
+
+Esta version no modifica el motor general ni el workflow formal.
+
+---
+
+### Problema abordado
+
+Hasta v105 ya existia una capa de reporte:
+
+```text
+ResultadoDiagnosticoCalendarAware
+-> generar_reporte_operativo_calendar_aware
+-> ReporteOperativoCalendarAware
+```
+
+Pero faltaba confirmar ese reporte sobre el CSV real local.
+
+v106 agrega ese smoke controlado.
+
+---
+
+### Alcance implementado
+
+Se agrego un test smoke local que:
+
+```text
+- verifica si existe data/imports/csv_ok.csv
+- si no existe, omite el test con pytest.skip
+- importa el CSV real con anio=2026 y mes=6
+- llama generar_reporte_operativo_importacion_calendar_aware
+- valida el reporte operativo calendar-aware esperado
+- valida la serializacion basica con to_dict
+```
+
+El CSV real no se sube al repositorio.
+
+El directorio `data/imports/` sigue ignorado por Git.
+
+---
+
+### Archivos agregados
+
+Se agrego:
+
+```text
+tests/test_smoke_reporte_operativo_calendar_aware_csv_real.py
+```
+
+---
+
+### Archivos modificados
+
+Se modifico:
+
+```text
+checkpoints.md
+```
+
+---
+
+### Cadena validada
+
+La cadena validada por el smoke queda:
+
+```text
+data/imports/csv_ok.csv
+-> importar_roster_desde_csv(anio=2026, mes=6, strict=True)
+-> generar_reporte_operativo_importacion_calendar_aware
+-> ReporteOperativoCalendarAware
+```
+
+---
+
+### Resultado esperado del reporte
+
+El smoke confirma:
+
+```text
+mensaje = Reporte operativo calendar-aware
+estado_general = VALIDO_SIN_HARD
+total_dias_importados = 450
+total_violaciones = 1
+total_hard = 0
+total_soft = 1
+valido_sin_hard = True
+```
+
+Codigo principal:
+
+```text
+EXCESO_LIBRES_CONSECUTIVOS = 1
+```
+
+Detalle validado:
+
+```text
+codigo = EXCESO_LIBRES_CONSECUTIVOS
+severidad = SOFT
+cantidad_dias = 6
+```
+
+---
+
+### Interpretacion
+
+El smoke confirma que el reporte operativo calendar-aware puede presentar el diagnostico del CSV real local sin pasar por el engine tradicional.
+
+El resultado sigue siendo consistente con los checkpoints previos:
+
+```text
+0 hard
+1 soft
+```
+
+La unica observacion vigente sobre timeline corresponde a:
+
+```text
+EXCESO_LIBRES_CONSECUTIVOS
+```
+
+---
+
+### Validaciones ejecutadas
+
+Se ejecuto test smoke focalizado:
+
+```text
+uv run pytest tests/test_smoke_reporte_operativo_calendar_aware_csv_real.py -q
+```
+
+Resultado:
+
+```text
+1 passed
+```
+
+Se ejecutaron tests relacionados:
+
+```text
+uv run pytest tests/test_roster_calendar_aware_report.py tests/test_roster_calendar_aware_entrypoint.py tests/test_smoke_entrypoint_calendar_aware_csv_real.py -q
+```
+
+Resultado:
+
+```text
+12 passed
+```
+
+Se ejecuto suite completa:
+
+```text
+uv run pytest -q
+```
+
+Resultado:
+
+```text
+448 passed
+```
+
+Nota operativa:
+
+```text
+En el shell de Codex se uso uv con PYTHONPATH=.
+En VS Code del usuario, el comando equivalente habitual es py -m pytest -q.
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* `src/`
+* `engine.py`
+* `validator.py`
+* `scoring.py`
+* `simulator.py`
+* `swap_service.py`
+* workflow formal
+* reglas tecnicas actuales
+* CSV real local
+
+No se conecto la timeline al engine general.
+
+No se reemplazo el validador tradicional.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+No se subio el CSV real al repositorio.
+
+---
+
+### Estado final
+
+v106 deja validado el reporte operativo calendar-aware sobre el CSV real local.
+
+La cadena consolidada queda:
+
+```text
+CSV real local
+-> importador
+-> generar_reporte_operativo_importacion_calendar_aware
+-> ReporteOperativoCalendarAware
+-> VALIDO_SIN_HARD
+-> 0 hard
+-> 1 soft
+```
+
+El reporte sigue siendo diagnostico.
+
+No decide swaps ni altera el comportamiento formal del sistema.
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural seria pausar la implementacion y preparar un plan controlado para carga de rosters mensuales:
+
+```text
+v107 - diagnostico de carga multi-mes junio julio agosto
+```
+
+Objetivo sugerido:
+
+```text
+- revisar formato de las listas de junio, julio y agosto
+- validar si corresponden a CSV/matriz ya soportada
+- diagnosticar importacion sin persistir en base de datos
+- generar reporte calendar-aware por mes
+- no modificar la base de datos todavia
+- no tocar engine.py
+- no tocar validator.py
+- no cambiar workflow formal
+```
+
+La carga real a base de datos deberia hacerse en un paso posterior y explicito, solo despues de validar importacion y diagnostico por mes.
+
+---
+
