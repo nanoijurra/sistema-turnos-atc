@@ -18607,6 +18607,323 @@ Objetivo sugerido:
 ```
 
 ---
+## checkpoint-v109-smoke-multimes-acc-cba-reales-finales
+
+Fecha: 2026-07-23
+
+---
+
+### Estado general
+
+Se agrego un smoke reproducible para diagnosticar los tres CSV reales finales de ACC CBA.
+
+El objetivo fue validar en conjunto junio, julio y agosto usando la capa multi-mes calendar-aware agregada en v107 y las normalizaciones reales agregadas en v108.
+
+Esta version no carga datos en base.
+
+Esta version no crea `RosterVersion`.
+
+Esta version no modifica el motor general ni el workflow formal.
+
+---
+
+### Problema abordado
+
+Hasta v108 ya estaban resueltos:
+
+```text
+FC -> libre
+IN/C -> C
+```
+
+Tambien se habia confirmado manualmente que los tres CSV finales estaban:
+
+```text
+sin DNI
+sin columna FUNCION
+con separador coma
+```
+
+Faltaba convertir ese diagnostico manual en un smoke reproducible.
+
+---
+
+### Alcance implementado
+
+Se agrego soporte explicito para formato:
+
+```text
+CSV_ACC_CBA
+```
+
+Ese formato permite leer archivos reales con estructura:
+
+```text
+APELLIDO NOMBRE,1,2,3,...
+CONTROLADOR,A,B,,LA,...
+```
+
+Tambien soporta el caso de junio con fila inicial de titulo y dias en la segunda fila:
+
+```text
+APELLIDO NOMBRE,,,,...
+,1,2,3,...
+CONTROLADOR,A,B,,LA,...
+```
+
+---
+
+### Archivos agregados
+
+Se agrego:
+
+```text
+tests/test_smoke_multimes_acc_cba_reales.py
+```
+
+---
+
+### Archivos modificados
+
+Se modificaron:
+
+```text
+src/roster_calendar_aware_multimonth.py
+tests/test_roster_calendar_aware_multimonth.py
+checkpoints.md
+```
+
+---
+
+### Constantes agregadas
+
+En `src/roster_calendar_aware_multimonth.py` se agregaron:
+
+```text
+FORMATO_CSV_SIMPLE
+FORMATO_CSV_ACC_CBA
+```
+
+---
+
+### Comportamiento agregado
+
+`EntradaCargaRosterMes` ahora permite indicar:
+
+```text
+formato
+```
+
+Por defecto:
+
+```text
+CSV_SIMPLE
+```
+
+Para los archivos finales ACC CBA:
+
+```text
+CSV_ACC_CBA
+```
+
+El formato `CSV_ACC_CBA`:
+
+```text
+- detecta separador coma o punto y coma
+- soporta codificacion utf-8-sig, cp1252 o latin-1
+- detecta la fila de dias
+- toma la columna anterior al primer dia como controlador
+- transforma internamente la matriz al contrato del importador base
+```
+
+---
+
+### Smoke real agregado
+
+Se agrego un smoke local sobre:
+
+```text
+C:\Users\nanoi\Documents\ACC CBA\junio.csv
+C:\Users\nanoi\Documents\ACC CBA\julio.csv
+C:\Users\nanoi\Documents\ACC CBA\agosto.csv
+```
+
+Si los archivos no existen en otra maquina, el test se omite con `pytest.skip`.
+
+---
+
+### Resultado esperado del smoke real
+
+El smoke valida:
+
+```text
+total_meses = 3
+meses_disponibles = 3
+meses_omitidos = 0
+meses_con_errors_importacion = 0
+meses_con_hard_calendar_aware = 0
+total_hard_calendar_aware = 0
+total_soft_calendar_aware = 17
+apto_para_revision_carga = True
+```
+
+Detalle por mes:
+
+```text
+junio:
+controladores = 74
+dias_importados = 2220
+asignaciones_operativas = 909
+eventos_no_operativos = 334
+errors_importacion = 0
+hard_calendar_aware = 0
+soft_calendar_aware = 1
+
+julio:
+controladores = 74
+dias_importados = 2294
+asignaciones_operativas = 910
+eventos_no_operativos = 442
+errors_importacion = 0
+hard_calendar_aware = 0
+soft_calendar_aware = 11
+
+agosto:
+controladores = 73
+dias_importados = 2263
+asignaciones_operativas = 930
+eventos_no_operativos = 339
+errors_importacion = 0
+hard_calendar_aware = 0
+soft_calendar_aware = 5
+```
+
+---
+
+### Tests agregados
+
+Se agregaron tests para validar:
+
+```text
+CSV_ACC_CBA directo con APELLIDO NOMBRE y dias
+CSV_ACC_CBA con fila de titulo y dias en segunda fila
+rechazo de formato no soportado
+smoke real con junio, julio y agosto finales
+```
+
+---
+
+### Validaciones ejecutadas
+
+Se ejecutaron tests focalizados:
+
+```text
+uv run pytest tests/test_roster_calendar_aware_multimonth.py tests/test_smoke_multimes_acc_cba_reales.py -q
+```
+
+Resultado:
+
+```text
+11 passed
+```
+
+Se ejecuto suite completa:
+
+```text
+uv run pytest -q
+```
+
+Resultado:
+
+```text
+461 passed
+```
+
+Nota operativa:
+
+```text
+En el shell de Codex se uso uv con PYTHONPATH=.
+En VS Code del usuario, el comando equivalente habitual es py -m pytest -q.
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* base de datos
+* `engine.py`
+* `validator.py`
+* `scoring.py`
+* `simulator.py`
+* `swap_service.py`
+* workflow formal
+* CSV reales locales
+
+No se creo `RosterVersion`.
+
+No se persistieron rosters.
+
+No se conecto la timeline al engine general.
+
+No se reemplazo el validador tradicional.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+---
+
+### Estado final
+
+v109 deja validado el diagnostico multi-mes con los archivos reales finales.
+
+La cadena consolidada queda:
+
+```text
+CSV reales ACC CBA
+-> FORMATO_CSV_ACC_CBA
+-> diagnosticar_carga_multimes_calendar_aware
+-> 0 errores de importacion
+-> 0 hard calendar-aware
+-> apto_para_revision_carga = True
+```
+
+El resultado sigue siendo diagnostico.
+
+No carga datos en base.
+
+No decide swaps.
+
+No altera el comportamiento formal del sistema.
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural seria hacer una prueba controlada de cambio de turno en modo simulacion:
+
+```text
+v110 - prueba simulada de cambio de turno sobre roster importado
+```
+
+Objetivo sugerido:
+
+```text
+- elegir un mes y dos asignaciones concretas
+- importar el roster en memoria
+- crear RosterVersion solo en memoria o store controlado de test
+- simular cambio de turno
+- evaluar resultado tecnico
+- no aplicar cambio real
+- no tocar DB productiva
+```
+
+La aplicacion real de un cambio debe seguir siendo un paso posterior y explicito.
+
+---
+
 ## checkpoint-v46-oferta-rapida-topn-benchmark
 Fecha: 2026-05-06
 

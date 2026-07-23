@@ -6,6 +6,7 @@ import pytest
 
 from src.roster_calendar_aware_multimonth import (
     EntradaCargaRosterMes,
+    FORMATO_CSV_ACC_CBA,
     diagnosticar_carga_multimes_calendar_aware,
 )
 from src.roster_calendar_aware_report import (
@@ -201,6 +202,88 @@ def test_diagnostico_multimes_to_dict(tmp_path):
     assert data["meses"][0]["anio"] == 2026
     assert data["meses"][0]["mes"] == 6
     assert data["meses"][0]["reporte"]["estado_general"] == ESTADO_VALIDO_SIN_HARD
+
+
+def test_diagnosticar_carga_multimes_soporta_csv_acc_cba_directo(tmp_path):
+    julio = _crear_csv(
+        tmp_path / "julio.csv",
+        [
+            ["APELLIDO NOMBRE", "1", "2", "3"],
+            ["CONTROLADOR A", "A", "FC", "IN/C"],
+        ],
+    )
+
+    diagnostico = diagnosticar_carga_multimes_calendar_aware(
+        [
+            EntradaCargaRosterMes(
+                2026,
+                7,
+                julio,
+                formato=FORMATO_CSV_ACC_CBA,
+            ),
+        ],
+    )
+
+    mes = diagnostico.meses[0]
+
+    assert mes.total_controladores == 1
+    assert mes.total_dias_importados == 3
+    assert mes.total_asignaciones_operativas == 2
+    assert mes.total_errors_importacion == 0
+    assert mes.total_hard_calendar_aware == 0
+    assert mes.apto_para_revision_carga is True
+
+
+def test_diagnosticar_carga_multimes_soporta_csv_acc_cba_con_fila_titulo(tmp_path):
+    junio = _crear_csv(
+        tmp_path / "junio.csv",
+        [
+            ["APELLIDO NOMBRE", "", "", ""],
+            ["", "1", "2", "3"],
+            ["CONTROLADOR A", "A", "", "B"],
+        ],
+    )
+
+    diagnostico = diagnosticar_carga_multimes_calendar_aware(
+        [
+            EntradaCargaRosterMes(
+                2026,
+                6,
+                junio,
+                formato=FORMATO_CSV_ACC_CBA,
+            ),
+        ],
+    )
+
+    mes = diagnostico.meses[0]
+
+    assert mes.total_controladores == 1
+    assert mes.total_dias_importados == 3
+    assert mes.total_asignaciones_operativas == 2
+    assert mes.total_errors_importacion == 0
+    assert mes.apto_para_revision_carga is True
+
+
+def test_diagnosticar_carga_multimes_rechaza_formato_no_soportado(tmp_path):
+    csv_path = _crear_csv(
+        tmp_path / "junio.csv",
+        [
+            ["controlador", "01"],
+            ["CONTROLADOR A", "A"],
+        ],
+    )
+
+    with pytest.raises(ValueError, match="Formato"):
+        diagnosticar_carga_multimes_calendar_aware(
+            [
+                EntradaCargaRosterMes(
+                    2026,
+                    6,
+                    csv_path,
+                    formato="OTRO_FORMATO",
+                ),
+            ],
+        )
 
 
 def _crear_csv(path: Path, filas: list[list[str]]) -> Path:

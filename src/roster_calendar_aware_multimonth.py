@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -9,9 +10,15 @@ from src.roster_calendar_aware_report import (
     generar_reporte_operativo_importacion_calendar_aware,
 )
 from src.roster_import_service import (
+    RosterImportResult,
     generar_resumen_importacion,
+    importar_roster_desde_matriz,
     importar_roster_desde_csv,
 )
+
+
+FORMATO_CSV_SIMPLE = "CSV_SIMPLE"
+FORMATO_CSV_ACC_CBA = "CSV_ACC_CBA"
 
 
 @dataclass(frozen=True)
@@ -19,6 +26,7 @@ class EntradaCargaRosterMes:
     anio: int
     mes: int
     csv_path: Path
+    formato: str = FORMATO_CSV_SIMPLE
 
 
 @dataclass(frozen=True)
@@ -197,12 +205,7 @@ def _diagnosticar_mes(
             reporte=None,
         )
 
-    resultado_importacion = importar_roster_desde_csv(
-        entrada.csv_path,
-        anio=entrada.anio,
-        mes=entrada.mes,
-        strict=strict,
-    )
+    resultado_importacion = _importar_entrada(entrada, strict=strict)
     resumen_importacion = generar_resumen_importacion(resultado_importacion)
     reporte = generar_reporte_operativo_importacion_calendar_aware(
         resultado_importacion,
@@ -237,6 +240,87 @@ def _diagnosticar_mes(
         por_severidad_calendar_aware=_contar_totales_por_severidad(reporte),
         reporte=reporte,
     )
+
+
+def _importar_entrada(
+    entrada: EntradaCargaRosterMes,
+    *,
+    strict: bool,
+) -> RosterImportResult:
+    if entrada.formato == FORMATO_CSV_SIMPLE:
+        return importar_roster_desde_csv(
+            entrada.csv_path,
+            anio=entrada.anio,
+            mes=entrada.mes,
+            strict=strict,
+        )
+
+    if entrada.formato == FORMATO_CSV_ACC_CBA:
+        return importar_roster_desde_matriz(
+            _leer_matriz_acc_cba(entrada.csv_path),
+            anio=entrada.anio,
+            mes=entrada.mes,
+            strict=strict,
+            source_type=FORMATO_CSV_ACC_CBA,
+        )
+
+    raise ValueError(f"Formato de entrada no soportado: {entrada.formato}")
+
+
+def _leer_matriz_acc_cba(csv_path: Path) -> list[list[str]]:
+    csv_text = _leer_texto_csv(csv_path)
+    delimiter = _detectar_delimitador(csv_text)
+    rows = list(csv.reader(csv_text.splitlines(), delimiter=delimiter))
+    header_index = _buscar_indice_header_dias(rows)
+    header = rows[header_index]
+    day_positions = [
+        index
+        for index, value in enumerate(header)
+        if value.strip().isdigit()
+    ]
+    name_position = day_positions[0] - 1
+
+    matriz = [["controlador"] + [header[index].strip() for index in day_positions]]
+
+    for row in rows[header_index + 1 :]:
+        if len(row) <= name_position or not row[name_position].strip():
+            continue
+
+        matriz.append(
+            [row[name_position].strip()]
+            + [
+                row[index].strip() if index < len(row) else ""
+                for index in day_positions
+            ]
+        )
+
+    return matriz
+
+
+def _leer_texto_csv(csv_path: Path) -> str:
+    for encoding in ("utf-8-sig", "cp1252", "latin-1"):
+        try:
+            return csv_path.read_text(encoding=encoding)
+        except UnicodeDecodeError:
+            continue
+
+    return csv_path.read_text(encoding="latin-1", errors="replace")
+
+
+def _detectar_delimitador(csv_text: str) -> str:
+    first_line = csv_text.splitlines()[0] if csv_text.splitlines() else ""
+    if first_line.count(";") > first_line.count(","):
+        return ";"
+
+    return ","
+
+
+def _buscar_indice_header_dias(rows: list[list[str]]) -> int:
+    for index, row in enumerate(rows[:3]):
+        if any(value.strip().isdigit() for value in row):
+            return index
+
+    raise ValueError("No se encontro encabezado de dias en CSV ACC CBA.")
 
 
 def _contar_totales_por_severidad(
