@@ -41,7 +41,9 @@ def test_catalogo_contiene_codigos_consolidados() -> None:
         "CO",
         "RTA",
         "RTB",
+        "FC",
         "IN",
+        "IN/C",
         "PSI",
         "REM",
         "RET",
@@ -142,6 +144,12 @@ def test_catalogo_define_normalizables() -> None:
 
     assert catalogo["IN"].categoria_importacion == RosterCodeImportCategory.NORMALIZABLE
     assert catalogo["IN"].normaliza_a == "EN"
+
+    assert catalogo["FC"].categoria_importacion == RosterCodeImportCategory.NORMALIZABLE
+    assert catalogo["FC"].normaliza_a == ""
+
+    assert catalogo["IN/C"].categoria_importacion == RosterCodeImportCategory.NORMALIZABLE
+    assert catalogo["IN/C"].normaliza_a == "C"
 
     assert catalogo["REM"].categoria_importacion == RosterCodeImportCategory.NORMALIZABLE
     assert catalogo["REM"].normaliza_a == "RTA"

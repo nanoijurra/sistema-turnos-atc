@@ -377,6 +377,47 @@ def test_codigo_ret_se_normaliza_a_rtb_y_queda_no_operativo() -> None:
     assert any(warning.code == "CODIGO_NORMALIZADO" for warning in result.warnings)
 
 
+def test_codigo_fc_se_normaliza_a_libre_y_no_genera_asignacion_ni_evento() -> None:
+    from src.roster_day_timeline import RosterDayStatus
+    from src.roster_import_service import importar_roster_desde_matriz
+
+    matriz = [
+        ["controlador", "01"],
+        ["CONTROLADOR A", "FC"],
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6)
+
+    assert not result.errors
+    assert result.asignaciones_operativas == []
+    assert result.eventos_no_operativos == []
+    assert result.dias_importados[0].estado == RosterDayStatus.LIBRE
+    assert result.dias_importados[0].codigo == "FC"
+    assert result.dias_importados[0].codigo_normalizado == ""
+    assert any(warning.code == "CODIGO_NORMALIZADO" for warning in result.warnings)
+
+
+def test_codigo_in_c_se_normaliza_a_c_y_genera_asignacion_operativa() -> None:
+    from src.roster_day_timeline import RosterDayStatus
+    from src.roster_import_service import importar_roster_desde_matriz
+
+    matriz = [
+        ["controlador", "01"],
+        ["CONTROLADOR A", "IN/C"],
+    ]
+
+    result = importar_roster_desde_matriz(matriz, anio=2026, mes=6)
+
+    assert not result.errors
+    assert len(result.asignaciones_operativas) == 1
+    assert result.asignaciones_operativas[0].turno.codigo == "C"
+    assert result.eventos_no_operativos == []
+    assert result.dias_importados[0].estado == RosterDayStatus.OPERATIVO
+    assert result.dias_importados[0].codigo == "IN/C"
+    assert result.dias_importados[0].codigo_normalizado == "C"
+    assert any(warning.code == "CODIGO_NORMALIZADO" for warning in result.warnings)
+
+
 def test_codigo_d_no_activado_no_genera_asignacion_y_error_strict_true() -> None:
     from src.roster_import_service import importar_roster_desde_matriz
 

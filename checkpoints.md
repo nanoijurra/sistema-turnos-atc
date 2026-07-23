@@ -5330,175 +5330,6 @@ Mostrando mejores candidatos evaluados segun filtros actuales.
 ---
 
 
-## checkpoint-v46-oferta-rapida-topn-benchmark
-Fecha: 2026-05-06
-
----
-
-### Estado general
-
-Se agrego un benchmark comparativo para medir `OFERTA_RAPIDA` contra `DIAGNOSTICO_COMPLETO` usando una matriz de valores `top_n`.
-
-El bloque no modifica el comportamiento tecnico del sistema. Solo agrega una herramienta de medicion en `tools/`.
-
-La suite completa quedo en verde.
-
----
-
-### Que quedo implementado
-
-#### 1. Benchmark top-N de oferta rapida
-
-Se agrego el archivo:
-
-- `tools/benchmark_oferta_rapida_topn.py`
-
-El benchmark compara dos modos oficiales:
-
-- `DIAGNOSTICO_COMPLETO`
-- `OFERTA_RAPIDA`
-
----
-
-#### 2. Matriz de top_n
-
-Se mide `OFERTA_RAPIDA` con los siguientes valores:
-
-- `top_n=20`
-- `top_n=40`
-- `top_n=50`
-- `top_n=80`
-- `top_n=100`
-
----
-
-#### 3. Flujo medido
-
-`DIAGNOSTICO_COMPLETO` mide el flujo:
-
-    candidate_generation -> technical_prefilter -> simulator
-
-`OFERTA_RAPIDA` mide el flujo:
-
-    candidate_generation -> technical_prefilter -> candidate_selection -> simulator
-
----
-
-#### 4. Metadata por ejecucion
-
-El benchmark reporta metadata compatible con `ExplorationMetadata`.
-
-Campos reportados:
-
-- `modo_exploracion`
-- `candidatos_generados`
-- `candidatos_prefiltrados`
-- `candidatos_seleccionados`
-- `candidatos_evaluados`
-- `top_n`
-- `criterio_seleccion`
-- `tiempos_por_etapa`
-
----
-
-#### 5. Comparacion contra diagnostico completo
-
-Para cada escala se calcula:
-
-- tiempo total
-- candidatos evaluados
-- candidatos seleccionados
-- ahorro en milisegundos
-- ahorro porcentual
-- clasificacion tecnica
-- transicion diagnostica
-- diversidad de controladores
-
----
-
-#### 6. Compatibilidad con contratos reales existentes
-
-El benchmark se adapto a los contratos reales del codigo actual:
-
-- `generate_candidates(asignacion_origen, roster_index, mode)`
-- `filter_technically_plausible_candidates(..., config_file)`
-- `evaluar_swap(asignaciones, idx_a, idx_b, config_file)`
-
-Esto mantiene el benchmark alineado con los modulos existentes sin modificar `src/`.
-
----
-
-### Resultados observados
-
-Suite completa:
-
-    162 passed
-
-Resultados principales del benchmark:
-
-- `DIAGNOSTICO_COMPLETO` evalua todos los candidatos prefiltrados.
-- `OFERTA_RAPIDA` evalua solo los candidatos seleccionados por `candidate_selection`.
-- `top_n=50` mantiene el patron esperado del checkpoint anterior.
-- La clasificacion tecnica observada se mantiene como `ACEPTABLE`.
-- La transicion diagnostica observada se mantiene como `VV_IGUAL`.
-
-Lectura operativa:
-
-- `top_n=20` ofrece el mayor ahorro, pero puede ser demasiado restrictivo para oferta real.
-- `top_n=40` aparece como opcion razonable para una oferta mas liviana.
-- `top_n=50` queda sostenido como default inicial operativo.
-- `top_n=80` y `top_n=100` se acercan mas al diagnostico completo y pierden parte de la ventaja de costo.
-
----
-
-### Decisiones de diseno reforzadas
-
-- `candidate_selection` reduce universo antes de simular.
-- `candidate_selection` no clasifica.
-- `candidate_selection` no puntua tecnicamente.
-- `candidate_selection` no decide.
-- `candidate_selection` no persiste.
-- `candidate_selection` no llama `engine`, `scoring` ni `simulator`.
-- `simulator` sigue siendo la fuente de verdad tecnica.
-- El ranking tecnico debe ocurrir despues de la simulacion.
-- `DIAGNOSTICO_COMPLETO` se conserva como camino de auditoria, diagnostico y benchmark.
-- `OFERTA_RAPIDA` queda validado como camino operativo preferente medible.
-
----
-
-### Limitaciones actuales (conscientes)
-
-- El benchmark todavia es una herramienta en `tools/`, no un flujo operativo integrado.
-- No se integro `OFERTA_RAPIDA` en `swap_service`.
-- No se agrego cache.
-- No se agrego paralelizacion.
-- No se optimizo internamente `simulator`.
-- No se implemento seleccion basada en score tecnico.
-- No se implemento candidate_selection inteligente avanzada.
-- No se elimino el modo completo.
-
----
-
-### Proximos pasos naturales
-
-- Crear un flujo de exploracion/oferta que use explicitamente `ModoExploracion`.
-- Mantener `DIAGNOSTICO_COMPLETO` disponible para auditoria.
-- Integrar metadata de exploracion en una salida estructurada.
-- Preparar una funcion operativa de oferta rapida sin tocar aun `swap_service`.
-- Definir luego si esa funcion sera consumida por reporting, UI o servicio operativo.
-- Mantener `top_n=50` como default inicial operativo, salvo nueva evidencia.
-
----
-
-### Notas
-
-Este checkpoint aporta evidencia empirica para sostener `OFERTA_RAPIDA` como camino preferente.
-
-No modifica contratos tecnicos ni cambia decisiones operativas.
-
-No toca `engine`, `scoring`, `simulator`, `swap_service`, `technical_prefilter` ni `candidate_selection`.
-
----
 
 ## checkpoint-v47-exploration-flow-oferta-rapida
 Fecha: 2026-05-06
@@ -18489,5 +18320,460 @@ La carga real a base de datos debe seguir postergada hasta revisar el reporte mu
 
 ---
 
+## checkpoint-v108-normalizacion-codigos-fc-in-c
 
+Fecha: 2026-07-23
+
+---
+
+### Estado general
+
+Se agrego normalizacion explicita para codigos reales detectados en los rosters finales de junio, julio y agosto.
+
+El objetivo fue resolver los ultimos codigos desconocidos antes de cualquier carga a base de datos.
+
+Esta version no carga datos en la base.
+
+Esta version no crea `RosterVersion`.
+
+Esta version no modifica el motor general ni el workflow formal.
+
+---
+
+### Problema abordado
+
+Durante el diagnostico de integridad de los CSV reales corregidos se detectaron dos codigos especiales:
+
+```text
+FC
+IN/C
+```
+
+Interpretacion operativa confirmada:
+
+```text
+FC = fecha cumpleanos
+FC se toma como dia libre
+
+IN/C = ingles virtual + turno noche C
+Para el roster operativo importa la C
+```
+
+Antes de v108, esos codigos podian quedar como desconocidos.
+
+---
+
+### Alcance implementado
+
+Se agregaron normalizaciones al catalogo y al importador:
+
+```text
+FC -> celda libre
+IN/C -> C
+```
+
+La normalizacion de `FC` conserva el valor original como `raw_value`, pero registra el dia como:
+
+```text
+LIBRE
+```
+
+La normalizacion de `IN/C` conserva el valor original como `raw_value`, pero registra el dia como:
+
+```text
+OPERATIVO
+codigo_normalizado = C
+```
+
+---
+
+### Archivos modificados
+
+Se modificaron:
+
+```text
+src/roster_import_service.py
+src/roster_code_catalog.py
+tests/test_roster_import_service.py
+tests/test_roster_code_catalog.py
+checkpoints.md
+```
+
+---
+
+### Comportamiento agregado
+
+Para `FC`:
+
+```text
+- no genera asignacion operativa
+- no genera evento no operativo
+- no genera error
+- registra dia importado como LIBRE
+- genera warning CODIGO_NORMALIZADO
+```
+
+Para `IN/C`:
+
+```text
+- genera asignacion operativa C
+- entra al motor tecnico como C
+- participa de validacion calendar-aware como noche C
+- no genera evento no operativo
+- no genera error
+- genera warning CODIGO_NORMALIZADO
+```
+
+---
+
+### Catalogo actualizado
+
+Se agregaron definiciones documentales para:
+
+```text
+FC
+IN/C
+```
+
+`FC` queda como codigo local normalizable a libre.
+
+`IN/C` queda como codigo local compuesto normalizable a `C`.
+
+El catalogo y la configuracion del importador quedan alineados.
+
+---
+
+### Tests agregados
+
+Se agregaron tests para validar:
+
+```text
+FC se normaliza a libre
+FC no genera asignacion ni evento
+IN/C se normaliza a C
+IN/C genera asignacion operativa C
+catalogo contiene FC e IN/C
+catalogo e importador quedan alineados
+```
+
+---
+
+### Diagnostico sobre archivos reales corregidos
+
+Se ejecuto diagnostico en memoria sobre:
+
+```text
+C:\Users\nanoi\Documents\ACC CBA\junio.csv
+C:\Users\nanoi\Documents\ACC CBA\julio.csv
+C:\Users\nanoi\Documents\ACC CBA\agosto.csv
+```
+
+Los archivos actuales ya estan:
+
+```text
+sin DNI
+sin columna FUNCION
+con separador coma
+```
+
+Resultado:
+
+```text
+junio:
+controladores = 74
+dias_importados = 2220
+asignaciones_operativas = 909
+eventos_no_operativos = 334
+errors_importacion = 0
+hard_calendar_aware = 0
+soft_calendar_aware = 1
+
+julio:
+controladores = 74
+dias_importados = 2294
+asignaciones_operativas = 910
+eventos_no_operativos = 442
+errors_importacion = 0
+hard_calendar_aware = 0
+soft_calendar_aware = 11
+
+agosto:
+controladores = 73
+dias_importados = 2263
+asignaciones_operativas = 930
+eventos_no_operativos = 339
+errors_importacion = 0
+hard_calendar_aware = 0
+soft_calendar_aware = 5
+```
+
+---
+
+### Validaciones ejecutadas
+
+Se ejecuto test focalizado de catalogo e importador:
+
+```text
+uv run pytest tests/test_roster_code_catalog.py tests/test_roster_import_service.py -q
+```
+
+Resultado:
+
+```text
+46 passed
+```
+
+Se ejecuto suite completa:
+
+```text
+uv run pytest -q
+```
+
+Resultado:
+
+```text
+457 passed
+```
+
+Nota operativa:
+
+```text
+En el shell de Codex se uso uv con PYTHONPATH=.
+En VS Code del usuario, el comando equivalente habitual es py -m pytest -q.
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* base de datos
+* `engine.py`
+* `validator.py`
+* `scoring.py`
+* `simulator.py`
+* `swap_service.py`
+* workflow formal
+* CSV reales locales
+
+No se creo `RosterVersion`.
+
+No se persistieron rosters.
+
+No se conecto la timeline al engine general.
+
+No se reemplazo el validador tradicional.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+---
+
+### Estado final
+
+v108 deja resueltos los codigos reales `FC` e `IN/C`.
+
+Los tres CSV finales quedan diagnosticados con:
+
+```text
+0 errores de importacion
+0 hard calendar-aware
+```
+
+La carga a base de datos sigue postergada hasta decision explicita posterior.
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural seria convertir este diagnostico manual en un smoke reproducible usando la capa multi-mes:
+
+```text
+v109 - smoke multi-mes con archivos reales finales
+```
+
+Objetivo sugerido:
+
+```text
+- usar los tres CSV reales finales
+- ejecutar diagnosticar_carga_multimes_calendar_aware
+- validar 0 errores de importacion
+- validar 0 hard calendar-aware
+- registrar soft por mes
+- no persistir en base de datos
+- no crear RosterVersion
+```
+
+---
+## checkpoint-v46-oferta-rapida-topn-benchmark
+Fecha: 2026-05-06
+
+---
+
+### Estado general
+
+Se agrego un benchmark comparativo para medir `OFERTA_RAPIDA` contra `DIAGNOSTICO_COMPLETO` usando una matriz de valores `top_n`.
+
+El bloque no modifica el comportamiento tecnico del sistema. Solo agrega una herramienta de medicion en `tools/`.
+
+La suite completa quedo en verde.
+
+---
+
+### Que quedo implementado
+
+#### 1. Benchmark top-N de oferta rapida
+
+Se agrego el archivo:
+
+- `tools/benchmark_oferta_rapida_topn.py`
+
+El benchmark compara dos modos oficiales:
+
+- `DIAGNOSTICO_COMPLETO`
+- `OFERTA_RAPIDA`
+
+---
+
+#### 2. Matriz de top_n
+
+Se mide `OFERTA_RAPIDA` con los siguientes valores:
+
+- `top_n=20`
+- `top_n=40`
+- `top_n=50`
+- `top_n=80`
+- `top_n=100`
+
+---
+
+#### 3. Flujo medido
+
+`DIAGNOSTICO_COMPLETO` mide el flujo:
+
+    candidate_generation -> technical_prefilter -> simulator
+
+`OFERTA_RAPIDA` mide el flujo:
+
+    candidate_generation -> technical_prefilter -> candidate_selection -> simulator
+
+---
+
+#### 4. Metadata por ejecucion
+
+El benchmark reporta metadata compatible con `ExplorationMetadata`.
+
+Campos reportados:
+
+- `modo_exploracion`
+- `candidatos_generados`
+- `candidatos_prefiltrados`
+- `candidatos_seleccionados`
+- `candidatos_evaluados`
+- `top_n`
+- `criterio_seleccion`
+- `tiempos_por_etapa`
+
+---
+
+#### 5. Comparacion contra diagnostico completo
+
+Para cada escala se calcula:
+
+- tiempo total
+- candidatos evaluados
+- candidatos seleccionados
+- ahorro en milisegundos
+- ahorro porcentual
+- clasificacion tecnica
+- transicion diagnostica
+- diversidad de controladores
+
+---
+
+#### 6. Compatibilidad con contratos reales existentes
+
+El benchmark se adapto a los contratos reales del codigo actual:
+
+- `generate_candidates(asignacion_origen, roster_index, mode)`
+- `filter_technically_plausible_candidates(..., config_file)`
+- `evaluar_swap(asignaciones, idx_a, idx_b, config_file)`
+
+Esto mantiene el benchmark alineado con los modulos existentes sin modificar `src/`.
+
+---
+
+### Resultados observados
+
+Suite completa:
+
+    162 passed
+
+Resultados principales del benchmark:
+
+- `DIAGNOSTICO_COMPLETO` evalua todos los candidatos prefiltrados.
+- `OFERTA_RAPIDA` evalua solo los candidatos seleccionados por `candidate_selection`.
+- `top_n=50` mantiene el patron esperado del checkpoint anterior.
+- La clasificacion tecnica observada se mantiene como `ACEPTABLE`.
+- La transicion diagnostica observada se mantiene como `VV_IGUAL`.
+
+Lectura operativa:
+
+- `top_n=20` ofrece el mayor ahorro, pero puede ser demasiado restrictivo para oferta real.
+- `top_n=40` aparece como opcion razonable para una oferta mas liviana.
+- `top_n=50` queda sostenido como default inicial operativo.
+- `top_n=80` y `top_n=100` se acercan mas al diagnostico completo y pierden parte de la ventaja de costo.
+
+---
+
+### Decisiones de diseno reforzadas
+
+- `candidate_selection` reduce universo antes de simular.
+- `candidate_selection` no clasifica.
+- `candidate_selection` no puntua tecnicamente.
+- `candidate_selection` no decide.
+- `candidate_selection` no persiste.
+- `candidate_selection` no llama `engine`, `scoring` ni `simulator`.
+- `simulator` sigue siendo la fuente de verdad tecnica.
+- El ranking tecnico debe ocurrir despues de la simulacion.
+- `DIAGNOSTICO_COMPLETO` se conserva como camino de auditoria, diagnostico y benchmark.
+- `OFERTA_RAPIDA` queda validado como camino operativo preferente medible.
+
+---
+
+### Limitaciones actuales (conscientes)
+
+- El benchmark todavia es una herramienta en `tools/`, no un flujo operativo integrado.
+- No se integro `OFERTA_RAPIDA` en `swap_service`.
+- No se agrego cache.
+- No se agrego paralelizacion.
+- No se optimizo internamente `simulator`.
+- No se implemento seleccion basada en score tecnico.
+- No se implemento candidate_selection inteligente avanzada.
+- No se elimino el modo completo.
+
+---
+
+### Proximos pasos naturales
+
+- Crear un flujo de exploracion/oferta que use explicitamente `ModoExploracion`.
+- Mantener `DIAGNOSTICO_COMPLETO` disponible para auditoria.
+- Integrar metadata de exploracion en una salida estructurada.
+- Preparar una funcion operativa de oferta rapida sin tocar aun `swap_service`.
+- Definir luego si esa funcion sera consumida por reporting, UI o servicio operativo.
+- Mantener `top_n=50` como default inicial operativo, salvo nueva evidencia.
+
+---
+
+### Notas
+
+Este checkpoint aporta evidencia empirica para sostener `OFERTA_RAPIDA` como camino preferente.
+
+No modifica contratos tecnicos ni cambia decisiones operativas.
+
+No toca `engine`, `scoring`, `simulator`, `swap_service`, `technical_prefilter` ni `candidate_selection`.
+
+---
 

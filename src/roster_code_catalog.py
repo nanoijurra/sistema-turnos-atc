@@ -438,6 +438,33 @@ def obtener_catalogo_codigos_acc_default() -> dict[str, RosterCodeDefinition]:
             observaciones="Codigo local normalizable a EN.",
         ),
         _definicion(
+            codigo="IN/C",
+            significado="Ingles virtual asociado a turno noche C",
+            categoria_documental=RosterCodeDocumentCategory.LOCAL_ACC,
+            categoria_importacion=RosterCodeImportCategory.NORMALIZABLE,
+            genera_asignacion=True,
+            entra_motor_tecnico=True,
+            elegible_swap_acc_actual=False,
+            fuente=fuente_local_acc,
+            normaliza_a="C",
+            observaciones=(
+                "Codigo compuesto local; para el roster operativo importa "
+                "el turno C."
+            ),
+        ),
+        _definicion(
+            codigo="FC",
+            significado="Fecha de cumpleanos",
+            categoria_documental=RosterCodeDocumentCategory.LOCAL_ACC,
+            categoria_importacion=RosterCodeImportCategory.NORMALIZABLE,
+            genera_asignacion=False,
+            entra_motor_tecnico=False,
+            elegible_swap_acc_actual=False,
+            fuente=fuente_local_acc,
+            normaliza_a="",
+            observaciones="Se interpreta como dia libre para la importacion.",
+        ),
+        _definicion(
             codigo="PSI",
             significado="Psicofisico / turno medico para psicofisico",
             categoria_documental=RosterCodeDocumentCategory.LOCAL_ACC,

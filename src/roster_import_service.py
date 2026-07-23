@@ -71,7 +71,9 @@ def obtener_config_acc_default() -> RosterCodeConfig:
             "TW",
         },
         normalizaciones={
+            "FC": "",
             "IN": "EN",
+            "IN/C": "C",
             "REM": "RTA",
             "RET": "RTB",
         },
@@ -438,6 +440,18 @@ def importar_roster_desde_matriz(
                         raw_value=str(raw_value),
                     )
                 )
+
+            if codigo_normalizado == "":
+                _registrar_dia_importado(
+                    result,
+                    controlador=controlador,
+                    fecha=fecha,
+                    estado=RosterDayStatus.LIBRE,
+                    raw_value=raw_value,
+                    codigo=codigo,
+                    codigo_normalizado=codigo_normalizado,
+                )
+                continue
 
             if categoria == RosterCodeCategory.OPERATIVO_ACTIVO:
                 _registrar_dia_importado(
