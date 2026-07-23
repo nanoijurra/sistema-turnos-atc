@@ -895,3 +895,178 @@ Esta seccion solo fija el lenguaje de dominio para futuras decisiones.
 
 El modelo actual se mantiene; la elegibilidad funcional queda documentada como frontera futura de dominio.
 
+---
+
+# Timeline diaria importada
+
+## Descripcion
+
+La timeline diaria importada representa cada dia calendario del roster mensual para cada controlador.
+
+Su objetivo es conservar contexto calendario que no existe cuando solo se observan asignaciones operativas.
+
+La timeline diaria permite diferenciar:
+
+```text
+turno operativo
+dia libre
+evento no operativo documentado
+codigo configurable no activo
+codigo fuera de alcance
+codigo desconocido
+```
+
+---
+
+## Entidad conceptual
+
+La entidad conceptual es:
+
+```text
+RosterDiaImportado
+```
+
+Campos principales:
+
+```text
+controlador
+fecha
+estado
+raw_value
+codigo
+codigo_normalizado
+```
+
+---
+
+## Estados posibles
+
+Los estados diarios son:
+
+```text
+OPERATIVO
+LIBRE
+NO_OPERATIVO_DOCUMENTADO
+OPERATIVO_CONFIGURABLE_NO_ACTIVO
+FUERA_DE_ALCANCE
+DESCONOCIDO
+```
+
+---
+
+## OPERATIVO
+
+Representa una celda del roster que genera asignacion operativa.
+
+En el contexto ACC actual, los codigos operativos activos son:
+
+```text
+A
+B
+C
+```
+
+---
+
+## LIBRE
+
+Representa una celda vacia del roster.
+
+Equivale a dia sin asignacion.
+
+Puede contar para warnings de libres consecutivos.
+
+No equivale a licencia, capacitacion, psicofisico ni otro evento documentado.
+
+---
+
+## NO_OPERATIVO_DOCUMENTADO
+
+Representa un codigo explicito del roster que no genera asignacion operativa.
+
+Ejemplos:
+
+```text
+LA
+LD
+EN
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+```
+
+Estos eventos se conservan por valor documental y auditable.
+
+No entran al motor tecnico como turnos operativos.
+
+No cuentan como dias libres.
+
+---
+
+## OPERATIVO_CONFIGURABLE_NO_ACTIVO
+
+Representa un codigo operativo posible o configurable, pero no activo en la configuracion actual.
+
+Ejemplos conceptuales:
+
+```text
+D
+X
+```
+
+No debe tratarse como asignacion operativa activa mientras la configuracion no lo habilite.
+
+---
+
+## FUERA_DE_ALCANCE
+
+Representa un codigo conocido pero fuera del alcance operativo actual.
+
+Ejemplos conceptuales:
+
+```text
+AE
+AEC
+```
+
+No implica que el codigo sea invalido globalmente.
+
+Implica que no aplica al contexto ACC actual.
+
+---
+
+## DESCONOCIDO
+
+Representa un valor no reconocido por el catalogo o la configuracion vigente.
+
+Su tratamiento depende del modo de importacion y de la politica strict/permisiva.
+
+---
+
+## Relacion con Asignacion
+
+`RosterDiaImportado` no reemplaza a `Asignacion`.
+
+Los dias `OPERATIVO` pueden generar asignaciones operativas.
+
+Los dias `LIBRE`, `NO_OPERATIVO_DOCUMENTADO`, `OPERATIVO_CONFIGURABLE_NO_ACTIVO`, `FUERA_DE_ALCANCE` y `DESCONOCIDO` no deben ser tratados automaticamente como asignaciones operativas.
+
+---
+
+## Relacion con diagnostico calendar-aware
+
+La timeline diaria importada es la entrada principal para diagnosticos calendar-aware.
+
+Permite validar reglas dependientes del calendario completo sin perder:
+
+```text
+dias libres
+cortes calendario
+eventos documentados
+huecos reales entre turnos
+```
+
+---

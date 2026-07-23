@@ -16716,3 +16716,293 @@ Objetivo sugerido:
 La integracion con el motor general deberia seguir postergada hasta tener una decision explicita.
 
 ---
+---
+
+## checkpoint-v102-compatibilizacion-documental-calendar-aware
+
+Fecha: 2026-06-26
+
+---
+
+### Estado general
+
+Se compatibilizo la documentacion principal con la arquitectura calendar-aware incorporada entre v96 y v101.
+
+El objetivo fue documentar la timeline diaria importada, el diagnostico calendar-aware y el entrypoint paralelo, sin modificar codigo ni tests.
+
+Esta version es exclusivamente documental.
+
+---
+
+### Problema abordado
+
+La documentacion principal ya contenia decisiones y contratos sobre:
+
+```text
+engine tradicional
+workflow formal de SwapRequest
+importacion de roster real acotado
+codigos de roster
+elegibilidad funcional
+```
+
+Pero no reflejaba todavia los conceptos agregados entre v96 y v101:
+
+```text
+dias_importados
+timeline diaria importada
+LIBRE
+NO_OPERATIVO_DOCUMENTADO
+diagnostico calendar-aware
+entrypoint paralelo calendar-aware
+ResultadoDiagnosticoCalendarAware
+```
+
+v102 agrega esa capa documental sin reescribir la arquitectura historica.
+
+---
+
+### Alcance implementado
+
+Se agregaron secciones documentales al final de los documentos principales.
+
+La estrategia fue append-only:
+
+```text
+agregar bloques nuevos
+no reordenar documentos
+no reescribir decisiones anteriores
+no cambiar contratos previos
+no alterar contenido historico
+```
+
+---
+
+### Archivos modificados
+
+Se modificaron:
+
+```text
+docs/decisiones.md
+docs/contratos.md
+docs/invariantes.md
+docs/modelo_dominio.md
+docs/diccionario.md
+checkpoints.md
+```
+
+---
+
+### Decision documental agregada
+
+En `docs/decisiones.md` se agrego:
+
+```text
+Decision 53 - Timeline diaria y diagnostico calendar-aware paralelo
+```
+
+La decision documenta:
+
+```text
+- la timeline diaria importada como representacion complementaria
+- la diferencia entre LIBRE y NO_OPERATIVO_DOCUMENTADO
+- la validacion calendar-aware sobre dias_importados
+- el diagnostico calendar-aware como camino paralelo
+- el entrypoint publico calendar-aware
+- la convivencia entre engine tradicional y camino calendar-aware
+- la restriccion de no reemplazar engine.py ni validator.py
+```
+
+---
+
+### Contrato documental agregado
+
+En `docs/contratos.md` se agrego:
+
+```text
+Contrato 25 - EntryPoint paralelo calendar-aware
+```
+
+El contrato documenta:
+
+```text
+- modulo responsable: src/roster_calendar_aware_entrypoint.py
+- funciones publicas:
+  - diagnosticar_dias_importados_calendar_aware
+  - diagnosticar_importacion_calendar_aware
+- resultado publico:
+  - ResultadoDiagnosticoCalendarAware
+- responsabilidades permitidas
+- responsabilidades prohibidas
+- relacion con engine y validator
+- relacion con workflow formal
+- relacion con importacion de roster
+```
+
+---
+
+### Invariantes agregadas
+
+En `docs/invariantes.md` se agregaron invariantes calendar-aware:
+
+```text
+CA-1 - LIBRE no equivale a NO_OPERATIVO_DOCUMENTADO
+CA-2 - La timeline diaria no reemplaza asignaciones operativas
+CA-3 - El diagnostico calendar-aware no reemplaza al engine
+CA-4 - El entrypoint calendar-aware no decide swaps
+CA-5 - El workflow formal no cambia
+CA-6 - La integracion al motor general requiere decision explicita
+```
+
+---
+
+### Modelo de dominio agregado
+
+En `docs/modelo_dominio.md` se agrego la seccion:
+
+```text
+Timeline diaria importada
+```
+
+La seccion documenta:
+
+```text
+RosterDiaImportado
+RosterDayStatus
+OPERATIVO
+LIBRE
+NO_OPERATIVO_DOCUMENTADO
+OPERATIVO_CONFIGURABLE_NO_ACTIVO
+FUERA_DE_ALCANCE
+DESCONOCIDO
+```
+
+Tambien documenta la relacion con `Asignacion` y con el diagnostico calendar-aware.
+
+---
+
+### Diccionario agregado
+
+En `docs/diccionario.md` se agrego:
+
+```text
+Terminos calendar-aware
+```
+
+Se documentaron definiciones para:
+
+```text
+calendar-aware
+timeline diaria
+dias_importados
+RosterDiaImportado
+RosterDayStatus
+LIBRE
+NO_OPERATIVO_DOCUMENTADO
+diagnostico calendar-aware
+entrypoint paralelo calendar-aware
+ResultadoDiagnosticoCalendarAware
+EXCESO_LIBRES_CONSECUTIVOS
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* `src/`
+* `tests/`
+* `engine.py`
+* `validator.py`
+* `scoring.py`
+* `simulator.py`
+* `swap_service.py`
+* workflow formal
+* reglas tecnicas actuales
+* CSV real local
+
+No se conecto la timeline al engine general.
+
+No se reemplazo el validador tradicional.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+---
+
+### Validaciones ejecutadas
+
+Se ejecuto la suite completa desde VS Code:
+
+```text
+python -m pytest -q
+```
+
+Resultado:
+
+```text
+440 passed
+```
+
+Nota:
+
+```text
+En una terminal PowerShell externa, python resolvio al alias de Microsoft Store.
+La suite fue ejecutada correctamente desde VS Code, donde el entorno Python del proyecto esta disponible.
+```
+
+---
+
+### Estado final
+
+v102 deja compatibilizada la documentacion principal con la arquitectura calendar-aware actual.
+
+La documentacion ahora refleja que el sistema tiene dos caminos diferenciados:
+
+```text
+camino tradicional:
+swap_service
+-> simulator
+-> engine.py
+-> validator.py
+
+camino calendar-aware paralelo:
+resultado_importacion / dias_importados
+-> roster_calendar_aware_entrypoint.py
+-> diagnostico timeline
+-> ResultadoDiagnosticoCalendarAware
+```
+
+Ambos caminos conviven.
+
+El camino calendar-aware sigue siendo diagnostico y paralelo.
+
+La integracion al motor general queda postergada hasta decision explicita futura.
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural seria revisar si `docs/contexto_sistema.md` debe actualizarse con un resumen breve de los nuevos modulos.
+
+Posible checkpoint:
+
+```text
+v103 - actualizacion de contexto_sistema calendar-aware
+```
+
+Objetivo sugerido:
+
+```text
+- agregar roster_day_timeline.py
+- agregar roster_timeline_validator.py
+- agregar roster_timeline_diagnostics.py
+- agregar roster_calendar_aware_entrypoint.py
+- documentar que son diagnosticos paralelos
+- no tocar codigo
+- no tocar tests
+```
+
+---

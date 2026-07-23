@@ -959,3 +959,161 @@ No decide workflow.
 No persiste requests.
 
 No se implementa todavia como parte de esta documentacion.
+
+---
+
+# Terminos calendar-aware
+
+## calendar-aware
+
+Enfoque de validacion o diagnostico que considera el calendario completo del roster importado.
+
+No analiza solamente asignaciones operativas, sino tambien dias libres, eventos no operativos documentados y cortes reales entre fechas.
+
+---
+
+## timeline diaria
+
+Representacion diaria del roster importado por controlador.
+
+Contiene un registro por cada controlador y fecha del periodo importado.
+
+Permite conservar contexto calendario completo.
+
+---
+
+## dias_importados
+
+Coleccion de dias diarios importados generada por el importador de roster.
+
+Es la entrada principal del diagnostico calendar-aware.
+
+---
+
+## RosterDiaImportado
+
+Registro diario importado para un controlador en una fecha determinada.
+
+Contiene:
+
+```text
+controlador
+fecha
+estado
+raw_value
+codigo
+codigo_normalizado
+```
+
+---
+
+## RosterDayStatus
+
+Categoria del dia importado.
+
+Valores principales:
+
+```text
+OPERATIVO
+LIBRE
+NO_OPERATIVO_DOCUMENTADO
+OPERATIVO_CONFIGURABLE_NO_ACTIVO
+FUERA_DE_ALCANCE
+DESCONOCIDO
+```
+
+---
+
+## LIBRE
+
+Dia sin asignacion, representado por celda vacia del roster.
+
+Cuenta como dia libre para diagnosticos de rachas libres.
+
+No equivale a licencia ni a evento no operativo documentado.
+
+---
+
+## NO_OPERATIVO_DOCUMENTADO
+
+Dia con codigo explicito de roster que no genera asignacion operativa.
+
+Ejemplos:
+
+```text
+LA
+LD
+EN
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+```
+
+No cuenta como dia libre.
+
+No entra al motor tecnico como turno operativo.
+
+Conserva valor documental y auditable.
+
+---
+
+## diagnostico calendar-aware
+
+Resultado de evaluar una timeline diaria importada con reglas que consideran calendario completo.
+
+Informa violaciones hard, soft, codigos y severidades.
+
+No decide swaps.
+
+No modifica workflow.
+
+---
+
+## entrypoint paralelo calendar-aware
+
+Frontera publica para consumir diagnostico calendar-aware sin acoplarse a modulos internos.
+
+Modulo:
+
+```text
+src/roster_calendar_aware_entrypoint.py
+```
+
+Funciones:
+
+```text
+diagnosticar_dias_importados_calendar_aware
+diagnosticar_importacion_calendar_aware
+```
+
+---
+
+## ResultadoDiagnosticoCalendarAware
+
+Resultado publico devuelto por el entrypoint calendar-aware.
+
+Campos:
+
+```text
+total_dias_importados
+total_violaciones
+total_hard
+total_soft
+valido_sin_hard
+por_codigo
+por_severidad
+violaciones
+```
+
+---
+
+## EXCESO_LIBRES_CONSECUTIVOS
+
+Codigo de violacion soft usado cuando una timeline contiene mas de 5 dias consecutivos con estado `LIBRE`.
+
+Los dias `NO_OPERATIVO_DOCUMENTADO` no cuentan como `LIBRE`.
+
+---

@@ -1602,3 +1602,90 @@ El importador normaliza roster y separa asignaciones operativas de eventos no op
 ## 17.10 Regla corta
 
 El rol describe la funcion; el perfil operativo define si y donde puede operar.
+
+---
+
+---
+
+# Invariantes calendar-aware
+
+## Invariante CA-1 - LIBRE no equivale a NO_OPERATIVO_DOCUMENTADO
+
+Un dia `LIBRE` representa una celda vacia del roster.
+
+Un dia `NO_OPERATIVO_DOCUMENTADO` representa un codigo explicito de roster, por ejemplo:
+
+```text
+LA
+LD
+EN
+PSI
+RTA
+RTB
+OJT
+SIM
+CAM
+```
+
+Un dia `NO_OPERATIVO_DOCUMENTADO` no debe contarse como dia libre.
+
+---
+
+## Invariante CA-2 - La timeline diaria no reemplaza asignaciones operativas
+
+La timeline diaria importada complementa a las asignaciones operativas.
+
+No reemplaza `Asignacion`.
+
+No reemplaza `RosterVersion`.
+
+No redefine el objeto del swap.
+
+El objeto del swap sigue siendo un par de asignaciones dentro de una version de roster.
+
+---
+
+## Invariante CA-3 - El diagnostico calendar-aware no reemplaza al engine
+
+El diagnostico calendar-aware no reemplaza `engine.py`.
+
+El diagnostico calendar-aware no reemplaza `validator.py`.
+
+El engine tradicional sigue siendo el motor tecnico vigente para el flujo formal existente.
+
+---
+
+## Invariante CA-4 - El entrypoint calendar-aware no decide swaps
+
+El entrypoint calendar-aware no puede aprobar, rechazar, cancelar ni aplicar swaps.
+
+Su salida es diagnostica.
+
+No modifica estados de `SwapRequest`.
+
+No modifica versiones de roster.
+
+---
+
+## Invariante CA-5 - El workflow formal no cambia
+
+La incorporacion de timeline diaria, diagnostico calendar-aware y entrypoint paralelo no modifica el workflow formal:
+
+```text
+PENDIENTE
+-> EVALUADO
+-> APROBADO / RECHAZADO / CANCELADO
+-> APLICADO
+```
+
+---
+
+## Invariante CA-6 - La integracion al motor general requiere decision explicita
+
+El camino calendar-aware puede convivir con el camino tradicional.
+
+No debe integrarse al engine general por efecto lateral.
+
+Cualquier reemplazo, integracion o uso decisorio debe definirse mediante una decision arquitectonica y contrato especifico posterior.
+
+---
