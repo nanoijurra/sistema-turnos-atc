@@ -17006,3 +17006,304 @@ Objetivo sugerido:
 ```
 
 ---
+---
+
+## checkpoint-v103-actualizacion-contexto-sistema-calendar-aware
+
+Fecha: 2026-06-26
+
+---
+
+### Estado general
+
+Se actualizo `docs/contexto_sistema.md` para reflejar la arquitectura actual del sistema luego de la incorporacion del camino calendar-aware paralelo.
+
+El objetivo fue que el documento de contexto general mencione los modulos nuevos, el estado actual del sistema y la separacion entre el camino tradicional y el camino calendar-aware.
+
+Esta version es exclusivamente documental.
+
+---
+
+### Problema abordado
+
+`docs/contexto_sistema.md` habia quedado desactualizado respecto de los checkpoints recientes.
+
+El documento todavia describia un estado anterior del proyecto y no reflejaba adecuadamente:
+
+```text
+roster_day_timeline.py
+roster_timeline_validator.py
+roster_timeline_diagnostics.py
+roster_calendar_aware_entrypoint.py
+dias_importados
+timeline diaria importada
+diagnostico calendar-aware
+entrypoint paralelo calendar-aware
+```
+
+Ademas, el archivo tenia un problema estructural de Markdown: la seccion de estructura del proyecto abria un bloque `text` que dejaba parte del contenido posterior dentro del mismo bloque.
+
+v103 corrige el documento completo para dejarlo consistente y legible.
+
+---
+
+### Alcance implementado
+
+Se reemplazo completo el contenido de:
+
+```text
+docs/contexto_sistema.md
+```
+
+La actualizacion mantiene el objetivo original del documento:
+
+```text
+describir el contexto operativo, arquitectonico y de estado del sistema
+```
+
+Pero ahora incorpora el estado vigente del proyecto luego de v96-v102.
+
+---
+
+### Archivos modificados
+
+Se modificaron:
+
+```text
+docs/contexto_sistema.md
+checkpoints.md
+```
+
+---
+
+### Contenido actualizado
+
+El nuevo contexto del sistema documenta:
+
+```text
+- proposito
+- alcance
+- dominio del problema
+- arquitectura actual
+- estructura del proyecto
+- flujo operativo
+- capas del sistema
+- camino calendar-aware paralelo
+- estado actual
+- reglas de negocio
+- principios de diseno
+- evolucion planificada
+- restricciones
+- forma de trabajo
+```
+
+---
+
+### Arquitectura actual documentada
+
+Se documento el camino tradicional:
+
+```text
+swap_service
+-> simulator
+-> engine.py
+-> validator.py
+```
+
+Tambien se documento el camino calendar-aware paralelo:
+
+```text
+resultado_importacion / dias_importados
+-> roster_calendar_aware_entrypoint.py
+-> diagnostico timeline
+-> ResultadoDiagnosticoCalendarAware
+```
+
+---
+
+### Modulos nuevos incorporados al contexto
+
+Se agregaron al contexto general:
+
+```text
+src/roster_import_service.py
+src/roster_code_catalog.py
+src/roster_day_timeline.py
+src/roster_timeline_validator.py
+src/roster_timeline_diagnostics.py
+src/roster_calendar_aware_entrypoint.py
+```
+
+---
+
+### Capas documentadas
+
+Se actualizaron las responsabilidades de:
+
+```text
+src.engine
+src.validator
+src.scoring
+src.simulator
+src.swap_service
+src.roster_import_service
+src.roster_day_timeline
+src.roster_timeline_validator
+src.roster_timeline_diagnostics
+src.roster_calendar_aware_entrypoint
+```
+
+---
+
+### Restricciones reafirmadas
+
+Se dejo documentado que el camino calendar-aware:
+
+```text
+- no reemplaza engine.py
+- no reemplaza validator.py
+- no modifica SwapRequest
+- no decide swaps
+- no aplica swaps
+- no modifica workflow formal
+- no crea RosterVersion
+```
+
+---
+
+### Estado actual incorporado
+
+Se documento el estado consolidado:
+
+```text
+engine tradicional vigente
+validator.py tradicional vigente
+workflow formal de SwapRequest consolidado
+roster_store versiona rosters normalizados
+request_store persiste requests e historial
+roster_import_service importa CSV/matriz real acotada
+timeline diaria importada disponible
+validadores calendar-aware disponibles
+diagnostico calendar-aware disponible
+entrypoint calendar-aware paralelo disponible
+```
+
+Tambien se documentaron los checkpoints recientes:
+
+```text
+v96 -> validadores calendar-aware sobre timeline
+v97 -> diagnostico tecnico calendar-aware
+v98 -> comparacion tradicional vs timeline
+v99 -> smoke diagnostico sobre CSV real local
+v100 -> entrypoint paralelo calendar-aware
+v101 -> smoke entrypoint calendar-aware sobre CSV real local
+v102 -> compatibilizacion documental calendar-aware
+```
+
+---
+
+### Resultado real documentado
+
+Se incorporo el resultado validado sobre CSV real local:
+
+```text
+CSV real local
+-> importador
+-> dias_importados
+-> diagnostico calendar-aware
+-> 0 hard
+-> 1 soft
+```
+
+La unica observacion vigente sobre timeline:
+
+```text
+EXCESO_LIBRES_CONSECUTIVOS
+```
+
+---
+
+### Validaciones ejecutadas
+
+Se ejecuto suite completa con launcher de Windows:
+
+```text
+py -m pytest -q
+```
+
+Resultado:
+
+```text
+440 passed
+```
+
+Nota:
+
+```text
+En este entorno, python -m pytest -q no resuelve correctamente por alias de Microsoft Store.
+Para este repo se usa py -m pytest -q.
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* `src/`
+* `tests/`
+* `engine.py`
+* `validator.py`
+* `scoring.py`
+* `simulator.py`
+* `swap_service.py`
+* workflow formal
+* reglas tecnicas actuales
+* CSV real local
+
+No se conecto la timeline al engine general.
+
+No se reemplazo el validador tradicional.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+---
+
+### Estado final
+
+v103 deja actualizado el documento global de contexto del sistema.
+
+La documentacion principal queda mejor alineada con la arquitectura vigente:
+
+```text
+decisiones.md -> decisiones calendar-aware documentadas
+contratos.md -> contrato del entrypoint calendar-aware documentado
+invariantes.md -> invariantes calendar-aware documentadas
+modelo_dominio.md -> timeline diaria documentada
+diccionario.md -> terminos calendar-aware documentados
+contexto_sistema.md -> contexto general actualizado
+```
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural seria revisar documentos resumen secundarios:
+
+```text
+v104 - actualizacion de contexto_resumen y estado_docs
+```
+
+Objetivo sugerido:
+
+```text
+- actualizar docs/contexto_resumen.md
+- actualizar docs/estado_docs.md
+- reflejar v96-v103
+- no tocar codigo
+- no tocar tests
+```
+
+---
