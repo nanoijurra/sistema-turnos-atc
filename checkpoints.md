@@ -18143,3 +18143,351 @@ La carga real a base de datos deberia hacerse en un paso posterior y explicito, 
 
 ---
 
+## checkpoint-v107-diagnostico-carga-multimes-junio-julio-agosto
+
+Fecha: 2026-07-23
+
+---
+
+### Estado general
+
+Se agrego una capa de diagnostico multi-mes calendar-aware para preparar la carga controlada de rosters mensuales.
+
+El objetivo fue poder analizar listas de junio, julio y agosto en memoria, sin persistir datos y sin modificar el workflow formal.
+
+Esta version no carga datos en la base.
+
+Esta version no crea `RosterVersion`.
+
+Esta version no modifica el motor general.
+
+---
+
+### Problema abordado
+
+El proyecto ya cuenta con:
+
+```text
+importador de roster real
+dias_importados
+entrypoint calendar-aware
+reporte operativo calendar-aware
+smokes sobre CSV real local
+```
+
+Pero antes de alimentar una base de datos con listas mensuales reales, hace falta un paso intermedio seguro:
+
+```text
+diagnosticar varios meses
+comparar resultados
+detectar faltantes
+detectar errores de importacion
+detectar hard calendar-aware
+confirmar aptitud para revision de carga
+```
+
+v107 agrega ese paso sin persistencia.
+
+---
+
+### Alcance implementado
+
+Se agrego un modulo nuevo:
+
+```text
+src/roster_calendar_aware_multimonth.py
+```
+
+El modulo permite:
+
+```text
+- recibir una lista de entradas mensuales
+- importar cada CSV en memoria
+- generar reporte operativo calendar-aware por mes
+- resumir errores de importacion
+- resumir hard y soft calendar-aware
+- omitir archivos faltantes de forma controlada
+- fallar si un archivo faltante es requerido
+- indicar aptitud para revision de carga
+```
+
+---
+
+### Archivos agregados
+
+Se agregaron:
+
+```text
+src/roster_calendar_aware_multimonth.py
+tests/test_roster_calendar_aware_multimonth.py
+```
+
+---
+
+### Archivos modificados
+
+Se modifico:
+
+```text
+checkpoints.md
+```
+
+---
+
+### Clases agregadas
+
+En `src/roster_calendar_aware_multimonth.py` se agregaron:
+
+```text
+EntradaCargaRosterMes
+DiagnosticoCargaRosterMes
+DiagnosticoCargaMultiMesCalendarAware
+```
+
+---
+
+### Funcion agregada
+
+En `src/roster_calendar_aware_multimonth.py` se agrego:
+
+```text
+diagnosticar_carga_multimes_calendar_aware
+```
+
+---
+
+### Contrato conceptual
+
+Cada entrada mensual se define con:
+
+```text
+anio
+mes
+csv_path
+```
+
+El diagnostico por mes expone:
+
+```text
+anio
+mes
+fuente
+disponible
+omitido_motivo
+total_controladores
+total_dias_importados
+total_asignaciones_operativas
+total_eventos_no_operativos
+total_warnings_importacion
+total_errors_importacion
+puede_crear_roster_version
+estado_general_calendar_aware
+total_violaciones_calendar_aware
+total_hard_calendar_aware
+total_soft_calendar_aware
+por_codigo_calendar_aware
+por_severidad_calendar_aware
+reporte
+apto_para_revision_carga
+```
+
+El diagnostico multi-mes expone:
+
+```text
+total_meses
+meses_disponibles
+meses_omitidos
+meses_con_errors_importacion
+meses_con_hard_calendar_aware
+total_hard_calendar_aware
+total_soft_calendar_aware
+apto_para_revision_carga
+meses
+```
+
+---
+
+### Regla de aptitud para revision de carga
+
+Un mes queda apto para revision de carga si:
+
+```text
+esta disponible
+no tiene errores de importacion
+no tiene hard calendar-aware
+```
+
+El diagnostico multi-mes queda apto para revision de carga si:
+
+```text
+hay al menos un mes
+no hay meses omitidos
+no hay meses con errores de importacion
+no hay meses con hard calendar-aware
+```
+
+Esta aptitud no implica carga automatica.
+
+Solo habilita una revision posterior.
+
+---
+
+### Comportamiento ante archivos faltantes
+
+Por defecto, si un CSV no existe:
+
+```text
+disponible = False
+omitido_motivo = CSV_NO_DISPONIBLE
+```
+
+Si `omitir_faltantes=False`, el diagnostico falla con:
+
+```text
+FileNotFoundError
+```
+
+---
+
+### Tests agregados
+
+Se agregaron tests para validar:
+
+```text
+diagnostico multi-mes con meses disponibles
+omision controlada de archivos faltantes
+fallo si un faltante es requerido
+deteccion de errores de importacion
+deteccion de hard calendar-aware
+no persistencia de RosterVersion
+serializacion to_dict
+```
+
+---
+
+### Validaciones ejecutadas
+
+Se ejecuto test focalizado:
+
+```text
+uv run pytest tests/test_roster_calendar_aware_multimonth.py -q
+```
+
+Resultado:
+
+```text
+7 passed
+```
+
+Se ejecutaron tests relacionados:
+
+```text
+uv run pytest tests/test_roster_calendar_aware_report.py tests/test_roster_calendar_aware_entrypoint.py tests/test_smoke_reporte_operativo_calendar_aware_csv_real.py -q
+```
+
+Resultado:
+
+```text
+12 passed
+```
+
+Se ejecuto suite completa:
+
+```text
+uv run pytest -q
+```
+
+Resultado:
+
+```text
+455 passed
+```
+
+Nota operativa:
+
+```text
+En el shell de Codex se uso uv con PYTHONPATH=.
+En VS Code del usuario, el comando equivalente habitual es py -m pytest -q.
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* base de datos
+* `engine.py`
+* `validator.py`
+* `scoring.py`
+* `simulator.py`
+* `swap_service.py`
+* workflow formal
+* reglas tecnicas actuales
+* CSV real local
+
+No se creo `RosterVersion`.
+
+No se persistieron rosters.
+
+No se conecto la timeline al engine general.
+
+No se reemplazo el validador tradicional.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+---
+
+### Estado final
+
+v107 deja disponible un diagnostico multi-mes para preparar una eventual carga controlada de junio, julio y agosto.
+
+La cadena queda:
+
+```text
+EntradaCargaRosterMes[]
+-> diagnosticar_carga_multimes_calendar_aware
+-> importacion en memoria por mes
+-> reporte calendar-aware por mes
+-> DiagnosticoCargaMultiMesCalendarAware
+```
+
+El resultado es diagnostico.
+
+No carga datos en base.
+
+No decide swaps.
+
+No altera el comportamiento formal del sistema.
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural seria usar esta capa con los archivos reales de junio, julio y agosto:
+
+```text
+v108 - smoke diagnostico multi-mes con archivos reales locales
+```
+
+Objetivo sugerido:
+
+```text
+- ubicar los archivos reales de junio, julio y agosto
+- construir entradas mensuales
+- ejecutar diagnosticar_carga_multimes_calendar_aware
+- revisar resultados por mes
+- no persistir en base de datos
+- no crear RosterVersion
+- no tocar engine.py
+- no tocar validator.py
+```
+
+La carga real a base de datos debe seguir postergada hasta revisar el reporte multi-mes real.
+
+---
+
+
+
