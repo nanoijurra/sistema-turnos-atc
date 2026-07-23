@@ -1,4 +1,4 @@
-# CHECKPOINTS DEL PROYECTO — SISTEMA SWAPS ATC
+﻿# CHECKPOINTS DEL PROYECTO — SISTEMA SWAPS ATC
 
 ---
 
@@ -17590,3 +17590,301 @@ Objetivo sugerido:
 Tambien es valido pausar implementacion y revisar manualmente la documentacion antes de avanzar.
 
 ---
+
+## checkpoint-v105-reporte-operativo-calendar-aware
+
+Fecha: 2026-06-26
+
+---
+
+### Estado general
+
+Se agrego un reporte operativo calendar-aware para presentar de forma estable el resultado del diagnostico paralelo.
+
+El objetivo fue transformar `ResultadoDiagnosticoCalendarAware` en una salida mas legible para capas superiores, manteniendo su caracter estrictamente diagnostico.
+
+Esta version no integra el camino calendar-aware al engine general.
+
+Esta version no modifica el workflow formal.
+
+---
+
+### Problema abordado
+
+Hasta v104 ya existia un entrypoint calendar-aware paralelo:
+
+```text
+diagnosticar_dias_importados_calendar_aware
+diagnosticar_importacion_calendar_aware
+ResultadoDiagnosticoCalendarAware
+```
+
+Ese resultado era estable, pero todavia no existia una capa especifica para presentarlo como reporte operativo simple.
+
+v105 agrega esa capa sin cambiar la semantica del diagnostico.
+
+---
+
+### Alcance implementado
+
+Se agrego un modulo nuevo:
+
+```text
+src/roster_calendar_aware_report.py
+```
+
+El modulo permite:
+
+```text
+- recibir ResultadoDiagnosticoCalendarAware
+- calcular estado_general
+- exponer totales hard / soft / total
+- ordenar codigos principales
+- exponer detalles de violaciones
+- serializar el reporte con to_dict
+- generar reporte desde resultado de importacion usando el entrypoint existente
+```
+
+---
+
+### Archivos agregados
+
+Se agregaron:
+
+```text
+src/roster_calendar_aware_report.py
+tests/test_roster_calendar_aware_report.py
+```
+
+---
+
+### Archivos modificados
+
+Se modifico:
+
+```text
+checkpoints.md
+```
+
+---
+
+### Clases agregadas
+
+En `src/roster_calendar_aware_report.py` se agregaron:
+
+```text
+ResumenCodigoCalendarAware
+DetalleViolacionCalendarAware
+ReporteOperativoCalendarAware
+```
+
+---
+
+### Funciones agregadas
+
+En `src/roster_calendar_aware_report.py` se agregaron:
+
+```text
+generar_reporte_operativo_calendar_aware
+generar_reporte_operativo_importacion_calendar_aware
+```
+
+---
+
+### Constantes agregadas
+
+Se agregaron:
+
+```text
+MENSAJE_REPORTE_CALENDAR_AWARE
+ESTADO_VALIDO_SIN_HARD
+ESTADO_INVALIDO_CON_HARD
+```
+
+---
+
+### Resultado del reporte
+
+El reporte operativo calendar-aware expone:
+
+```text
+mensaje
+estado_general
+total_dias_importados
+total_violaciones
+total_hard
+total_soft
+valido_sin_hard
+codigos_principales
+detalles
+metadata
+```
+
+Estados generales:
+
+```text
+VALIDO_SIN_HARD
+INVALIDO_CON_HARD
+```
+
+---
+
+### Comportamiento implementado
+
+El reporte:
+
+```text
+- mantiene el diagnostico como fuente
+- no recalcula reglas
+- no llama al engine tradicional
+- no llama a validator.py
+- no decide swaps
+- no modifica estados de SwapRequest
+- no persiste cambios
+```
+
+Tambien permite limitar detalles visibles mediante:
+
+```text
+limite_detalles
+```
+
+Si `limite_detalles` es menor o igual a cero, falla de forma controlada.
+
+---
+
+### Tests agregados
+
+Se agregaron tests para validar:
+
+```text
+reporte sin hard
+reporte con hard
+ordenamiento de codigos por cantidad y codigo
+limite de detalles
+error controlado con limite_detalles invalido
+serializacion to_dict
+reporte desde resultado de importacion usando entrypoint
+```
+
+---
+
+### Validaciones ejecutadas
+
+Se ejecuto test focalizado:
+
+```text
+uv run pytest tests/test_roster_calendar_aware_report.py -q
+```
+
+Resultado:
+
+```text
+7 passed
+```
+
+Se ejecutaron tests relacionados:
+
+```text
+uv run pytest tests/test_roster_calendar_aware_entrypoint.py tests/test_smoke_entrypoint_calendar_aware_csv_real.py -q
+```
+
+Resultado:
+
+```text
+5 passed
+```
+
+Se ejecuto suite completa:
+
+```text
+uv run pytest -q
+```
+
+Resultado:
+
+```text
+447 passed
+```
+
+Nota operativa:
+
+```text
+En el shell de Codex se uso uv con PYTHONPATH=.
+En VS Code del usuario, el comando equivalente habitual es py -m pytest -q.
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* `engine.py`
+* `validator.py`
+* `scoring.py`
+* `simulator.py`
+* `swap_service.py`
+* workflow formal
+* reglas tecnicas actuales
+* CSV real local
+
+No se conecto la timeline al engine general.
+
+No se reemplazo el validador tradicional.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+---
+
+### Estado final
+
+v105 deja disponible una salida operativa simple para el diagnostico calendar-aware.
+
+La cadena queda:
+
+```text
+ResultadoDiagnosticoCalendarAware
+-> generar_reporte_operativo_calendar_aware
+-> ReporteOperativoCalendarAware
+```
+
+Y tambien:
+
+```text
+resultado_importacion
+-> generar_reporte_operativo_importacion_calendar_aware
+-> ReporteOperativoCalendarAware
+```
+
+El reporte es presentable y serializable, pero sigue siendo diagnostico.
+
+No decide swaps ni altera el comportamiento formal del sistema.
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural seria validar el reporte operativo calendar-aware sobre el CSV real local:
+
+```text
+v106 - smoke reporte operativo calendar-aware sobre CSV real
+```
+
+Objetivo sugerido:
+
+```text
+- importar data/imports/csv_ok.csv
+- generar ReporteOperativoCalendarAware
+- confirmar estado_general VALIDO_SIN_HARD
+- confirmar 0 hard y 1 soft
+- confirmar EXCESO_LIBRES_CONSECUTIVOS
+- no tocar engine.py
+- no tocar validator.py
+- no cambiar workflow formal
+```
+
+---
+
