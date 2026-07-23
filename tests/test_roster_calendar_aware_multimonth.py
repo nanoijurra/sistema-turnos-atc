@@ -8,6 +8,7 @@ from src.roster_calendar_aware_multimonth import (
     EntradaCargaRosterMes,
     FORMATO_CSV_ACC_CBA,
     diagnosticar_carga_multimes_calendar_aware,
+    importar_roster_acc_cba_desde_csv,
 )
 from src.roster_calendar_aware_report import (
     ESTADO_INVALIDO_CON_HARD,
@@ -232,6 +233,28 @@ def test_diagnosticar_carga_multimes_soporta_csv_acc_cba_directo(tmp_path):
     assert mes.total_errors_importacion == 0
     assert mes.total_hard_calendar_aware == 0
     assert mes.apto_para_revision_carga is True
+
+
+def test_importar_roster_acc_cba_desde_csv_devuelve_resultado_importacion(tmp_path):
+    julio = _crear_csv(
+        tmp_path / "julio.csv",
+        [
+            ["APELLIDO NOMBRE", "1", "2", "3"],
+            ["CONTROLADOR A", "A", "FC", "IN/C"],
+        ],
+    )
+
+    resultado = importar_roster_acc_cba_desde_csv(
+        julio,
+        anio=2026,
+        mes=7,
+        strict=True,
+    )
+
+    assert len(resultado.dias_importados) == 3
+    assert len(resultado.asignaciones_operativas) == 2
+    assert len(resultado.eventos_no_operativos) == 0
+    assert len(resultado.errors) == 0
 
 
 def test_diagnosticar_carga_multimes_soporta_csv_acc_cba_con_fila_titulo(tmp_path):

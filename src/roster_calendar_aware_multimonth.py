@@ -172,6 +172,22 @@ def diagnosticar_carga_multimes_calendar_aware(
     )
 
 
+def importar_roster_acc_cba_desde_csv(
+    csv_path: Path,
+    *,
+    anio: int,
+    mes: int,
+    strict: bool = True,
+) -> RosterImportResult:
+    return importar_roster_desde_matriz(
+        _leer_matriz_acc_cba(csv_path),
+        anio=anio,
+        mes=mes,
+        strict=strict,
+        source_type=FORMATO_CSV_ACC_CBA,
+    )
+
+
 def _diagnosticar_mes(
     entrada: EntradaCargaRosterMes,
     *,
@@ -256,12 +272,11 @@ def _importar_entrada(
         )
 
     if entrada.formato == FORMATO_CSV_ACC_CBA:
-        return importar_roster_desde_matriz(
-            _leer_matriz_acc_cba(entrada.csv_path),
+        return importar_roster_acc_cba_desde_csv(
+            entrada.csv_path,
             anio=entrada.anio,
             mes=entrada.mes,
             strict=strict,
-            source_type=FORMATO_CSV_ACC_CBA,
         )
 
     raise ValueError(f"Formato de entrada no soportado: {entrada.formato}")

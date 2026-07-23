@@ -18924,6 +18924,319 @@ La aplicacion real de un cambio debe seguir siendo un paso posterior y explicito
 
 ---
 
+## checkpoint-v110-smoke-swap-simulado-acc-cba-real
+
+Fecha: 2026-07-23
+
+---
+
+### Estado general
+
+Se agrego una primera prueba controlada de cambio de turno sobre un roster real ACC CBA importado.
+
+El objetivo fue validar que el sistema puede importar un CSV real final y ejecutar una simulacion tecnica de swap sin aplicar cambios reales.
+
+Esta version no carga datos en base.
+
+Esta version no crea `SwapRequest`.
+
+Esta version no crea `RosterVersion`.
+
+Esta version no aplica cambios de roster.
+
+---
+
+### Problema abordado
+
+Hasta v109 ya estaba validado el diagnostico multi-mes sobre los CSV reales finales de junio, julio y agosto.
+
+Faltaba confirmar un paso operativo siguiente, pero en modo seguro:
+
+```text
+CSV real final
+-> importacion ACC CBA
+-> asignaciones_operativas
+-> simulacion tecnica de swap
+-> roster simulado
+-> roster original intacto
+```
+
+v110 agrega esa prueba sin activar el workflow formal ni persistir cambios.
+
+---
+
+### Alcance implementado
+
+Se expuso una funcion publica para importar un CSV ACC CBA real:
+
+```text
+importar_roster_acc_cba_desde_csv
+```
+
+La funcion reutiliza el adaptador ACC CBA agregado en v109 y devuelve un `RosterImportResult`.
+
+Tambien se agrego un smoke sobre el CSV real local de junio:
+
+```text
+C:\Users\nanoi\Documents\ACC CBA\junio.csv
+```
+
+El smoke:
+
+```text
+- importa junio 2026 con strict=True
+- obtiene asignaciones_operativas
+- busca un par de asignaciones de distintos controladores y distinto turno
+- ejecuta evaluar_swap
+- verifica que existe roster simulado
+- verifica que el roster original no se modifica
+- verifica que no aparece decision_sugerida
+```
+
+---
+
+### Archivos agregados
+
+Se agrego:
+
+```text
+tests/test_smoke_swap_simulado_acc_cba_real.py
+```
+
+---
+
+### Archivos modificados
+
+Se modificaron:
+
+```text
+src/roster_calendar_aware_multimonth.py
+tests/test_roster_calendar_aware_multimonth.py
+checkpoints.md
+```
+
+---
+
+### Funcion publica agregada
+
+En `src/roster_calendar_aware_multimonth.py` se agrego:
+
+```text
+importar_roster_acc_cba_desde_csv
+```
+
+Contrato basico:
+
+```text
+csv_path
+anio
+mes
+strict=True
+```
+
+Resultado:
+
+```text
+RosterImportResult
+```
+
+Esta funcion no diagnostica multiples meses.
+
+Esta funcion solo importa un CSV ACC CBA real y devuelve el resultado de importacion.
+
+---
+
+### Smoke de simulacion agregado
+
+Se agrego un smoke que ejecuta:
+
+```text
+resultado_importacion = importar_roster_acc_cba_desde_csv(junio.csv, anio=2026, mes=6)
+asignaciones = resultado_importacion.asignaciones_operativas
+evaluacion = evaluar_swap(asignaciones, idx_a, idx_b)
+```
+
+El par `idx_a`, `idx_b` se elige de forma deterministica buscando:
+
+```text
+controladores distintos
+turnos distintos
+```
+
+Esto garantiza que el intercambio simulado represente un cambio real de turno.
+
+---
+
+### Resultado validado
+
+El smoke confirma:
+
+```text
+errors_importacion = 0
+asignaciones_operativas = 909
+```
+
+Tambien confirma que la evaluacion tecnica devuelve una clasificacion conocida:
+
+```text
+BENEFICIOSO
+ACEPTABLE
+RECHAZABLE
+```
+
+Y que la salida no contiene:
+
+```text
+decision_sugerida
+```
+
+Esto mantiene la separacion entre:
+
+```text
+simulacion tecnica
+decision operativa formal
+```
+
+---
+
+### Garantia de no aplicacion
+
+El smoke verifica que:
+
+```text
+roster_simulado is not asignaciones
+```
+
+Y que las asignaciones originales usadas para el intercambio quedan iguales despues de la evaluacion:
+
+```text
+asignaciones[idx_a] == asignacion_a_original
+asignaciones[idx_b] == asignacion_b_original
+```
+
+Esto confirma que v110 simula el cambio pero no altera el roster importado original.
+
+---
+
+### Tests agregados
+
+Se agregaron tests para validar:
+
+```text
+importar_roster_acc_cba_desde_csv con CSV ACC CBA chico
+smoke de swap simulado sobre junio real ACC CBA
+```
+
+---
+
+### Validaciones ejecutadas
+
+Se ejecutaron tests relacionados:
+
+```text
+uv run pytest tests/test_roster_calendar_aware_multimonth.py tests/test_smoke_multimes_acc_cba_reales.py tests/test_smoke_swap_simulado_acc_cba_real.py -q
+```
+
+Resultado:
+
+```text
+13 passed
+```
+
+Se ejecuto suite completa:
+
+```text
+uv run pytest -q
+```
+
+Resultado:
+
+```text
+463 passed
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+* base de datos
+* CSV reales locales
+* `engine.py`
+* `validator.py`
+* `scoring.py`
+* `simulator.py`
+* `swap_service.py`
+* workflow formal
+* request_store
+* roster_store
+
+No se creo `SwapRequest`.
+
+No se creo `RosterVersion`.
+
+No se persistio request.
+
+No se aplico cambio de turno real.
+
+No se incorporo UI.
+
+No se incorporo API.
+
+---
+
+### Estado final
+
+v110 confirma que el sistema ya puede ejecutar una prueba tecnica de cambio de turno sobre un roster real importado.
+
+La cadena validada queda:
+
+```text
+junio.csv real final
+-> importar_roster_acc_cba_desde_csv
+-> asignaciones_operativas
+-> evaluar_swap
+-> roster simulado
+-> roster original intacto
+```
+
+El resultado sigue siendo simulacion tecnica.
+
+No equivale a aprobacion.
+
+No equivale a aplicacion.
+
+No modifica datos reales.
+
+---
+
+### Proximo paso sugerido
+
+El proximo paso natural seria una prueba controlada con un cambio elegido por el usuario:
+
+```text
+v111 - simulacion de cambio de turno seleccionado
+```
+
+Objetivo sugerido:
+
+```text
+- elegir mes
+- elegir controlador A, fecha A y turno A
+- elegir controlador B, fecha B y turno B
+- importar roster real en memoria
+- ejecutar evaluar_swap
+- entregar reporte breve de resultado
+- no crear SwapRequest
+- no aplicar cambios
+- no tocar DB
+```
+
+La aplicacion formal debe seguir postergada hasta una decision explicita.
+
+---
+
 ## checkpoint-v46-oferta-rapida-topn-benchmark
 Fecha: 2026-05-06
 
