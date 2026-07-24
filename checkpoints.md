@@ -19407,3 +19407,301 @@ No toca `engine`, `scoring`, `simulator`, `swap_service`, `technical_prefilter` 
 
 ---
 
+## checkpoint-v111-auditoria-documental-integral-v110
+
+Fecha: 2026-07-24
+
+---
+
+### Estado general
+
+Se completo una auditoria documental integral contra el repositorio real en v110.
+
+El objetivo fue identificar inconsistencias, duplicaciones, documentos desactualizados y fallas del proceso de mantenimiento documental antes de retomar implementacion funcional.
+
+Esta version registra diagnostico y estrategia.
+
+No corrige todavia los documentos auditados.
+
+No modifica comportamiento productivo.
+
+---
+
+### Base auditada
+
+```text
+commit: e3458710680c4badcde11ee734e8bb5dce090591
+tag: checkpoint-v110-smoke-swap-simulado-acc-cba-real
+rama: main
+suite confirmada: 463 passed
+```
+
+La auditoria se realizo contra un `git archive` exacto de v110.
+
+---
+
+### Archivo agregado
+
+Se agrego:
+
+```text
+docs/hitos/auditoria_documental_v110.md
+```
+
+El documento contiene:
+
+```text
+- alcance auditado
+- estado real confirmado
+- inconsistencias entre checkpoints y commits
+- evaluacion de cada documento
+- cobertura faltante de v105-v110
+- diagnostico de semantic_guard
+- clasificacion documental aprobada
+- arquitectura documental objetivo
+- estrategia para checkpoints historicos
+- estrategia de validacion futura
+- plan controlado v112-v119
+```
+
+---
+
+### Hallazgos principales registrados
+
+Se confirmo:
+
+```text
+- README.md vacio
+- contexto_sistema.md gravemente desactualizado
+- contexto_resumen.md detenido en v103 y 440 tests
+- estado_docs.md detenido en v104
+- contratos_resumen.md redundante y con terminos legados
+- indices incompletos en decisiones, contratos e invariantes
+- estructura inconsistente en modelo_dominio.md
+- estructura acumulativa en diccionario.md
+- semantic_guard.md con formato defectuoso
+- falta de documentacion canonica para v105-v110
+```
+
+Tambien se confirmo en `checkpoints.md`:
+
+```text
+- checkpoint v33 duplicado
+- checkpoint v46 ubicado despues de v110
+- ausencia de bloques propios identificables para v42, v83 y v84
+```
+
+Los huecos historicos no se reconstruyen sin evidencia.
+
+---
+
+### Divergencias confirmadas entre checkpoints y commits
+
+#### v102
+
+El checkpoint v102 declaro modificaciones en `docs/decisiones.md` y `docs/contratos.md`.
+
+El commit real `61ca950` no modifico esos archivos.
+
+Por lo tanto, no quedaron incorporados:
+
+```text
+Decision 53 - Timeline diaria y diagnostico calendar-aware paralelo
+Contrato 25 - EntryPoint paralelo calendar-aware
+```
+
+Las numeraciones existentes se preservan:
+
+```text
+Decision 53 - Perfil operativo de persona
+Contrato 25 - Estado operativo general y habilitaciones
+```
+
+#### v103
+
+El checkpoint v103 declaro una actualizacion completa de:
+
+```text
+docs/contexto_sistema.md
+```
+
+El commit real `5b4c682` modifico solamente:
+
+```text
+checkpoints.md
+```
+
+La actualizacion declarada no ingreso al repositorio.
+
+---
+
+### Diagnostico de semantic_guard
+
+Se confirmo que `run_semantic_lint()` tiene un problema de indentacion que impide considerar su resultado actual como prueba suficiente de integridad documental.
+
+Tambien se detecto:
+
+```text
+- autodeteccion de terminos prohibidos en la propia lista de reglas
+- regla valido/valido demasiado amplia
+- recorrido documental incompleto
+```
+
+La reparacion queda fuera de v111.
+
+---
+
+### Decisiones documentales aprobadas
+
+Se aprobaron estas decisiones:
+
+```text
+1. retirar docs/contratos_resumen.md como documento vigente
+2. usar Git para conservar la historia integra de checkpoints antiguos
+3. mantener posteriormente checkpoints.md activo desde v96
+4. crear docs/estado_actual.md como unica fuente del estado vigente
+```
+
+La ejecucion material de estas decisiones queda para checkpoints posteriores.
+
+---
+
+### Estrategia documental aprobada
+
+Se distinguen:
+
+```text
+documentos canonicos manuales
+estado vigente unico
+documentos derivados
+documentos historicos
+registro documental estructurado
+```
+
+Se planifica incorporar:
+
+```text
+docs/estado_actual.md
+docs/mapa_documental.yml
+```
+
+Los documentos derivados deberan generarse o verificarse sistematicamente.
+
+---
+
+### Plan controlado
+
+```text
+v112 - saneamiento de checkpoints e indice historico
+v113 - clasificacion y estructura documental oficial
+v114 - reparacion de documentos canonicos
+v115 - actualizacion funcional documental v105-v110
+v116 - correccion y ampliacion de semantic_guard
+v117 - generacion sistematica de documentos derivados
+v118 - cierre integral de documentacion
+v119 - simulacion de cambio de turno seleccionado
+```
+
+Los alcances posteriores pueden ajustarse mediante diagnostico controlado.
+
+No deben ampliarse silenciosamente dentro de un checkpoint iniciado.
+
+---
+
+### Validaciones ejecutadas
+
+Suite completa:
+
+```text
+py -m pytest -q
+463 passed in 6.71s
+```
+
+Semantic lint actual:
+
+```text
+py -m src.semantic_guard.lint_runner
+OK: semantic lint sin violaciones
+```
+
+El resultado del semantic lint se registra como salida ejecutada, pero no como prueba documental suficiente debido a las limitaciones diagnosticadas.
+
+Validacion de formato del documento nuevo:
+
+```text
+git diff --cached --check
+sin observaciones
+```
+
+---
+
+### Restricciones respetadas
+
+No se modifico:
+
+```text
+src/
+tests/
+tools/
+config/
+requirements.txt
+.gitignore
+documentos canonicos existentes
+base de datos
+CSV reales
+comportamiento productivo
+```
+
+No se:
+
+```text
+- corrigio semantic_guard
+- retiro contratos_resumen.md
+- movieron checkpoints historicos
+- inventaron contenidos para v42, v83 o v84
+- incorporaron nuevas decisiones o contratos
+- actualizaron documentos derivados
+```
+
+El bloque v111 se agrega al final sin reordenar todavia el bloque v46 desplazado.
+
+Ese saneamiento pertenece a v112.
+
+---
+
+### Estado final
+
+v111 deja persistida una auditoria verificable contra el repositorio real en v110.
+
+La documentacion todavia no fue saneada.
+
+Queda establecido un plan controlado para construir una base documental:
+
+```text
+actual
+no redundante
+trazable
+verificable
+mantenible
+```
+
+---
+
+### Proximo paso sugerido
+
+```text
+v112 - saneamiento de checkpoints e indice historico
+```
+
+Objetivo:
+
+```text
+- preservar historia integra mediante Git
+- dejar checkpoints.md activo desde v96
+- crear indice historico conciso para v1-v95
+- registrar duplicaciones, huecos y bloque fuera de orden
+- no modificar src/
+- no cambiar comportamiento productivo
+```
+
+---
