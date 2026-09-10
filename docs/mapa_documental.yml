@@ -1,0 +1,166 @@
+# Mapa documental del sistema ATC
+version_esquema: 1
+base_cerrada: v112
+revision_documental: v113
+cierre_v113_confirmado: false
+alcance: "Documentos conocidos por auditoria v111 e inventario aportado; verificar localmente"
+reglas:
+  - "Canonicos: revision humana; no reescritura conceptual automatica"
+  - "Historicos: conservar; no usarlos como estado vigente"
+  - "Derivados: generacion futura; actualmente manuales y desactualizados"
+  - "Fuentes explican evidencia; dependencias declaran rutas documentales"
+  - "Auditar no equivale a reparar ni a actualizar contenido"
+documentos:
+  - ruta: "README.md"
+    tipo: "entrada"
+    estado: "vacio_segun_auditoria"
+    fuentes: ["docs/estado_actual.md", "docs/mapa_documental.yml"]
+    dependencias: ["docs/estado_actual.md", "docs/mapa_documental.yml"]
+    revisar_cuando: ["Cambio en navegacion o instrucciones de ejecucion"]
+    modo_actual: "manual"
+    ultima_revision: "v111: auditado, no reparado"
+    accion_pendiente: "Completar como entrada estable; no duplicar estado"
+  - ruta: "checkpoints.md"
+    tipo: "historia_activa"
+    estado: "saneado_desde_v96"
+    fuentes: ["Git: commits, tags y diffs", "Resultados de validacion"]
+    dependencias: ["docs/hitos/indice_checkpoints_v1_v95.md"]
+    revisar_cuando: ["Cierre de checkpoint"]
+    modo_actual: "manual"
+    ultima_revision: "v112: saneado"
+    accion_pendiente: "Agregar v113 despues de verificar alcance"
+  - ruta: "docs/estado_actual.md"
+    tipo: "estado_vigente"
+    estado: "verificado_localmente_v113"
+    fuentes: ["docs/hitos/auditoria_documental_v110.md", "Git: cierre v112"]
+    dependencias: ["docs/hitos/auditoria_documental_v110.md", "checkpoints.md"]
+    revisar_cuando: ["Cambio funcional, limite, deuda, validacion o eje aprobado"]
+    modo_actual: "manual"
+    ultima_revision: "v113: rutas verificadas, cierre Git pendiente"
+    accion_pendiente: "Actualizar ante cambios de capacidades, limites o evidencia"
+  - ruta: "docs/contexto_sistema.md"
+    tipo: "canonico"
+    estado: "gravemente_desactualizado"
+    fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
+    dependencias: ["docs/hitos/auditoria_documental_v110.md"]
+    revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
+    modo_actual: "manual"
+    ultima_revision: "v111: auditado, no reparado"
+    accion_pendiente: "Reparar estructura y actualizar arquitectura"
+  - ruta: "docs/decisiones.md"
+    tipo: "canonico"
+    estado: "parcial_indice_incompleto"
+    fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
+    dependencias: ["docs/hitos/auditoria_documental_v110.md"]
+    revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
+    modo_actual: "manual"
+    ultima_revision: "v111: auditado, no reparado"
+    accion_pendiente: "Completar indice; preservar Decision 53; revisar incorporaciones calendar-aware"
+  - ruta: "docs/contratos.md"
+    tipo: "canonico"
+    estado: "parcial_indice_incompleto"
+    fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
+    dependencias: ["docs/hitos/auditoria_documental_v110.md"]
+    revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
+    modo_actual: "manual"
+    ultima_revision: "v111: auditado, no reparado"
+    accion_pendiente: "Completar indice; preservar Contrato 25; revisar incorporaciones calendar-aware"
+  - ruta: "docs/invariantes.md"
+    tipo: "canonico"
+    estado: "parcial_indice_incompleto"
+    fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
+    dependencias: ["docs/hitos/auditoria_documental_v110.md"]
+    revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
+    modo_actual: "manual"
+    ultima_revision: "v111: auditado, no reparado"
+    accion_pendiente: "Normalizar indice y verificar cobertura"
+  - ruta: "docs/modelo_dominio.md"
+    tipo: "canonico"
+    estado: "parcial_estructura_inconsistente"
+    fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
+    dependencias: ["docs/hitos/auditoria_documental_v110.md"]
+    revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
+    modo_actual: "manual"
+    ultima_revision: "v111: auditado, no reparado"
+    accion_pendiente: "Reparar numeracion y jerarquia sin alterar semantica"
+  - ruta: "docs/diccionario.md"
+    tipo: "canonico"
+    estado: "parcial_cobertura_incompleta"
+    fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
+    dependencias: ["docs/hitos/auditoria_documental_v110.md"]
+    revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
+    modo_actual: "manual"
+    ultima_revision: "v111: auditado, no reparado"
+    accion_pendiente: "Normalizar estructura y agregar terminos vigentes v105-v110"
+  - ruta: "docs/contexto_resumen.md"
+    tipo: "derivado"
+    estado: "desactualizado"
+    fuentes: ["docs/estado_actual.md", "docs/contexto_sistema.md"]
+    dependencias: ["docs/estado_actual.md", "docs/contexto_sistema.md"]
+    revisar_cuando: ["Cambio de sus fuentes"]
+    modo_actual: "manual"
+    ultima_revision: "v111: auditado, no regenerado"
+    accion_pendiente: "Generar o verificar sistematicamente en v117; generador aun no implementado"
+  - ruta: "docs/estado_docs.md"
+    tipo: "derivado"
+    estado: "desactualizado_con_afirmaciones_incorrectas"
+    fuentes: ["docs/mapa_documental.yml"]
+    dependencias: ["docs/mapa_documental.yml"]
+    revisar_cuando: ["Cambio de sus fuentes"]
+    modo_actual: "manual"
+    ultima_revision: "v111: auditado, no regenerado"
+    accion_pendiente: "Generar o verificar sistematicamente en v117; generador aun no implementado"
+  - ruta: "docs/contratos_resumen.md"
+    tipo: "redundante_obsoleto"
+    estado: "no_vigente_retiro_material_pendiente"
+    fuentes: ["docs/contratos.md", "docs/hitos/auditoria_documental_v110.md"]
+    dependencias: ["docs/contratos.md"]
+    revisar_cuando: ["Ejecucion del retiro aprobado"]
+    modo_actual: "manual"
+    ultima_revision: "v111: retiro como vigente aprobado"
+    accion_pendiente: "Retirar materialmente en checkpoint documental posterior"
+  - ruta: "docs/semantic_guard.md"
+    tipo: "tecnico"
+    estado: "defectuoso_y_parcialmente_desalineado"
+    fuentes: ["Implementacion real de semantic_guard", "docs/hitos/auditoria_documental_v110.md"]
+    dependencias: ["docs/hitos/auditoria_documental_v110.md"]
+    revisar_cuando: ["Correccion de la herramienta o sus reglas"]
+    modo_actual: "manual"
+    ultima_revision: "v111: auditado, no reparado"
+    accion_pendiente: "Corregir junto con herramienta en v116"
+  - ruta: "docs/hitos/cierre_ambiguedad_semantica.md"
+    tipo: "historico"
+    estado: "cerrado"
+    fuentes: ["Evidencia historica versionada"]
+    dependencias: []
+    revisar_cuando: ["Solo errata demostrable mediante correccion explicita"]
+    modo_actual: "manual"
+    ultima_revision: "v111: clasificado historico"
+    accion_pendiente: "Conservar; sin actualizacion continua"
+  - ruta: "docs/hitos/auditoria_documental_v110.md"
+    tipo: "historico"
+    estado: "cerrado"
+    fuentes: ["Repositorio v110 e inspeccion documentada", "Suite local reportada por usuario"]
+    dependencias: []
+    revisar_cuando: ["Nueva evidencia: registrar seguimiento sin reescribir el diagnostico original"]
+    modo_actual: "manual"
+    ultima_revision: "v111: incorporado"
+    accion_pendiente: "Conservar como evidencia"
+  - ruta: "docs/hitos/indice_checkpoints_v1_v95.md"
+    tipo: "indice_historico"
+    estado: "incorporado_v112"
+    fuentes: ["Git: tag v111, checkpoints.md original", "Salidas Git aportadas por usuario"]
+    dependencias: []
+    revisar_cuando: ["Evidencia nueva sobre anomalias historicas"]
+    modo_actual: "manual"
+    ultima_revision: "v112: creado"
+    accion_pendiente: "Mantener limites probatorios; cotejo con Git confirmado en v112"
+  - ruta: "docs/mapa_documental.yml"
+    tipo: "registro_documental"
+    estado: "verificado_localmente_v113"
+    fuentes: ["docs/hitos/auditoria_documental_v110.md", "Inventario documental aportado", "Git: cierre v112"]
+    dependencias: ["docs/hitos/auditoria_documental_v110.md"]
+    revisar_cuando: ["Alta, baja, reclasificacion o cambio de fuentes de documentos"]
+    modo_actual: "manual"
+    ultima_revision: "v113: rutas verificadas, cierre Git pendiente"
+    accion_pendiente: "Revisar ante altas, bajas o cambios de dependencias"

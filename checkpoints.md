@@ -4445,3 +4445,36 @@ El commit y el tag de v112 quedan pendientes del control final.
 v113 - clasificacion y estructura documental oficial.
 
 ---
+
+## checkpoint-v113-clasificacion-estructura-documental
+
+Fecha: 2026-09-10
+
+### Alcance realizado
+
+- Se incorpora docs/estado_actual.md como referencia del estado vigente.
+- Se incorpora docs/mapa_documental.yml con 17 documentos clasificados.
+- Se declaran fuentes, dependencias, disparadores y acciones pendientes.
+- Se actualiza la nota del indice historico sobre el cotejo confirmado en v112.
+- Se distinguen documentos auditados, reparaciones pendientes y trabajo previsto.
+
+### Validacion
+
+- YAML parseado durante la preparacion; 17 rutas unicas.
+- Verificacion local del usuario: 17 rutas existentes, 0 faltantes.
+- El mapa es declarativo; no implementa validacion automatica.
+- No se reejecuto pytest. Ultimo resultado registrado: 463 passed sobre v110.
+- Revision final del diff y cierre Git pendientes al redactar este bloque.
+
+### Limites
+
+No se reparan todavia documentos canonicos ni semantic_guard.
+No se implementan generadores ni se modifica codigo funcional.
+No se alteran datos operativos ni el workflow formal.
+
+### Proximo paso
+
+v114 - reparacion de documentos canonicos.
+Definir alcance concreto contra la auditoria antes de editar.
+
+---

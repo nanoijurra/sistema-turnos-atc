@@ -6,8 +6,9 @@ Fuente documental: `checkpoints.md` original de 19.707 lineas adjuntado por el u
 Referencia Git de recuperacion: `checkpoint-v111-auditoria-documental-integral-v110`
 (commit `1382aca`, segun salida Git aportada por el usuario).
 Las lineas de esta tabla corresponden al original anterior al saneamiento.
-No se verifico aqui el objeto Git contra el adjunto: esa comparacion queda pendiente
-antes del reemplazo local. El indice describe bloques, no certifica sus afirmaciones.
+Cotejo confirmado al cerrar v112: original local y tag v111 coinciden con
+el adjunto normalizando saltos de linea. Objeto Git:
+`f90375ee4720eb687b280680880fad20844251b0`. El indice describe bloques, no certifica sus afirmaciones.
 Las fechas se transcriben del campo Fecha inicial; no se infieren de versiones vecinas.
 
 ## Indice
