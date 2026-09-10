@@ -1,6 +1,6 @@
 # CHECKPOINTS DEL PROYECTO - SISTEMA SWAPS ATC
 
-Registro activo desde v96. Base cerrada confirmada: v114. Revision v115 en curso.
+Registro activo desde v96. Base cerrada confirmada: v115. Revision v116 en curso.
 
 Indice anterior: [v1-v95](docs/hitos/indice_checkpoints_v1_v95.md).
 Historia integra previa: tag `checkpoint-v111-auditoria-documental-integral-v110`.
@@ -4595,3 +4595,65 @@ commit, tag y push pendientes al redactar. Evidencia detallada en informe v115.
 
 v116 - correccion de semantic_guard, con alcance definido antes de editar.
 Priorizar explicitamente la deuda funcional detectada antes de uso decisorio.
+
+## checkpoint-v116-reparacion-semantic-lint
+
+Fecha: 2026-09-10
+
+### Base
+
+v115 cerrado en e39e73f; tag checkpoint-v115-conciliacion-funcional-documental.
+
+### Archivos del alcance
+
+- src/semantic_guard/lint_runner.py
+- src/semantic_guard/lint_rules.py
+- tests/test_semantic_guard.py
+- tests/test_semantic_guard_regressions.py
+- docs/semantic_guard.md
+- docs/estado_actual.md
+- docs/mapa_documental.yml
+- checkpoints.md
+
+### Correcciones
+
+Recorrido de todos los archivos elegibles bajo src y docs, errores visibles S-00,
+conteos de analizados/excluidos y salida CLI no cero ante fallos o infracciones.
+La API run_semantic_lint sigue devolviendo lista y acepta raiz opcional.
+S-04 se acota a asignaciones taxonomicas explicitas con valido/valida.
+S-05 distingue el registro literal de prohibiciones de usos productivos del mismo
+archivo; compara nombres de evento completos sin duplicar prefijos.
+S-01/02/03 seleccionan modulo por nombre de archivo exacto.
+
+### Alcance y limites
+
+Exclusiones Markdown explicitas: docs/hitos, estado_docs y contratos_resumen raiz
+de docs. No se excluye semantic_guard ni los documentos vigentes de estado/resumen.
+No se modifican motor de swaps, reglas de descanso, configuracion, datos ni CSV.
+Semantic diff permanece sin cambios; sus limitaciones se documentan.
+El guard es heuristico y no prueba cumplimiento operativo ni toda la semantica.
+
+### Validacion
+
+Se agregan 27 regresiones unittest compatibles con pytest; incluyen casos
+negativos/positivos, errores de lectura/recorrido, excepcion AST acotada y CLI.
+La integridad existente pasa a usar raiz explicita independiente del cwd.
+En Python 3.12: 27 regresiones unittest aprobadas en el entorno de preparacion.
+
+Validacion local Windows confirmada por el usuario:
+- Suite completa sobre los cambios de v116: 489 passed, 1 skipped en 7.17 s.
+- Regresiones nuevas: 26 passed, 1 skipped en 0.51 s.
+- Prueba omitida: test_symlink_directory_is_reported_instead_of_skipped_silently.
+- Motivo: OS does not permit creating symlinks.
+- El caso omitido paso en preparacion; no se declara comprobado en Windows.
+- Lint: 56 archivos analizados, 6 excluidos, cero infracciones y salida 0.
+
+La suite local ya no esta pendiente. Restan cotejo final del diff preparado,
+commit, tag y push. No se confunde este resultado con los 463 passed de v110.
+
+### Proximo paso
+
+Cerrar v116 despues del cotejo final del diff. Luego v117: generacion de derivados.
+Mantener deuda funcional identificada en v115 y limites del semantic diff abiertos.
+
+---

@@ -1,276 +1,140 @@
-clear# Semantic guard
+# Semantic guard
 
 ## Tabla de contenido
 
-- [1. Proposito](#1-proposito)
-- [2. Alcance](#2-alcance)
-- [3. Objetivo del sistema](#3-objetivo-del-sistema)
-- [4. Componentes](#4-componentes)
-  - [4.1 Semantic lint](#41-semantic-lint)
-  - [4.2 Semantic diff](#42-semantic-diff)
-- [5. Estructura actual](#5-estructura-actual)
-- [6. Reglas activas](#6-reglas-activas)
-- [7. Uso operativo](#7-uso-operativo)
-- [8. Alcance documental actual](#8-alcance-documental-actual)
-- [9. Criterios de extension](#9-criterios-de-extension)
-- [10. Restricciones](#10-restricciones)
-- [11. Evolucion futura](#11-evolucion-futura)
+- [Proposito y limites](#proposito-y-limites)
+- [Alcance del lint](#alcance-del-lint)
+- [Reglas](#reglas)
+- [Excepciones acotadas](#excepciones-acotadas)
+- [Uso](#uso)
+- [Pruebas](#pruebas)
+- [Semantic diff](#semantic-diff)
+- [Mantenimiento](#mantenimiento)
 
 ---
 
-## 1. Proposito
-
-Definir el propósito, alcance y modo de uso del subsistema `semantic_guard`.
-
-Este subsistema protege la coherencia semántica del sistema de swaps ATC mediante verificaciones automáticas sobre documentación y evolución de conceptos críticos.
-
----
-
-## 2. Alcance
-
-Este documento define:
-
-- qué es `semantic_guard`
-- qué controles realiza
-- cómo se ejecuta
-- qué alcance tiene hoy
-- cómo debe evolucionar
-
-No define:
-
-- contratos funcionales del sistema principal
-- reglas del dominio del swap
-- implementación del flujo operativo principal
-
-Ver también:
-
-- [Ref: diccionario.md]
-- [Ref: invariantes.md]
-- [Ref: decisiones.md]
-- [Ref: contratos.md]
-
----
-
-## 3. Objetivo del sistema
-
-`semantic_guard` existe para reducir drift semántico en el proyecto.
-
-Su objetivo es detectar, antes de consolidar cambios:
-
-- ambigüedades terminológicas
-- mezcla indebida de planos conceptuales
-- reaparición de términos legados
-- pérdida de taxonomías críticas
-- degradación de documentos rectores
-
-Opera como capa de protección sobre:
-
-- documentación
-- evolución documental
-- reglas semánticas mínimas del sistema
-
----
-
-## 4. Componentes
-
-### 4.1 Semantic lint
-
-Verifica el estado actual del proyecto.
-
-Responde a la pregunta:
-
-**¿La semántica actual del sistema viola alguna regla conocida?**
-
-Detecta, por ejemplo:
-
-- uso de términos ambiguos en documentación
-- violaciones activas de reglas semánticas
-- contaminación semántica en archivos vigilados
-
-#### Comando
-
-bash
-python -m src.semantic_guard.lint_runner
-
-### 4.2  Semantic diff
-
-Compara dos versiones de un documento para detectar drift semántico.
-
-Responde a la pregunta:
-
-¿Este cambio introdujo una degradacion conceptual respecto de la version anterior?
-
-Detecta, por ejemplo:
-
-pérdida de taxonomías
-reaparición de términos prohibidos
-cambios peligrosos en vocabulario rector
-Comando
-python -m src.semantic_guard.diff_runner
-
-## 5. Estructura actual
-
-La estructura actual del subsistema es:
-
-src/
-└── semantic_guard/
-    ├── __init__.py
-    ├── lint_rules.py
-    ├── lint_runner.py
-    ├── extractor.py
-    ├── diff_rules.py
-    └── diff_runner.py
-
-
-## 6. Reglas activas
-
-### Las reglas activas deben ser:
-
-pocas
-explícitas
-justificadas por problemas reales
-estables en el tiempo
-Reglas de semantic lint
-
-Incluyen, entre otras:
-
-deteccion de ambiguedad terminologica en documentacion semantica
-exclusión de archivos no semánticos o de control de proceso
-
-Ejemplo:
-
-estado_docs.md
-Reglas de semantic diff
-
-Incluyen, entre otras:
-
-detección de pérdida de taxonomías críticas
-detección de reaparición de términos legados
-vigilancia de vocabulario estructural del sistema
-
-### Regla de preservacion de taxonomia oficial
-
-semantic_guard debe vigilar explicitamente la preservacion de la taxonomia oficial del sistema.
-
-Incluye:
-
-- clasificacion tecnica:
-  - BENEFICIOSO
-  - ACEPTABLE
-  - RECHAZABLE
-
-- decision operativa:
-  - VIABLE
-  - OBSERVAR
-  - RECHAZAR
-
-- estados del workflow:
-  - PENDIENTE
-  - EVALUADO
-  - APROBADO
-  - RECHAZADO
-  - CANCELADO
-  - APLICADO
-
-Regla:
-
-- no deben aparecer sinonimos o variantes para estos conceptos
-- no deben mezclarse entre si los planos tecnico, operativo y de workflow
-- no deben reintroducirse terminos eliminados como:
-  - APROBABLE
-  - ACEPTADO
-  - reaparicion de terminologia ambigua
-
-Motivo:
-
-Estas taxonomias constituyen el lenguaje ubicuo del sistema y su alteracion implica drift semantico critico.
-
-## 7. Uso operativo
-### 7.1 Uso minimo recomendado
-
-Antes de consolidar cambios en documentos rectores, ejecutar:
-
-python -m src.semantic_guard.lint_runner
-python -m src.semantic_guard.diff_runner
-### 7.2 Cuando usar semantic lint
-
-Usar semantic lint cuando:
-
-se modifica documentación en docs/
-se ajusta semántica del sistema
-se reorganizan conceptos críticos
-se quiere verificar el estado actual del corpus documental
-7.3 Cuando usar semantic diff
-
-Usar semantic diff cuando:
-
-se reescribe un documento rector
-se compara una versión previa contra una nueva
-se revisa si un cambio introdujo drift conceptual
-
-## 8. Alcance documental actual
-
-Hoy semantic_guard vigila prioritariamente documentos semánticos en docs/.
-
-Documentos objetivo
-invariantes.md
-modelo_dominio.md
-decisiones.md
-contratos.md
-diccionario.md
-Exclusiones
-
-No todos los .md deben ser tratados como documentos semánticos.
-
-Archivos de control de proceso o seguimiento operativo pueden excluirse explícitamente.
-
-Ejemplo:
-
-estado_docs.md
-## 9. Criterios de extension
-
-Toda nueva regla del sistema debe cumplir estas condiciones:
-
-resolver una ambigüedad real ya observada
-no introducir ruido innecesario
-no duplicar otra regla existente
-poder explicarse con claridad
-no depender de interpretaciones frágiles
-Regla de diseño
-
-semantic_guard no debe crecer por entusiasmo, sino por necesidad real.
-
-## 10. Restricciones
-
-semantic_guard no debe:
-
-redefinir semántica del sistema por sí mismo
-convertirse en fuente de verdad del dominio
-reemplazar la lectura crítica humana
-introducir reglas arbitrarias sin justificación documental
-
-Su rol es:
-
-vigilar
-alertar
-proteger coherencia
-
-No diseñar el sistema principal.
-
-## 11. Evolucion futura
-
-Posibles extensiones:
-
-integración con pytest
-integración con pre-commit
-comparación automática contra ramas o snapshots
-reglas semánticas sobre código
-cobertura semántica de documentación
-detección automática de referencias cruzadas rotas
-
-Toda evolución debe preservar:
-
-simplicidad
-trazabilidad
-bajo ruido
-utilidad real
+## Proposito y limites
+
+Revision v116 del lint semantico sobre base v115, commit e39e73f.
+Detecta patrones conocidos en codigo y documentacion. No demuestra coherencia
+semantica completa, cobertura normativa ATC, correccion de swaps ni vigencia de
+cada documento. Tampoco reemplaza pytest, revision humana o control del diff Git.
+
+La reparacion elimina el recorrido incompleto, acota la excepcion de declaraciones
+y reemplaza la busqueda indiscriminada de valido por patrones taxonomicos explicitos.
+Los codigos S-01 a S-05 y la API que devuelve lista de infracciones se conservan.
+
+## Alcance del lint
+
+- Archivos .py bajo src/, incluidos subdirectorios y semantic_guard.
+- Archivos .md bajo docs/, incluidos estado_actual y contexto_resumen.
+- Exclusiones Markdown: docs/hitos/**, docs/estado_docs.md y docs/contratos_resumen.md.
+  Corresponden a historia cerrada, control derivado y resumen retirado como vigente.
+  Los mismos nombres en otras subcarpetas no se excluyen por coincidencia parcial.
+- No examina tests/, tools/, config/, YAML, README ni checkpoints de la raiz.
+- No sigue directorios simbolicos; los reporta como alcance incompleto (S-00).
+  Un archivo enlazado fuera de su directorio src o docs tambien produce S-00.
+
+El recorrido usa os.walk con errores visibles y orden estable. Deben existir src
+y docs, con archivos elegibles en ambos. Error de lectura, codificacion o sintaxis
+Python no se convierte en exito y no impide analizar los demas archivos.
+El reporte distingue archivos analizados de excluidos; un archivo que fallo al
+analizar no se cuenta como analizado satisfactoriamente.
+
+## Reglas
+
+| Codigo | Control | Limite |
+| --- | --- | --- |
+| S-00 | Alcance ausente, vacio, inaccesible o archivo no analizado | Fallo del control, no infraccion de dominio |
+| S-01 | Literales de decision/workflow en simulator.py | Heuristica sobre AST, no flujo de datos |
+| S-02 | Literales de decision/workflow en engine.py | Heuristica sobre AST, no flujo de datos |
+| S-03 | Nombres tecnicos sospechosos en swap_service.py | Patrones de nombres; no prueba de reclasificacion |
+| S-04 | Valido/valida como valor de estado, clasificacion o decision | Patrones explicitos en una linea; no comprension general del texto |
+| S-05 | Nombres antiguos de eventos en constantes de texto Python | No resuelve cadenas construidas dinamicamente |
+
+S-01/02/03 se seleccionan por nombre exacto del archivo, no porque una carpeta o
+archivo auxiliar contenga la palabra engine, simulator o swap_service.
+
+S-04 reconoce etiquetas de estado, clasificacion o decision seguidas de dos puntos,
+igual o el verbo es y un valor valido/valida, con o sin tildes y comillas simples.
+Informa la linea real. No marca el verbo valida, identificadores como
+valido_sin_hard ni frases tecnicamente calificadas fuera de esos patrones.
+Un encabezado estructural Request valido por si solo tampoco es una asignacion
+taxonomica. La regla examina tambien lineas en fences; no se excluyen ejemplos
+por el solo hecho de usar Markdown de codigo.
+
+## Excepciones acotadas
+
+S-05 no marca los literales del tuple LEGACY_AUDIT_EVENT_NAMES declarado en el
+nivel de modulo de src/semantic_guard/lint_rules.py. La excepcion se limita a
+esa declaracion literal: no excluye el archivo ni llamadas o f-strings.
+Un evento antiguo usado en otra asignacion del mismo modulo sigue produciendo
+infraccion. El mismo nombre de variable fuera de ese modulo no tiene excepcion.
+
+Los eventos se comparan por limites de identificador para evitar coincidencias
+de prefijos. El evento largo REQUEST_EVALUADO_SIN_TECNICA se reporta una sola vez.
+Esta es una comprobacion de constantes, no un analisis de referencias a variables.
+
+## Uso
+
+Desde la raiz del repositorio, en PowerShell:
+
+```powershell
+py -m src.semantic_guard.lint_runner
+$LASTEXITCODE
+```
+
+Para indicar otra raiz:
+
+```powershell
+py -m src.semantic_guard.lint_runner --root C:\PROYECTO\sistema-turnos-atc
+```
+
+Salida: cantidad de archivos analizados/excluidos y detalles de infracciones.
+Codigo de salida 0: sin infracciones en el alcance declarado.
+Codigo de salida 1: infraccion o fallo S-00. Argumentos CLI invalidos: argparse
+usa su codigo 2. Un error imprevisto no se transforma en una lista vacia.
+
+API:
+
+- run_semantic_lint(root="."): lista de SemanticViolation, compatible con uso previo.
+- run_semantic_lint_report(root="."): SemanticLintReport con violations,
+  analyzed_files y excluded_files.
+- analyze_python_file y analyze_markdown_file: analisis directo de un archivo.
+
+## Pruebas
+
+El test de integridad existente usa la raiz obtenida desde su propio archivo.
+Se agregan 27 regresiones compatibles con unittest y pytest. Cubren recorrido
+completo, carpetas vacias, errores, alcance declarado, declaraciones versus uso,
+limites de eventos, usos legitimos, infracciones S-01 a S-05 y salida CLI.
+La prueba de enlaces simbolicos puede omitirse si el sistema no permite crearlos.
+
+```powershell
+py -m unittest discover -s tests -p test_semantic_guard_regressions.py -v
+py -m pytest -q
+```
+
+La primera orden no requiere pytest ni carga conftest. La segunda verifica el
+proyecto completo y debe ejecutarse localmente antes de cerrar v116.
+Los smokes de CSV real pueden omitirse si faltan los archivos; registrar passed,
+skipped y failed reales, sin sustituirlos por el resultado historico 463 passed.
+
+## Semantic diff
+
+Los modulos diff_runner, diff_rules y extractor se conservan sin modificaciones
+en v116. Comparan taxonomias y terminos antiguos entre dos textos; no heredan las
+reglas S-04/S-05 del lint. run_semantic_diff(old_path, new_path) permite rutas
+explicitas. El entrypoint actual usa docs_old/contratos.md y docs/contratos.md,
+y no implementa un codigo de salida no cero por infracciones.
+
+No usar ese entrypoint como gate automatico sin preparar su base de comparacion y
+corregir su salida en un alcance posterior. No se declara reparado todo semantic
+diff por haber reparado el lint.
+
+## Mantenimiento
+
+Mantener las exclusiones explicitas y probadas. Cualquier nueva regla debe incluir
+un caso que deba fallar y otro legitimo que deba pasar. Las excepciones no deben
+ocultar usos productivos. Si cambia el inventario, cambian los conteos; no fijarlos
+como criterio de exito. Mantener codigo, esta especificacion y seguimiento juntos.

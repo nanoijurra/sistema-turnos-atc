@@ -1,4 +1,6 @@
 import ast
+import re
+from pathlib import PurePosixPath
 
 
 class SemanticViolation:
@@ -71,55 +73,88 @@ def rule_swap_service_no_classification_logic(
     return violations
 
 
+# The declaration is evidence for S-05, not a productive audit event.
+LEGACY_AUDIT_EVENT_NAMES = (
+    "REQUEST_EVALUADO",
+    "REQUEST_EVALUADO_SIN_TECNICA",
+    "REQUEST_RESUELTO",
+    "SWAP_APLICADO",
+    "REQUEST_CANCELADO_POR_OBSOLESCENCIA",
+    "Request creado:",
+)
+
+
+# S-04 intentionally recognizes explicit taxonomic assignments, not arbitrary prose.
+_AMBIGUOUS_ASSIGNMENT = re.compile(
+    r"\b(?:estado|clasificaci[oó]n|decisi[oó]n)"
+    r"(?:[ \t]+(?:del[ \t]+)?(?:swap|request|roster|operativa|t[eé]cnica))*"
+    r"[ \t]*(?::|=|\bes\b)[ \t]*[\"'`*]*"
+    r"v[aá]lid[oa]\b",
+    re.IGNORECASE,
+)
+
+
 def rule_no_ambiguous_valido(text: str, file: str) -> list[SemanticViolation]:
     violations: list[SemanticViolation] = []
-
-    if "válido" in text.lower() or "valido" in text.lower():
-        violations.append(
-            SemanticViolation(
-                "S-04",
-                "Uso potencialmente ambiguo de 'válido/valido' en documentación",
-                file,
-                0,
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        if _AMBIGUOUS_ASSIGNMENT.search(line):
+            violations.append(
+                SemanticViolation(
+                    "S-04",
+                    "Valido/valida usado como estado, clasificacion o decision sin taxonomia explicita",
+                    file,
+                    lineno,
+                )
             )
-        )
-
     return violations
+
+
+def _registry_constants(tree: ast.AST, file: str) -> set[int]:
+    # Only the one literal registry in this module is exempt, never the whole file.
+    parts = PurePosixPath(file.replace("\\", "/")).parts
+    if tuple(parts[-3:]) != ("src", "semantic_guard", "lint_rules.py"):
+        return set()
+    if not isinstance(tree, ast.Module):
+        return set()
+    exempt: set[int] = set()
+    for statement in tree.body:
+        if not isinstance(statement, ast.Assign) or len(statement.targets) != 1:
+            continue
+        target = statement.targets[0]
+        if not isinstance(target, ast.Name) or target.id != "LEGACY_AUDIT_EVENT_NAMES":
+            continue
+        if not isinstance(statement.value, ast.Tuple):
+            continue
+        # Do not exempt calls, interpolations, or executable event construction.
+        if all(isinstance(item, ast.Constant) and isinstance(item.value, str)
+               for item in statement.value.elts):
+            exempt.update(id(item) for item in statement.value.elts)
+    return exempt
+
 
 def rule_no_legacy_audit_event_names(
     tree: ast.AST,
     file: str,
 ) -> list[SemanticViolation]:
     violations: list[SemanticViolation] = []
-
-    forbidden_events = [
-        "REQUEST_EVALUADO",
-        "REQUEST_EVALUADO_SIN_TECNICA",
-        "REQUEST_RESUELTO",
-        "SWAP_APLICADO",
-        "REQUEST_CANCELADO_POR_OBSOLESCENCIA",
-        "Request creado:",
-    ]
-
+    exempt = _registry_constants(tree, file)
     for node in ast.walk(tree):
-        if not isinstance(node, ast.Constant):
+        if not isinstance(node, ast.Constant) or not isinstance(node.value, str):
             continue
-
-        if not isinstance(node.value, str):
+        if id(node) in exempt:
             continue
-
-        for event_name in forbidden_events:
-            if event_name in node.value:
+        for event_name in LEGACY_AUDIT_EVENT_NAMES:
+            # Match full event names, not prefixes of normalized identifiers.
+            pattern = r"(?<!\w)" + re.escape(event_name)
+            if event_name[-1].isalnum():
+                pattern += r"(?!\w)"
+            if re.search(pattern, node.value):
                 violations.append(
                     SemanticViolation(
                         "S-05",
-                        (
-                            "Nombre legacy de evento auditable detectado: "
-                            f"{event_name}. Usar eventos normalizados v81."
-                        ),
+                        f"Nombre legacy de evento auditable detectado: {event_name}. Usar eventos normalizados v81.",
                         file,
                         getattr(node, "lineno", 0),
                     )
                 )
-
     return violations

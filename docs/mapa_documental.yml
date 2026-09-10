@@ -1,11 +1,12 @@
 # Mapa documental del sistema ATC
 version_esquema: 1
-base_cerrada: v114
-revision_documental: v115
+base_cerrada: v115
+revision_documental: v116
 cierre_v113_confirmado: true
 cierre_v114_confirmado: true
-cierre_v115_confirmado: false
-alcance: "Base v114 exportada; 18 rutas documentales existentes en propuesta v115; cierre Git pendiente"
+cierre_v115_confirmado: true
+cierre_v116_confirmado: false
+alcance: "Base v115 exportada; 18 rutas documentales; reparacion de semantic lint v116 pendiente de cierre"
 reglas:
   - "Canonicos: revision humana; no reescritura conceptual automatica"
   - "Historicos: conservar; no usarlos como estado vigente"
@@ -24,25 +25,25 @@ documentos:
     accion_pendiente: "Completar como entrada estable; no duplicar estado"
   - ruta: "checkpoints.md"
     tipo: "historia_activa"
-    estado: "revisado_v115_cierre_pendiente"
+    estado: "revision_v116_cierre_pendiente"
     fuentes: ["Git: commits, tags y diffs", "Resultados de validacion"]
     dependencias: ["docs/hitos/indice_checkpoints_v1_v95.md"]
     revisar_cuando: ["Cierre de checkpoint"]
     modo_actual: "manual"
-    ultima_revision: "v115: conciliacion documental contra base v114"
-    accion_pendiente: "Verificar diff y cerrar v115; preservar historia activa anterior"
+    ultima_revision: "v116: suite local 489 passed, 1 skipped; cierre Git pendiente"
+    accion_pendiente: "Verificar alcance y cerrar v116; preservar bloques anteriores"
   - ruta: "docs/estado_actual.md"
     tipo: "estado_vigente"
-    estado: "revisado_v115_cierre_pendiente"
+    estado: "revision_v116_cierre_pendiente"
     fuentes: ["docs/hitos/auditoria_documental_v110.md", "Git: cierre v114"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md", "checkpoints.md"]
     revisar_cuando: ["Cambio funcional, limite, deuda, validacion o eje aprobado"]
     modo_actual: "manual"
-    ultima_revision: "v115: conciliacion documental contra base v114"
-    accion_pendiente: "Verificar cierre local v115 y priorizar deuda funcional detectada"
+    ultima_revision: "v116: suite local 489 passed, 1 skipped; cierre Git pendiente"
+    accion_pendiente: "Registrar cierre Git v116; prueba symlink omitida en Windows"
   - ruta: "docs/contexto_sistema.md"
     tipo: "canonico"
-    estado: "revisado_v115_cierre_pendiente"
+    estado: "revisado_v115"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
@@ -51,7 +52,7 @@ documentos:
     accion_pendiente: "Mantener arquitectura y limites segun codigo; deuda funcional no resuelta por documentacion"
   - ruta: "docs/decisiones.md"
     tipo: "canonico"
-    estado: "revisado_v115_cierre_pendiente"
+    estado: "revisado_v115"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
@@ -60,7 +61,7 @@ documentos:
     accion_pendiente: "Conservar Decision 54 descriptiva; resolver deuda funcional con decision explicita"
   - ruta: "docs/contratos.md"
     tipo: "canonico"
-    estado: "revisado_v115_cierre_pendiente"
+    estado: "revisado_v115"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
@@ -69,7 +70,7 @@ documentos:
     accion_pendiente: "Mantener Contratos 26/27; no presentar diagnostico como aprobacion"
   - ruta: "docs/invariantes.md"
     tipo: "canonico"
-    estado: "revisado_v115_cierre_pendiente"
+    estado: "revisado_v115"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
@@ -78,7 +79,7 @@ documentos:
     accion_pendiente: "Mantener CA-7/8/9 y limites; conciliar reglas en checkpoint funcional"
   - ruta: "docs/modelo_dominio.md"
     tipo: "canonico"
-    estado: "revisado_v115_cierre_pendiente"
+    estado: "revisado_v115"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
@@ -87,7 +88,7 @@ documentos:
     accion_pendiente: "Entrenamiento conciliado para ACC; mantener distincion dataclass y frontera de importacion"
   - ruta: "docs/diccionario.md"
     tipo: "canonico"
-    estado: "revisado_v115_cierre_pendiente"
+    estado: "revisado_v115"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
@@ -123,13 +124,13 @@ documentos:
     accion_pendiente: "Retirar materialmente en checkpoint documental posterior"
   - ruta: "docs/semantic_guard.md"
     tipo: "tecnico"
-    estado: "defectuoso_y_parcialmente_desalineado"
+    estado: "revision_v116_cierre_pendiente"
     fuentes: ["Implementacion real de semantic_guard", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Correccion de la herramienta o sus reglas"]
     modo_actual: "manual"
-    ultima_revision: "v111: auditado, no reparado"
-    accion_pendiente: "Corregir junto con herramienta en v116"
+    ultima_revision: "v116: suite local 489 passed, 1 skipped; cierre Git pendiente"
+    accion_pendiente: "Mantener especificacion y regresiones del lint; semantic diff no reparado en v116"
   - ruta: "docs/hitos/cierre_ambiguedad_semantica.md"
     tipo: "historico"
     estado: "cerrado"
@@ -159,19 +160,19 @@ documentos:
     accion_pendiente: "Mantener limites probatorios; cotejo con Git confirmado en v112"
   - ruta: "docs/mapa_documental.yml"
     tipo: "registro_documental"
-    estado: "revisado_v115_cierre_pendiente"
+    estado: "revision_v116_cierre_pendiente"
     fuentes: ["docs/hitos/auditoria_documental_v110.md", "Inventario documental aportado", "Git: cierre v114"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Alta, baja, reclasificacion o cambio de fuentes de documentos"]
     modo_actual: "manual"
-    ultima_revision: "v115: conciliacion documental contra base v114"
-    accion_pendiente: "Mantener 18 entradas y seguimiento; derivados pendientes v117"
+    ultima_revision: "v116: suite local 489 passed, 1 skipped; cierre Git pendiente"
+    accion_pendiente: "Mantener seguimiento documental; generacion de derivados pendiente v117"
   - ruta: "docs/hitos/conciliacion_funcional_v115.md"
     tipo: "historico"
-    estado: "revision_v115_cierre_pendiente"
+    estado: "revision_v115_cerrada"
     fuentes: ["Codigo y tests exportados desde v114", "Comprobaciones sinteticas aisladas v115"]
     dependencias: ["docs/contexto_sistema.md", "docs/contratos.md", "docs/decisiones.md"]
     revisar_cuando: ["Nueva evidencia: registrar seguimiento sin falsear evidencia anterior"]
     modo_actual: "manual"
     ultima_revision: "v115: creado"
-    accion_pendiente: "Cerrar checkpoint y tratar deuda funcional mediante alcance explicito"
+    accion_pendiente: "V115 cerrado; tratar deuda funcional mediante alcance explicito"

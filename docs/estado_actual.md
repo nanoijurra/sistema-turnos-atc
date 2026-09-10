@@ -13,12 +13,11 @@
 
 ## Base confirmada
 
-Ultimo checkpoint cerrado confirmado al redactar: **v114**, commit `a9abc31`,
-tag `checkpoint-v114-reparacion-estructural-documentos-canonicos`.
-Rama y tag publicados segun salida del usuario. Sin cambios versionados al cierre;
-quedaban tres TXT ajenos sin seguimiento. Esto no afirma limpieza permanente.
+Ultimo checkpoint cerrado confirmado al redactar: **v115**, commit `e39e73f`,
+tag `checkpoint-v115-conciliacion-funcional-documental`.
+Rama y tag publicados segun salida del usuario. Arbol de trabajo limpio al cierre de v115. Esto no afirma limpieza permanente.
 
-Trabajo actual: **v115 - conciliacion funcional documental**, pendiente de cierre Git.
+Trabajo actual: **v116 - reparacion de semantic lint**, pendiente de cierre Git.
 Base funcional: codigo exportado desde v114; v111-v114 fueron cambios documentales.
 El estado es referencia de seguimiento; contratos, decisiones e invariantes definen
 sus planos. El [mapa](mapa_documental.yml) declara fuentes y responsabilidades.
@@ -53,15 +52,29 @@ funcional posterior explicito; no desaparecen por completar documentacion.
 
 ## Validacion
 
-Ultima suite completa registrada: **463 passed sobre v110**, reportada por el usuario.
-En este entorno no hay pytest; no se declara una ejecucion nueva de la suite.
-En v115 se inspeccionaron codigo y tests y se ejecutaron comprobaciones sinteticas
-acotadas de normalizacion, frontera multimes y reporte, usando SQLite temporal.
-Los CSV reales no se utilizaron ni se reejecutaron sus smokes.
+Ultima ejecucion de la suite completa, sobre los cambios locales de v116:
+**489 passed, 1 skipped en 7.17 s**, confirmada por el usuario en Windows.
 
-V114 reparo estructura y conservo numeraciones. V115 agrega contenido sustentado en
-codigo. Queda pendiente verificar e incorporar el paquete en el repositorio local.
-semantic_guard sigue defectuoso y no acredita integridad documental completa.
+- Regresiones nuevas locales: 26 passed, 1 skipped en 0.51 s.
+- Omision: test_symlink_directory_is_reported_instead_of_skipped_silently.
+- Motivo informado: OS does not permit creating symlinks.
+- Ese caso paso en el entorno de preparacion: 27 regresiones unittest aprobadas
+  en Python 3.12. No se presenta como comprobado en Windows.
+- Lint local: 56 archivos analizados, 6 excluidos, cero infracciones, salida 0.
+
+El resultado historico de v110 fue 463 passed. En v115 se realizaron inspeccion
+y comprobaciones sinteticas aisladas, sin pytest en el entorno de preparacion.
+La ejecucion local nueva no debe confundirse con aquella evidencia historica.
+
+La validacion local de v116 esta registrada. Quedan pendientes el cotejo final del
+diff preparado y el cierre Git (commit, tag y push).
+
+V114 reparo estructura y conservo numeraciones. V115 agrego contenido sustentado en
+codigo y quedo cerrado en e39e73f. V116 modifica solo la herramienta de lint, sus
+tests y documentacion de seguimiento; no modifica reglas funcionales ATC.
+El lint de semantic_guard se repara en v116: recorrido completo, reglas acotadas,
+errores visibles y salida CLI verificable. No acredita integridad documental
+completa ni reglas ATC. Semantic diff mantiene sus limitaciones anteriores.
 
 ## Estado documental y siguientes pasos
 
@@ -71,7 +84,8 @@ semantic_guard sigue defectuoso y no acredita integridad documental completa.
 - Referencias historicas a roster_service representan extraccion futura, no falta de versionado.
 - contexto_resumen y estado_docs siguen desactualizados; generacion prevista en v117.
 - README vacio y retiro material de contratos_resumen pendientes.
-- v116: corregir semantic_guard; v118: cierre documental integral.
+- v116: lint reparado y 27 regresiones aprobadas en el entorno de preparacion; suite local 489 passed, 1 skipped; cierre Git pendiente.
+- v117: generacion de derivados; v118: cierre documental integral.
 - v119: simulacion seleccionada prevista; revisar prioridad frente a deuda funcional detectada.
 - Bases SQLite transitorias versionadas y requirements UTF-16: deuda separada.
 
