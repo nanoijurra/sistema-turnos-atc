@@ -13,13 +13,29 @@
   - [4.5 Turno](#45-turno)
 - [5. Relaciones entre entidades](#5-relaciones-entre-entidades)
 - [6. Conceptos clave del dominio](#6-conceptos-clave-del-dominio)
+  - [6.1 Clasificacion tecnica](#61-clasificacion-tecnica)
+  - [6.2 Decision sugerida](#62-decision-sugerida)
+  - [6.3 Resolucion operativa](#63-resolucion-operativa)
+  - [6.4 Aplicacion](#64-aplicacion)
+  - [6.5 Motivos del workflow](#65-motivos-del-workflow)
 - [7. Semantica de versiones](#7-semantica-de-versiones)
+  - [7.1 Version vigente](#71-version-vigente)
+  - [7.2 Version evaluable](#72-version-evaluable)
+  - [7.3 Version aplicable](#73-version-aplicable)
+  - [Regla unificada](#regla-unificada)
+  - [Obsolescencia](#obsolescencia)
 - [8. Identidad del objeto del swap](#8-identidad-del-objeto-del-swap)
+  - [Semantica del intercambio](#semantica-del-intercambio)
 - [9. Separacion conceptual](#9-separacion-conceptual)
+  - [Evaluacion tecnica](#evaluacion-tecnica)
+  - [Evaluacion formal](#evaluacion-formal)
+  - [Resolucion operativa](#resolucion-operativa)
+  - [Aplicacion](#aplicacion)
 - [10. Reglas del dominio](#10-reglas-del-dominio)
 - [11. Proposito del modelo](#11-proposito-del-modelo)
+- [Nota de frontera con simulacion](#nota-de-frontera-con-simulacion)
+- [Nota de estados, resolucion y aplicacion](#nota-de-estados-resolucion-y-aplicacion)
 - [12. Frontera futura de roster real, perfil operativo y elegibilidad](#12-frontera-futura-de-roster-real-perfil-operativo-y-elegibilidad)
-
   - [12.1 Estado](#121-estado)
   - [12.2 Contexto](#122-contexto)
   - [12.3 Conceptos reconocidos](#123-conceptos-reconocidos)
@@ -31,8 +47,20 @@
   - [12.9 Fronteras preservadas](#129-fronteras-preservadas)
   - [12.10 Decision de alcance](#1210-decision-de-alcance)
   - [12.11 Regla corta](#1211-regla-corta)
-- [Nota de frontera con simulacion](#nota-de-frontera-con-simulacion)
-- [Nota de estados, resolucion y aplicacion](#nota-de-estados-resolucion-y-aplicacion)
+- [Timeline diaria importada](#timeline-diaria-importada)
+  - [Descripcion](#descripcion)
+  - [Entidad conceptual](#entidad-conceptual)
+  - [Estados posibles](#estados-posibles)
+  - [OPERATIVO](#operativo)
+  - [LIBRE](#libre)
+  - [NO_OPERATIVO_DOCUMENTADO](#no_operativo_documentado)
+  - [OPERATIVO_CONFIGURABLE_NO_ACTIVO](#operativo_configurable_no_activo)
+  - [FUERA_DE_ALCANCE](#fuera_de_alcance)
+  - [DESCONOCIDO](#desconocido)
+  - [Relacion con Asignacion](#relacion-con-asignacion)
+  - [Relacion con diagnostico calendar-aware](#relacion-con-diagnostico-calendar-aware)
+
+---
 
 ---
 
@@ -158,7 +186,7 @@ Si cambia la versión del roster:
 - CANCELADO -> request cerrada sin aplicacion. Puede responder a cancelacion operativa u obsolescencia.
 - APLICADO -> request aprobada cuyo swap fue ejecutado sobre una nueva version de roster.
 
-#### Aclaración de planos
+#### Aclaracion de planos
 
 El SwapRequest actúa como entidad agregadora de:
 
@@ -292,6 +320,18 @@ Estos eventos pueden conservarse para trazabilidad de importacion, pero no parti
 
 ---
 
+### 4.4 Controlador
+
+#### Definicion
+
+Entidad que representa a un controlador de tránsito aéreo.
+
+#### Rol
+
+Participa en asignaciones dentro del roster.
+
+---
+
 ### 4.5 Turno
 
 #### Definicion
@@ -349,25 +389,18 @@ RET -> RTB
 ```
 
 
-### 4.4 Controlador
+#### Definicion anterior de Turno conservada
 
-#### Definicion
+> Revision estructural v114: este texto anterior se conserva para trazabilidad.
+> Su ejemplo de entrenamiento contradice la frontera operativa descrita arriba.
+> La contradiccion sigue pendiente de conciliacion conceptual; este apartado
+> no agrega entrenamiento al conjunto de turnos operativos admitidos.
 
-Entidad que representa a un controlador de tránsito aéreo.
-
-#### Rol
-
-Participa en asignaciones dentro del roster.
-
----
-
-### 4.5 Turno
-
-#### Definicion
+##### Definicion
 
 Tipo de actividad asignada en una fecha.
 
-#### Ejemplos
+##### Ejemplos
 
 - turno mañana
 - turno tarde
@@ -897,9 +930,9 @@ El modelo actual se mantiene; la elegibilidad funcional queda documentada como f
 
 ---
 
-# Timeline diaria importada
+## Timeline diaria importada
 
-## Descripcion
+### Descripcion
 
 La timeline diaria importada representa cada dia calendario del roster mensual para cada controlador.
 
@@ -918,7 +951,7 @@ codigo desconocido
 
 ---
 
-## Entidad conceptual
+### Entidad conceptual
 
 La entidad conceptual es:
 
@@ -939,7 +972,7 @@ codigo_normalizado
 
 ---
 
-## Estados posibles
+### Estados posibles
 
 Los estados diarios son:
 
@@ -954,7 +987,7 @@ DESCONOCIDO
 
 ---
 
-## OPERATIVO
+### OPERATIVO
 
 Representa una celda del roster que genera asignacion operativa.
 
@@ -968,7 +1001,7 @@ C
 
 ---
 
-## LIBRE
+### LIBRE
 
 Representa una celda vacia del roster.
 
@@ -980,7 +1013,7 @@ No equivale a licencia, capacitacion, psicofisico ni otro evento documentado.
 
 ---
 
-## NO_OPERATIVO_DOCUMENTADO
+### NO_OPERATIVO_DOCUMENTADO
 
 Representa un codigo explicito del roster que no genera asignacion operativa.
 
@@ -1006,7 +1039,7 @@ No cuentan como dias libres.
 
 ---
 
-## OPERATIVO_CONFIGURABLE_NO_ACTIVO
+### OPERATIVO_CONFIGURABLE_NO_ACTIVO
 
 Representa un codigo operativo posible o configurable, pero no activo en la configuracion actual.
 
@@ -1021,7 +1054,7 @@ No debe tratarse como asignacion operativa activa mientras la configuracion no l
 
 ---
 
-## FUERA_DE_ALCANCE
+### FUERA_DE_ALCANCE
 
 Representa un codigo conocido pero fuera del alcance operativo actual.
 
@@ -1038,7 +1071,7 @@ Implica que no aplica al contexto ACC actual.
 
 ---
 
-## DESCONOCIDO
+### DESCONOCIDO
 
 Representa un valor no reconocido por el catalogo o la configuracion vigente.
 
@@ -1046,7 +1079,7 @@ Su tratamiento depende del modo de importacion y de la politica strict/permisiva
 
 ---
 
-## Relacion con Asignacion
+### Relacion con Asignacion
 
 `RosterDiaImportado` no reemplaza a `Asignacion`.
 
@@ -1056,7 +1089,7 @@ Los dias `LIBRE`, `NO_OPERATIVO_DOCUMENTADO`, `OPERATIVO_CONFIGURABLE_NO_ACTIVO`
 
 ---
 
-## Relacion con diagnostico calendar-aware
+### Relacion con diagnostico calendar-aware
 
 La timeline diaria importada es la entrada principal para diagnosticos calendar-aware.
 

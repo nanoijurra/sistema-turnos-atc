@@ -1,5 +1,69 @@
-
 # Diccionario semantico del sistema
+
+## Tabla de contenido
+
+- [Subsistemas y capas](#subsistemas-y-capas)
+- [Entidades y objetos de dominio](#entidades-y-objetos-de-dominio)
+- [Taxonomias](#taxonomias)
+  - [Clasificacion tecnica](#clasificacion-tecnica)
+  - [Decision operativa](#decision-operativa)
+  - [Estados de SwapRequest](#estados-de-swaprequest)
+- [Conceptos tecnicos y operativos](#conceptos-tecnicos-y-operativos)
+- [Verbos reservados](#verbos-reservados)
+  - [Verbos del workflow formal](#verbos-del-workflow-formal)
+  - [Verbos permitidos para ofertas](#verbos-permitidos-para-ofertas)
+- [Reglas de no confusion](#reglas-de-no-confusion)
+- [Fachadas](#fachadas)
+- [Frases canonicas](#frases-canonicas)
+- [Diccionario - conceptos de roster real, codigos y elegibilidad](#diccionario---conceptos-de-roster-real-codigos-y-elegibilidad)
+  - [Catalogo oficial de codigos](#catalogo-oficial-de-codigos)
+  - [Codigo de roster](#codigo-de-roster)
+  - [Codigo operativo activo](#codigo-operativo-activo)
+  - [Codigo operativo configurable](#codigo-operativo-configurable)
+  - [Codigo no operativo](#codigo-no-operativo)
+  - [Codigo normalizable](#codigo-normalizable)
+  - [Codigo legacy](#codigo-legacy)
+  - [Codigo fuera de alcance](#codigo-fuera-de-alcance)
+  - [Normalizacion de codigo](#normalizacion-de-codigo)
+  - [Configuracion por dependencia](#configuracion-por-dependencia)
+  - [Perfil de dependencia](#perfil-de-dependencia)
+  - [Reglas de importacion](#reglas-de-importacion)
+  - [Asignacion operativa](#asignacion-operativa)
+  - [Asignacion operativa swappeable](#asignacion-operativa-swappeable)
+  - [Evento no operativo](#evento-no-operativo)
+  - [Roster importado normalizado](#roster-importado-normalizado)
+  - [Roster operativo tecnico](#roster-operativo-tecnico)
+  - [RosterImportResult](#rosterimportresult)
+  - [Rol institucional](#rol-institucional)
+  - [Perfil operativo para swaps](#perfil-operativo-para-swaps)
+  - [Universo operativo intercambiable](#universo-operativo-intercambiable)
+  - [Estado operativo general](#estado-operativo-general)
+  - [CMA / psicofisico](#cma--psicofisico)
+  - [Override administrativo CMA](#override-administrativo-cma)
+  - [Habilitacion RADAR](#habilitacion-radar)
+  - [Habilitacion TMA](#habilitacion-tma)
+  - [Compatibilidad por puesto](#compatibilidad-por-puesto)
+  - [Puesto no definido](#puesto-no-definido)
+  - [Elegibilidad funcional para swap](#elegibilidad-funcional-para-swap)
+  - [Elegibilidad por codigo](#elegibilidad-por-codigo)
+  - [Elegibilidad por persona](#elegibilidad-por-persona)
+  - [Elegibilidad por puesto](#elegibilidad-por-puesto)
+  - [candidate_generation](#candidate_generation)
+  - [technical_prefilter](#technical_prefilter)
+- [Terminos calendar-aware](#terminos-calendar-aware)
+  - [calendar-aware](#calendar-aware)
+  - [timeline diaria](#timeline-diaria)
+  - [dias_importados](#dias_importados)
+  - [RosterDiaImportado](#rosterdiaimportado)
+  - [RosterDayStatus](#rosterdaystatus)
+  - [LIBRE](#libre)
+  - [NO_OPERATIVO_DOCUMENTADO](#no_operativo_documentado)
+  - [diagnostico calendar-aware](#diagnostico-calendar-aware)
+  - [entrypoint paralelo calendar-aware](#entrypoint-paralelo-calendar-aware)
+  - [ResultadoDiagnosticoCalendarAware](#resultadodiagnosticocalendaraware)
+  - [EXCESO_LIBRES_CONSECUTIVOS](#exceso_libres_consecutivos)
+
+---
 
 Este documento define conceptos y terminos relevantes para mantener coherencia semantica en el sistema de swaps ATC.
 
@@ -7,7 +71,7 @@ Su objetivo es evitar ambiguedades entre capas, responsabilidades, estados, clas
 
 ---
 
-# Subsistemas y capas
+## Subsistemas y capas
 
 - `engine` -> subsistema responsable de ejecutar validaciones de reglas configuradas. Es fuente de verdad tecnica para reglas. No decide operativamente.
 
@@ -39,7 +103,7 @@ Su objetivo es evitar ambiguedades entre capas, responsabilidades, estados, clas
 
 ---
 
-# Entidades y objetos de dominio
+## Entidades y objetos de dominio
 
 - `SwapRequest` -> solicitud formal de intercambio de turnos. Es la unica entidad con workflow operativo formal.
 
@@ -69,9 +133,9 @@ Su objetivo es evitar ambiguedades entre capas, responsabilidades, estados, clas
 
 ---
 
-# Taxonomias
+## Taxonomias
 
-## Clasificacion tecnica
+### Clasificacion tecnica
 
 - `BENEFICIOSO` -> clasificacion tecnica producida por `simulator` cuando el swap mejora el escenario segun criterios tecnicos.
 
@@ -79,7 +143,7 @@ Su objetivo es evitar ambiguedades entre capas, responsabilidades, estados, clas
 
 - `RECHAZABLE` -> clasificacion tecnica producida por `simulator` cuando el swap resulta tecnicamente inconveniente o no admisible segun evaluacion tecnica.
 
-## Decision operativa
+### Decision operativa
 
 - `VIABLE` -> decision operativa sugerida por `swap_service` luego de evaluar formalmente una `SwapRequest`. Indica que puede avanzar a resolucion favorable si un actor la resuelve explicitamente. No significa `APROBADO`.
 
@@ -87,7 +151,7 @@ Su objetivo es evitar ambiguedades entre capas, responsabilidades, estados, clas
 
 - `RECHAZAR` -> decision operativa sugerida por `swap_service` cuando la evaluacion formal indica rechazo operativo recomendado. No significa `RECHAZADO` terminal hasta que exista resolucion explicita.
 
-## Estados de SwapRequest
+### Estados de SwapRequest
 
 - `PENDIENTE` -> estado inicial de una `SwapRequest` creada pero aun no evaluada formalmente.
 
@@ -103,7 +167,7 @@ Su objetivo es evitar ambiguedades entre capas, responsabilidades, estados, clas
 
 ---
 
-# Conceptos tecnicos y operativos
+## Conceptos tecnicos y operativos
 
 - `clasificacion_tecnica` -> resultado tecnico formal producido por `simulator`.
 
@@ -135,9 +199,9 @@ Su objetivo es evitar ambiguedades entre capas, responsabilidades, estados, clas
 
 ---
 
-# Verbos reservados
+## Verbos reservados
 
-## Verbos del workflow formal
+### Verbos del workflow formal
 
 Estos verbos pertenecen al dominio de `SwapRequest` y `swap_service`:
 
@@ -151,7 +215,7 @@ Estos verbos pertenecen al dominio de `SwapRequest` y `swap_service`:
 
 No deben usarse para describir workflow propio de ofertas.
 
-## Verbos permitidos para ofertas
+### Verbos permitidos para ofertas
 
 Estos verbos pueden usarse para ofertas:
 
@@ -166,7 +230,7 @@ La oferta no se aprueba, no se rechaza, no se aplica y no se resuelve.
 
 ---
 
-# Reglas de no confusion
+## Reglas de no confusion
 
 - Una `OfertaEvaluada` no es una `SwapRequest`.
 
@@ -210,13 +274,13 @@ La oferta no se aprueba, no se rechaza, no se aplica y no se resuelve.
 
 ---
 
-# Fachadas
+## Fachadas
 
 - `crear_request_desde_oferta_y_evaluar_formalmente` -> fachada de alto nivel que crea una `SwapRequest` formal desde una oferta seleccionada y luego invoca evaluacion formal mediante `swap_service.evaluar_swap_request`. No aprueba, no rechaza, no cancela y no aplica.
 
 ---
 
-# Frases canonicas
+## Frases canonicas
 
 - La oferta evaluada no constituye una solicitud operativa.
 
@@ -254,48 +318,11 @@ La oferta no se aprueba, no se rechaza, no se aplica y no se resuelve.
 
 ---
 
-# Diccionario - conceptos de roster real, codigos y elegibilidad
-
-## TOC
-
-* [Catalogo oficial de codigos](#catalogo-oficial-de-codigos)
-* [Codigo de roster](#codigo-de-roster)
-* [Codigo operativo activo](#codigo-operativo-activo)
-* [Codigo operativo configurable](#codigo-operativo-configurable)
-* [Codigo no operativo](#codigo-no-operativo)
-* [Codigo normalizable](#codigo-normalizable)
-* [Codigo legacy](#codigo-legacy)
-* [Codigo fuera de alcance](#codigo-fuera-de-alcance)
-* [Normalizacion de codigo](#normalizacion-de-codigo)
-* [Configuracion por dependencia](#configuracion-por-dependencia)
-* [Perfil de dependencia](#perfil-de-dependencia)
-* [Reglas de importacion](#reglas-de-importacion)
-* [Asignacion operativa](#asignacion-operativa)
-* [Asignacion operativa swappeable](#asignacion-operativa-swappeable)
-* [Evento no operativo](#evento-no-operativo)
-* [Roster importado normalizado](#roster-importado-normalizado)
-* [Roster operativo tecnico](#roster-operativo-tecnico)
-* [RosterImportResult](#rosterimportresult)
-* [Rol institucional](#rol-institucional)
-* [Perfil operativo para swaps](#perfil-operativo-para-swaps)
-* [Universo operativo intercambiable](#universo-operativo-intercambiable)
-* [Estado operativo general](#estado-operativo-general)
-* [CMA / psicofisico](#cma--psicofisico)
-* [Override administrativo CMA](#override-administrativo-cma)
-* [Habilitacion RADAR](#habilitacion-radar)
-* [Habilitacion TMA](#habilitacion-tma)
-* [Compatibilidad por puesto](#compatibilidad-por-puesto)
-* [Puesto no definido](#puesto-no-definido)
-* [Elegibilidad funcional para swap](#elegibilidad-funcional-para-swap)
-* [Elegibilidad por codigo](#elegibilidad-por-codigo)
-* [Elegibilidad por persona](#elegibilidad-por-persona)
-* [Elegibilidad por puesto](#elegibilidad-por-puesto)
-* [candidate_generation](#candidategeneration)
-* [technical_prefilter](#technicalprefilter)
+## Diccionario - conceptos de roster real, codigos y elegibilidad
 
 ---
 
-## Catalogo oficial de codigos
+### Catalogo oficial de codigos
 
 Conjunto documental de codigos conocidos o definidos por normativa/procedimiento.
 
@@ -338,7 +365,7 @@ El catalogo oficial no implica activacion local.
 
 ---
 
-## Codigo de roster
+### Codigo de roster
 
 Valor que aparece en una celda de la lista de turno para una persona y un dia determinado.
 
@@ -363,7 +390,7 @@ No determina por si solo la elegibilidad para swap.
 
 ---
 
-## Codigo operativo activo
+### Codigo operativo activo
 
 Codigo que, para una dependencia determinada, genera una `Asignacion` operativa.
 
@@ -379,7 +406,7 @@ Solo los codigos operativos activos generan asignaciones operativas en V1.
 
 ---
 
-## Codigo operativo configurable
+### Codigo operativo configurable
 
 Codigo oficial que podria generar una `Asignacion` operativa si la configuracion de dependencia lo habilita.
 
@@ -394,7 +421,7 @@ Para el contexto actual ACC, `D` y `X` son codigos conocidos, pero no se conside
 
 ---
 
-## Codigo no operativo
+### Codigo no operativo
 
 Codigo que representa un evento que no genera asignacion operativa swappeable.
 
@@ -419,7 +446,7 @@ Los codigos no operativos deben conservarse para trazabilidad, pero no participa
 
 ---
 
-## Codigo normalizable
+### Codigo normalizable
 
 Codigo aceptado como entrada, pero convertido a un codigo normalizado vigente.
 
@@ -437,7 +464,7 @@ No pertenece al `engine`, `simulator` ni al workflow formal de `SwapRequest`.
 
 ---
 
-## Codigo legacy
+### Codigo legacy
 
 Codigo conocido por uso historico o esquema anterior, pero no estandar vigente.
 
@@ -461,7 +488,7 @@ La normalizacion de codigos legacy no debe ser silenciosa si afecta trazabilidad
 
 ---
 
-## Codigo fuera de alcance
+### Codigo fuera de alcance
 
 Codigo oficial o conocido que no aplica a una dependencia determinada.
 
@@ -478,7 +505,7 @@ Pueden aplicar a dependencias no H24 si la configuracion de dependencia los habi
 
 ---
 
-## Normalizacion de codigo
+### Normalizacion de codigo
 
 Proceso por el cual el importador transforma un codigo de entrada en un codigo estandar vigente.
 
@@ -496,7 +523,7 @@ Puede generar warning de importacion.
 
 ---
 
-## Configuracion por dependencia
+### Configuracion por dependencia
 
 Configuracion que define como interpretar codigos de roster segun el contexto operativo de una dependencia.
 
@@ -521,7 +548,7 @@ No reemplaza al `engine`.
 
 ---
 
-## Perfil de dependencia
+### Perfil de dependencia
 
 Descripcion conceptual del tipo de dependencia y su regimen operativo.
 
@@ -545,7 +572,7 @@ No debe hardcodearse una dependencia especifica como caso especial del sistema.
 
 ---
 
-## Reglas de importacion
+### Reglas de importacion
 
 Reglas usadas por el importador para interpretar una matriz o CSV de roster.
 
@@ -575,7 +602,7 @@ descanso minimo incumplido
 
 ---
 
-## Asignacion operativa
+### Asignacion operativa
 
 Representacion interna de un turno operativo asignado a una persona en una fecha determinada.
 
@@ -593,7 +620,7 @@ Las asignaciones operativas son la entrada relevante para reglas tecnicas, simul
 
 ---
 
-## Asignacion operativa swappeable
+### Asignacion operativa swappeable
 
 Asignacion operativa que puede ser considerada para un swap normal.
 
@@ -610,7 +637,7 @@ puesto compatible si el puesto esta definido
 
 ---
 
-## Evento no operativo
+### Evento no operativo
 
 Evento de roster que no genera `Asignacion` operativa.
 
@@ -637,7 +664,7 @@ No participa en swaps normales.
 
 ---
 
-## Roster importado normalizado
+### Roster importado normalizado
 
 Resultado conceptual de importar una matriz real de roster y normalizar sus datos.
 
@@ -657,7 +684,7 @@ Puede conservar mas informacion que la que el motor tecnico consume.
 
 ---
 
-## Roster operativo tecnico
+### Roster operativo tecnico
 
 Vista o subconjunto del roster usado por `engine`, `scoring`, `simulator` y `candidate_generation`.
 
@@ -667,7 +694,7 @@ No incluye eventos no operativos como turnos swappeables.
 
 ---
 
-## RosterImportResult
+### RosterImportResult
 
 Resultado conceptual de una importacion de roster.
 
@@ -686,7 +713,7 @@ roster_version
 
 ---
 
-## Rol institucional
+### Rol institucional
 
 Funcion o posicion institucional de una persona.
 
@@ -715,7 +742,7 @@ Practicante -> aparece como OJT/SIM, no participa en swaps normales.
 
 ---
 
-## Perfil operativo para swaps
+### Perfil operativo para swaps
 
 Concepto funcional que indica si una persona puede formar parte del universo operativo intercambiable.
 
@@ -731,7 +758,7 @@ Instructor en OJT/SIM/RTA/RTB/EN = no elegible
 
 ---
 
-## Universo operativo intercambiable
+### Universo operativo intercambiable
 
 Conjunto de personas que pueden participar en swaps operativos normales si cumplen las condiciones del dia y contexto.
 
@@ -747,7 +774,7 @@ configuracion de dependencia
 
 ---
 
-## Estado operativo general
+### Estado operativo general
 
 Indica si una persona puede operar en terminos generales.
 
@@ -768,7 +795,7 @@ override administrativo negativo
 
 ---
 
-## CMA / psicofisico
+### CMA / psicofisico
 
 Condicion de aptitud psicofisica asociada a una persona.
 
@@ -783,7 +810,7 @@ CMA vencido implica persona no operativa para swaps normales.
 
 ---
 
-## Override administrativo CMA
+### Override administrativo CMA
 
 Decision administrativa registrada que puede afectar la aptitud operativa asociada al CMA / psicofisico.
 
@@ -808,7 +835,7 @@ El override administrativo no representa permiso de sistema.
 
 ---
 
-## Habilitacion RADAR
+### Habilitacion RADAR
 
 Habilitacion operativa que indica que la persona puede operar en contexto radar, segun corresponda a la dependencia.
 
@@ -818,7 +845,7 @@ No se implementa en esta etapa.
 
 ---
 
-## Habilitacion TMA
+### Habilitacion TMA
 
 Habilitacion operativa que indica si la persona puede operar puestos TMA.
 
@@ -830,7 +857,7 @@ Si el roster no define puestos, en V1 no se aplica filtro TMA.
 
 ---
 
-## Compatibilidad por puesto
+### Compatibilidad por puesto
 
 Evaluacion de si una persona puede cubrir un puesto especifico segun sus habilitaciones.
 
@@ -846,7 +873,7 @@ Si el puesto no esta definido, la compatibilidad por puesto queda fuera de V1.
 
 ---
 
-## Puesto no definido
+### Puesto no definido
 
 Situacion en la que el roster importado no informa puesto operativo especifico.
 
@@ -860,7 +887,7 @@ El sistema no debe inferir puestos no presentes en la entrada.
 
 ---
 
-## Elegibilidad funcional para swap
+### Elegibilidad funcional para swap
 
 Evaluacion conceptual que determina si una asignacion puede participar en un swap normal.
 
@@ -883,7 +910,7 @@ El codigo del roster describe el evento; la elegibilidad para swap se determina 
 
 ---
 
-## Elegibilidad por codigo
+### Elegibilidad por codigo
 
 Condicion basada en la clasificacion del codigo de roster.
 
@@ -898,7 +925,7 @@ La elegibilidad por codigo es necesaria pero no suficiente.
 
 ---
 
-## Elegibilidad por persona
+### Elegibilidad por persona
 
 Condicion basada en el estado y perfil operativo de la persona.
 
@@ -912,7 +939,7 @@ practicante OJT/SIM -> no elegible para swaps normales
 
 ---
 
-## Elegibilidad por puesto
+### Elegibilidad por puesto
 
 Condicion basada en la compatibilidad entre persona y puesto.
 
@@ -926,7 +953,7 @@ En V1, si el puesto no esta definido, no se aplica filtro TMA.
 
 ---
 
-## candidate_generation
+### candidate_generation
 
 Capa que genera candidatos estructurales para swaps.
 
@@ -938,7 +965,7 @@ No evalua, no clasifica, no decide y no persiste workflow.
 
 ---
 
-## technical_prefilter
+### technical_prefilter
 
 Frontera futura posible para aplicar reglas finas de elegibilidad antes de la simulacion tecnica.
 
@@ -962,9 +989,9 @@ No se implementa todavia como parte de esta documentacion.
 
 ---
 
-# Terminos calendar-aware
+## Terminos calendar-aware
 
-## calendar-aware
+### calendar-aware
 
 Enfoque de validacion o diagnostico que considera el calendario completo del roster importado.
 
@@ -972,7 +999,7 @@ No analiza solamente asignaciones operativas, sino tambien dias libres, eventos 
 
 ---
 
-## timeline diaria
+### timeline diaria
 
 Representacion diaria del roster importado por controlador.
 
@@ -982,7 +1009,7 @@ Permite conservar contexto calendario completo.
 
 ---
 
-## dias_importados
+### dias_importados
 
 Coleccion de dias diarios importados generada por el importador de roster.
 
@@ -990,7 +1017,7 @@ Es la entrada principal del diagnostico calendar-aware.
 
 ---
 
-## RosterDiaImportado
+### RosterDiaImportado
 
 Registro diario importado para un controlador en una fecha determinada.
 
@@ -1007,7 +1034,7 @@ codigo_normalizado
 
 ---
 
-## RosterDayStatus
+### RosterDayStatus
 
 Categoria del dia importado.
 
@@ -1024,7 +1051,7 @@ DESCONOCIDO
 
 ---
 
-## LIBRE
+### LIBRE
 
 Dia sin asignacion, representado por celda vacia del roster.
 
@@ -1034,7 +1061,7 @@ No equivale a licencia ni a evento no operativo documentado.
 
 ---
 
-## NO_OPERATIVO_DOCUMENTADO
+### NO_OPERATIVO_DOCUMENTADO
 
 Dia con codigo explicito de roster que no genera asignacion operativa.
 
@@ -1060,7 +1087,7 @@ Conserva valor documental y auditable.
 
 ---
 
-## diagnostico calendar-aware
+### diagnostico calendar-aware
 
 Resultado de evaluar una timeline diaria importada con reglas que consideran calendario completo.
 
@@ -1072,7 +1099,7 @@ No modifica workflow.
 
 ---
 
-## entrypoint paralelo calendar-aware
+### entrypoint paralelo calendar-aware
 
 Frontera publica para consumir diagnostico calendar-aware sin acoplarse a modulos internos.
 
@@ -1091,7 +1118,7 @@ diagnosticar_importacion_calendar_aware
 
 ---
 
-## ResultadoDiagnosticoCalendarAware
+### ResultadoDiagnosticoCalendarAware
 
 Resultado publico devuelto por el entrypoint calendar-aware.
 
@@ -1110,7 +1137,7 @@ violaciones
 
 ---
 
-## EXCESO_LIBRES_CONSECUTIVOS
+### EXCESO_LIBRES_CONSECUTIVOS
 
 Codigo de violacion soft usado cuando una timeline contiene mas de 5 dias consecutivos con estado `LIBRE`.
 

@@ -14,14 +14,15 @@
 
 ## Base y evidencia
 
-Ultimo checkpoint cerrado: **v112**.
+Ultimo checkpoint cerrado confirmado al redactar: **v113**.
 
-- Commit: `301cbe5`.
-- Tag: `checkpoint-v112-saneamiento-checkpoints-indice-historico`.
+- Commit: `3229bb3`.
+- Tag: `checkpoint-v113-clasificacion-estructura-documental`.
 - Cierre: push de rama y tag confirmado por salida Git del usuario.
 - Arbol de trabajo limpio en la verificacion de cierre; no es una afirmacion permanente.
 - Base funcional auditada: v110, commit `e345871`.
-- v111 registro la auditoria; v112 saneo el historial. Ambos cambios fueron documentales.
+- v111 registro la auditoria; v112 saneo el historial; v113 incorporo estado y mapa.
+  Los tres cambios fueron documentales.
 
 Este documento es la referencia del estado vigente. No sustituye los contratos,
 las decisiones ni la evidencia del codigo. La clasificacion y las dependencias
@@ -32,7 +33,8 @@ Fuentes de esta revision:
 - [Auditoria documental v110](hitos/auditoria_documental_v110.md).
 - [Registro activo](../checkpoints.md).
 - [Indice historico v1-v95](hitos/indice_checkpoints_v1_v95.md).
-- Salidas Git aportadas por el usuario para el cierre de v112.
+- Salidas Git aportadas por el usuario para los cierres v112 y v113.
+- Preparacion estructural v114 y verificacion local del usuario durante su incorporacion.
 
 Las capacidades siguientes se apoyan en la auditoria de v110 y el historial;
 esta revision documental no constituye una nueva inspeccion del codigo.
@@ -77,7 +79,7 @@ decision explicita y su validacion; no esta habilitada por este documento.
 ## Validacion
 
 Ultima ejecucion de suite registrada: **463 passed**, sobre v110, confirmada por
-el usuario. No se reejecuto pytest durante la auditoria ni para el saneamiento v112.
+el usuario. No se reejecuto pytest durante los cambios documentales v111-v114.
 Ese resultado no acredita una ejecucion nueva ni cobertura operativa completa.
 
 En v112 se verificaron:
@@ -87,6 +89,12 @@ En v112 se verificaron:
 - 95 entradas en el indice historico;
 - alcance documental del diff y ausencia de errores de whitespace;
 - commit, tag, push y arbol de trabajo limpio al cierre.
+
+En la preparacion v114 se comprobaron un H1 por documento, fences cerrados,
+jerarquia sin saltos, destinos de indices y conservacion del texto de las reglas.
+La copia aislada de los seis documentos paso git diff --check. El usuario los
+incorporo localmente; queda pendiente la verificacion final del conjunto de nueve
+archivos y su cierre Git. No se audito nuevamente el codigo funcional.
 
 `semantic_guard` tiene defectos pendientes. Su salida positiva no demuestra hoy
 una revision completa ni integridad documental.
@@ -99,7 +107,13 @@ La auditoria v111 detecto documentos desactualizados y declaraciones de cambios
 que no coinciden con los commits. v112 resolvio el volumen y la organizacion del
 historial; no reparo esas contradicciones.
 
-- `contexto_sistema.md`: canonico, gravemente desactualizado y con Markdown defectuoso.
+- `contexto_sistema.md`: estructura reparada en v114; contenido antiguo conservado
+  y advertido como desactualizado. Actualizacion funcional pendiente.
+- `contratos.md`, `decisiones.md`, `invariantes.md` y `diccionario.md`: estructura
+  e indices reparados; esto no acredita actualizacion funcional completa.
+- `modelo_dominio.md`: Controlador/Turno reordenados y titulo 4.5 duplicado resuelto
+  estructuralmente. La definicion anterior que incluye entrenamiento se conserva
+  identificada; su contradiccion con la frontera operativa sigue pendiente.
 - `contexto_resumen.md`: derivado, detenido en el estado posterior a v103.
 - `estado_docs.md`: control derivado desactualizado; contiene afirmaciones incorrectas.
 - `contratos_resumen.md`: retirado como referencia vigente por decision de auditoria;
@@ -118,19 +132,19 @@ No deben sobrescribirse para acomodar incorporaciones calendar-aware.
 
 ## Trabajo en curso
 
-**v113 - clasificacion y estructura documental oficial**: documentos preparados y rutas verificadas; cierre Git pendiente.
+**v114 - reparacion estructural de documentos canonicos**, en curso; cierre Git pendiente.
 
-Alcance:
+Alcance total: seis documentos canonicos y tres archivos de seguimiento.
 
-- incorporar este estado vigente;
-- incorporar el mapa documental con tipos, fuentes, dependencias y disparadores;
-- registrar v113 en checkpoints.
+- Reparar titulos, jerarquias, indices y el fence del contexto.
+- Conservar numeraciones de decisiones, contratos e invariantes.
+- Preservar texto de reglas y definiciones, con notas explicitas sobre contradicciones.
+- Actualizar este estado y el mapa, y agregar el registro v114 en checkpoints.
 
-Verificacion local: 17 rutas registradas, todas existentes.
-
-No incluye reparacion de documentos canonicos, generadores, semantic_guard,
-codigo funcional, datos reales ni modificaciones del workflow.
-El mapa es declarativo: no implementa controles automaticos por si mismo.
+La definicion de Turno y la vigencia de referencias a roster_service requieren
+conciliacion conceptual posterior. No se habilitan nuevos turnos ni elegibilidades.
+No se reparan generadores o semantic_guard ni se modifica codigo o datos reales.
+El mapa sigue siendo declarativo; sus 17 rutas fueron verificadas en v113.
 
 ---
 
@@ -140,15 +154,15 @@ Plan de referencia aprobado en v111, sujeto a revision explicita de alcance:
 
 | Etapa | Objetivo | Estado |
 | --- | --- | --- |
-| v114 | Reparar documentos canonicos e indices | Pendiente |
-| v115 | Completar documentacion funcional v105-v110 | Pendiente |
+| v114 | Reparar estructura e indices de documentos canonicos | En curso; cierre Git pendiente |
+| v115 | Actualizar contenido funcional y conciliar contradicciones identificadas | Pendiente |
 | v116 | Corregir y ampliar semantic_guard | Pendiente |
 | v117 | Generar sistematicamente documentos derivados | Pendiente |
 | v118 | Cerrar la reconciliacion documental integral | Pendiente |
 | v119 | Simular un cambio de turno seleccionado | Previsto; alcance por precisar |
 
 Deuda separada: bases SQLite transitorias versionadas en tests y
-`requirements.txt` en UTF-16, segun auditoria. No se corrige dentro de v113.
+`requirements.txt` en UTF-16, segun auditoria. No se corrige dentro de v114.
 
 ---
 

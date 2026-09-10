@@ -4,16 +4,57 @@
 
 - [1. Objetivo](#1-objetivo)
 - [2. Invariantes de capas](#2-invariantes-de-capas)
+  - [I-1 Engine no decide negocio](#i-1-engine-no-decide-negocio)
+  - [I-2 Simulator no decide ni persiste](#i-2-simulator-no-decide-ni-persiste)
+  - [I-3 SwapService no reclasifica](#i-3-swapservice-no-reclasifica)
+  - [I-4 Aplicar no reevalua](#i-4-aplicar-no-reevalua)
 - [3. Invariantes de flujo y versionado](#3-invariantes-de-flujo-y-versionado)
+  - [I-5 Todo request pertenece a una version](#i-5-todo-request-pertenece-a-una-version)
+  - [I-6 Evaluacion sobre la version propia y vigente](#i-6-evaluacion-sobre-la-version-propia-y-vigente)
+  - [I-7 No aplicar sobre version distinta](#i-7-no-aplicar-sobre-version-distinta)
+  - [I-8 Aplicar genera nueva version](#i-8-aplicar-genera-nueva-version)
+  - [I-9 Version vigente unica](#i-9-version-vigente-unica)
+  - [I-10 Obsolescencia por cambio de version](#i-10-obsolescencia-por-cambio-de-version)
+  - [I-11 Request evaluable y aplicable dentro del flujo solo en version vigente](#i-11-request-evaluable-y-aplicable-dentro-del-flujo-solo-en-version-vigente)
+  - [I-12 Toda modificacion pasa por versionado](#i-12-toda-modificacion-pasa-por-versionado)
 - [4. Invariantes de decision y evaluacion](#4-invariantes-de-decision-y-evaluacion)
+  - [I-13 Clasificacion tecnica = decision operativa](#i-13-clasificacion-tecnica--decision-operativa)
+  - [I-14 Mapeo no identitario](#i-14-mapeo-no-identitario)
+  - [I-15 Restricciones operativas pueden rechazar swaps validos](#i-15-restricciones-operativas-pueden-rechazar-swaps-validos)
+  - [I-16 Restricciones operativas no falsifican evaluacion tecnica](#i-16-restricciones-operativas-no-falsifican-evaluacion-tecnica)
+  - [I-16 bis Evaluar informa, resolver decide](#i-16-bis-evaluar-informa-resolver-decide)
 - [5. Invariantes de reglas y validacion](#5-invariantes-de-reglas-y-validacion)
+  - [I-17 Fuente unica de reglas](#i-17-fuente-unica-de-reglas)
+  - [I-18 Interpretacion unica de configuracion](#i-18-interpretacion-unica-de-configuracion)
+  - [I-19 Hard no degradable](#i-19-hard-no-degradable)
+  - [I-20 Soft no determina decision operativa favorable](#i-20-soft-no-determina-decision-operativa-favorable)
+  - [I-21 Simulacion sobre base consistente](#i-21-simulacion-sobre-base-consistente)
 - [6. Invariantes de estados y trazabilidad](#6-invariantes-de-estados-y-trazabilidad)
+  - [I-22 Transiciones validas](#i-22-transiciones-validas)
+  - [I-23 Estados terminales son finales](#i-23-estados-terminales-son-finales)
+  - [I-24 Trazabilidad obligatoria](#i-24-trazabilidad-obligatoria)
+  - [I-25 Trazabilidad de asignaciones](#i-25-trazabilidad-de-asignaciones)
 - [7. Invariantes del dominio del swap](#7-invariantes-del-dominio-del-swap)
+  - [I-26 El objeto del swap son asignaciones](#i-26-el-objeto-del-swap-son-asignaciones)
 - [8. Invariantes criticos](#8-invariantes-criticos)
 - [9. Proposito arquitectonico](#9-proposito-arquitectonico)
 - [Invariante 10 - Fachada de creacion y evaluacion formal desde oferta](#invariante-10---fachada-de-creacion-y-evaluacion-formal-desde-oferta)
 - [Invariante 11 - Decision sugerida no equivale a resolucion operativa](#invariante-11---decision-sugerida-no-equivale-a-resolucion-operativa)
 - [Invariante 12 - Aplicar ejecuta, no evalua ni resuelve](#invariante-12---aplicar-ejecuta-no-evalua-ni-resuelve)
+- [Invariante 13 - La auditoria registra hechos y no gobierna el workflow](#invariante-13---la-auditoria-registra-hechos-y-no-gobierna-el-workflow)
+- [Invariante 14 - El importador normaliza datos reales, no evalua ni decide](#invariante-14---el-importador-normaliza-datos-reales-no-evalua-ni-decide)
+- [Invariante 15 - El codigo del roster no alcanza para determinar elegibilidad](#invariante-15---el-codigo-del-roster-no-alcanza-para-determinar-elegibilidad)
+- [Invariante 16 - El catalogo oficial no implica activacion local](#invariante-16---el-catalogo-oficial-no-implica-activacion-local)
+- [Invariante 17 - Persona operativa no equivale a rol institucional](#invariante-17---persona-operativa-no-equivale-a-rol-institucional)
+- [Invariantes calendar-aware](#invariantes-calendar-aware)
+  - [Invariante CA-1 - LIBRE no equivale a NO_OPERATIVO_DOCUMENTADO](#invariante-ca-1---libre-no-equivale-a-no_operativo_documentado)
+  - [Invariante CA-2 - La timeline diaria no reemplaza asignaciones operativas](#invariante-ca-2---la-timeline-diaria-no-reemplaza-asignaciones-operativas)
+  - [Invariante CA-3 - El diagnostico calendar-aware no reemplaza al engine](#invariante-ca-3---el-diagnostico-calendar-aware-no-reemplaza-al-engine)
+  - [Invariante CA-4 - El entrypoint calendar-aware no decide swaps](#invariante-ca-4---el-entrypoint-calendar-aware-no-decide-swaps)
+  - [Invariante CA-5 - El workflow formal no cambia](#invariante-ca-5---el-workflow-formal-no-cambia)
+  - [Invariante CA-6 - La integracion al motor general requiere decision explicita](#invariante-ca-6---la-integracion-al-motor-general-requiere-decision-explicita)
+
+---
 
 ---
 
@@ -131,7 +172,7 @@ Ningún cambio real del roster puede ocurrir fuera del flujo que:
 
 ## 4. Invariantes de decision y evaluacion
 
-### I-13 Clasificacion tecnica ≠ decision operativa
+### I-13 Clasificacion tecnica = decision operativa
 
 - clasificación técnica = evaluación técnica del impacto del swap
 - decisión operativa = tratamiento del request dentro del flujo
@@ -304,25 +345,11 @@ Estos invariantes permiten:
 
 ---
 
-# Invariante 10 - Fachada de creacion y evaluacion formal desde oferta
-
-## TOC
-
-- [10.1 Regla principal](#101-regla-principal)
-- [10.2 La request nace PENDIENTE](#102-la-request-nace-pendiente)
-- [10.3 La evaluacion formal pertenece a swap_service](#103-la-evaluacion-formal-pertenece-a-swap_service)
-- [10.4 offer_origin es evidencia observada](#104-offer_origin-es-evidencia-observada)
-- [10.5 La fachada no decide](#105-la-fachada-no-decide)
-- [10.6 La fachada no resuelve](#106-la-fachada-no-resuelve)
-- [10.7 La fachada no aplica](#107-la-fachada-no-aplica)
-- [10.8 La fachada no evalua por cuenta propia](#108-la-fachada-no-evalua-por-cuenta-propia)
-- [10.9 La divergencia no es error automatico](#109-la-divergencia-no-es-error-automatico)
-- [10.10 La mejora de performance no es objetivo de la fachada](#1010-la-mejora-de-performance-no-es-objetivo-de-la-fachada)
-- [10.11 Regla corta](#1011-regla-corta)
+## Invariante 10 - Fachada de creacion y evaluacion formal desde oferta
 
 ---
 
-## 10.1 Regla principal
+### 10.1 Regla principal
 
 La fachada `crear_request_desde_oferta_y_evaluar_formalmente` no crea un workflow paralelo de ofertas.
 
@@ -340,7 +367,7 @@ resultado tecnico presentable y seleccionable
 
 ---
 
-## 10.2 La request nace PENDIENTE
+### 10.2 La request nace PENDIENTE
 
 Toda `SwapRequest` creada desde una oferta debe nacer primero en estado:
 
@@ -358,7 +385,7 @@ PENDIENTE -> EVALUADO
 
 ---
 
-## 10.3 La evaluacion formal pertenece a swap_service
+### 10.3 La evaluacion formal pertenece a swap_service
 
 La evaluacion formal de una request creada desde oferta debe realizarse mediante:
 
@@ -370,7 +397,7 @@ Ninguna fachada puede reemplazar esa evaluacion usando directamente informacion 
 
 ---
 
-## 10.4 offer_origin es evidencia observada
+### 10.4 offer_origin es evidencia observada
 
 `offer_origin` conserva informacion observada durante la generacion de la oferta.
 
@@ -386,7 +413,7 @@ Esa informacion no reemplaza:
 
 ---
 
-## 10.5 La fachada no decide
+### 10.5 La fachada no decide
 
 La fachada no puede decidir por cuenta propia:
 
@@ -400,7 +427,7 @@ Si existe `decision_sugerida`, debe provenir del flujo formal de `swap_service`.
 
 ---
 
-## 10.6 La fachada no resuelve
+### 10.6 La fachada no resuelve
 
 La fachada no puede llevar una request a:
 
@@ -419,7 +446,7 @@ EVALUADO
 
 ---
 
-## 10.7 La fachada no aplica
+### 10.7 La fachada no aplica
 
 La fachada no puede invocar ni reemplazar:
 
@@ -431,7 +458,7 @@ La aplicacion sigue siendo una operacion formal posterior y separada.
 
 ---
 
-## 10.8 La fachada no evalua por cuenta propia
+### 10.8 La fachada no evalua por cuenta propia
 
 La fachada no puede llamar directamente a:
 
@@ -445,7 +472,7 @@ Tampoco puede reconstruir clasificacion tecnica por fuera de `swap_service.evalu
 
 ---
 
-## 10.9 La divergencia no es error automatico
+### 10.9 La divergencia no es error automatico
 
 Una diferencia entre la clasificacion observada de la oferta y la clasificacion formal posterior no constituye automaticamente un error.
 
@@ -461,7 +488,7 @@ No debe tratarse automaticamente como violacion de contrato.
 
 ---
 
-## 10.10 La mejora de performance no es objetivo de la fachada
+### 10.10 La mejora de performance no es objetivo de la fachada
 
 La fachada no existe para mejorar benchmarks de exploracion.
 
@@ -483,30 +510,17 @@ La fachada existe para mejorar:
 
 ---
 
-## 10.11 Regla corta
+### 10.11 Regla corta
 
 La fachada puede encadenar creacion y evaluacion formal, pero no puede convertir evidencia observada en decision operativa ni en aprobacion.
 
 ---
 
-# Invariante 11 - Decision sugerida no equivale a resolucion operativa
-
-## TOC
-
-- [11.1 Regla principal](#111-regla-principal)
-- [11.2 EVALUADO no significa APROBADO](#112-evaluado-no-significa-aprobado)
-- [11.3 VIABLE no significa APROBADO](#113-viable-no-significa-aprobado)
-- [11.4 RECHAZAR no significa RECHAZADO](#114-rechazar-no-significa-rechazado)
-- [11.5 La resolucion debe ser explicita](#115-la-resolucion-debe-ser-explicita)
-- [11.6 La resolucion no aplica](#116-la-resolucion-no-aplica)
-- [11.7 La resolucion no reevalua](#117-la-resolucion-no-reevalua)
-- [11.8 offer_origin no se modifica](#118-offerorigin-no-se-modifica)
-- [11.9 No hay workflow bilateral en V1](#119-no-hay-workflow-bilateral-en-v1)
-- [11.10 Regla corta](#1110-regla-corta)
+## Invariante 11 - Decision sugerida no equivale a resolucion operativa
 
 ---
 
-## 11.1 Regla principal
+### 11.1 Regla principal
 
 La `decision_sugerida` producida durante la evaluacion formal no equivale a resolucion operativa.
 
@@ -514,7 +528,7 @@ La resolucion debe ser una accion explicita posterior sobre una `SwapRequest` en
 
 ---
 
-## 11.2 EVALUADO no significa APROBADO
+### 11.2 EVALUADO no significa APROBADO
 
 Una request en estado:
 
@@ -532,7 +546,7 @@ APROBADO
 
 ---
 
-## 11.3 VIABLE no significa APROBADO
+### 11.3 VIABLE no significa APROBADO
 
 Una `decision_sugerida` igual a:
 
@@ -550,7 +564,7 @@ APROBADO
 
 ---
 
-## 11.4 RECHAZAR no significa RECHAZADO
+### 11.4 RECHAZAR no significa RECHAZADO
 
 Una `decision_sugerida` igual a:
 
@@ -568,7 +582,7 @@ El rechazo terminal debe ser una resolucion formal con trazabilidad.
 
 ---
 
-## 11.5 La resolucion debe ser explicita
+### 11.5 La resolucion debe ser explicita
 
 La transicion desde:
 
@@ -590,7 +604,7 @@ No se permite resolucion automatica en V1.
 
 ---
 
-## 11.6 La resolucion no aplica
+### 11.6 La resolucion no aplica
 
 La resolucion operativa no puede llevar directamente a:
 
@@ -602,7 +616,7 @@ La aplicacion sigue siendo una etapa posterior y separada.
 
 ---
 
-## 11.7 La resolucion no reevalua
+### 11.7 La resolucion no reevalua
 
 La resolucion operativa no debe reevaluar la request.
 
@@ -618,7 +632,7 @@ La evaluacion formal ya fue realizada previamente mediante `swap_service.evaluar
 
 ---
 
-## 11.8 offer_origin no se modifica
+### 11.8 offer_origin no se modifica
 
 Si la request proviene de una oferta, `offer_origin` debe permanecer como evidencia observada.
 
@@ -633,7 +647,7 @@ delta_soft_observado
 
 ---
 
-## 11.9 No hay workflow bilateral en V1
+### 11.9 No hay workflow bilateral en V1
 
 En V1 no se agregan estados formales de aceptacion bilateral.
 
@@ -650,31 +664,17 @@ La contraparte no se modela todavia como workflow propio.
 
 ---
 
-## 11.10 Regla corta
+### 11.10 Regla corta
 
 La evaluacion formal informa; la resolucion operativa decide; la aplicacion ejecuta.
 
 ---
 
-# Invariante 12 - Aplicar ejecuta, no evalua ni resuelve
-
-## TOC
-
-- [12.1 Regla principal](#121-regla-principal)
-- [12.2 Solo APROBADO puede aplicar](#122-solo-aprobado-puede-aplicar)
-- [12.3 Estados prohibidos para aplicar](#123-estados-prohibidos-para-aplicar)
-- [12.4 Aplicar no reevalua](#124-aplicar-no-reevalua)
-- [12.5 Aplicar no resuelve](#125-aplicar-no-resuelve)
-- [12.6 Aplicar no modifica offer_origin](#126-aplicar-no-modifica-offerorigin)
-- [12.7 Aplicar no modifica decision_sugerida](#127-aplicar-no-modifica-decisionsugerida)
-- [12.8 Aplicar crea nueva version de roster](#128-aplicar-crea-nueva-version-de-roster)
-- [12.9 Aplicar no se repite](#129-aplicar-no-se-repite)
-- [12.10 Cancelacion de obsoletos](#1210-cancelacion-de-obsoletos)
-- [12.11 Regla corta](#1211-regla-corta)
+## Invariante 12 - Aplicar ejecuta, no evalua ni resuelve
 
 ---
 
-## 12.1 Regla principal
+### 12.1 Regla principal
 
 La aplicacion ejecuta un swap aprobado sobre el roster.
 
@@ -682,7 +682,7 @@ La aplicacion no evalua, no resuelve y no decide.
 
 ---
 
-## 12.2 Solo APROBADO puede aplicar
+### 12.2 Solo APROBADO puede aplicar
 
 La aplicacion solo puede ejecutarse sobre una `SwapRequest` en estado:
 
@@ -692,7 +692,7 @@ APROBADO
 
 ---
 
-## 12.3 Estados prohibidos para aplicar
+### 12.3 Estados prohibidos para aplicar
 
 No se puede aplicar una request en estado:
 
@@ -706,7 +706,7 @@ APLICADO
 
 ---
 
-## 12.4 Aplicar no reevalua
+### 12.4 Aplicar no reevalua
 
 La aplicacion no puede reevaluar la request.
 
@@ -722,7 +722,7 @@ Tampoco puede reemplazar ni recalcular la evaluacion formal previa.
 
 ---
 
-## 12.5 Aplicar no resuelve
+### 12.5 Aplicar no resuelve
 
 La aplicacion no puede aprobar, rechazar ni cancelar por decision operativa.
 
@@ -734,7 +734,7 @@ APROBADO
 
 ---
 
-## 12.6 Aplicar no modifica offer_origin
+### 12.6 Aplicar no modifica offer_origin
 
 Si la request proviene de una oferta, `offer_origin` debe permanecer como evidencia observada.
 
@@ -750,7 +750,7 @@ selection_metadata
 
 ---
 
-## 12.7 Aplicar no modifica decision_sugerida
+### 12.7 Aplicar no modifica decision_sugerida
 
 La aplicacion no puede modificar `decision_sugerida`.
 
@@ -758,7 +758,7 @@ La aplicacion no puede modificar `decision_sugerida`.
 
 ---
 
-## 12.8 Aplicar crea nueva version de roster
+### 12.8 Aplicar crea nueva version de roster
 
 La aplicacion exitosa debe crear una nueva version de roster.
 
@@ -766,7 +766,7 @@ La nueva version representa el roster luego del swap aplicado.
 
 ---
 
-## 12.9 Aplicar no se repite
+### 12.9 Aplicar no se repite
 
 Una request en estado:
 
@@ -780,7 +780,7 @@ La aplicacion debe ser idempotente desde el punto de vista de proteccion del wor
 
 ---
 
-## 12.10 Cancelacion de obsoletos
+### 12.10 Cancelacion de obsoletos
 
 Si la aplicacion genera una nueva version de roster, las requests asociadas a versiones anteriores pueden quedar obsoletas.
 
@@ -796,30 +796,17 @@ La cancelacion por obsolescencia debe:
 
 ---
 
-## 12.11 Regla corta
+### 12.11 Regla corta
 
 Aplicar solo ejecuta una request aprobada y crea una nueva version de roster.
 
 ---
 
-# Invariante 13 - La auditoria registra hechos y no gobierna el workflow
-
-## TOC
-
-- [13.1 Regla principal](#131-regla-principal)
-- [13.2 La auditoria no cambia estados](#132-la-auditoria-no-cambia-estados)
-- [13.3 La auditoria no decide](#133-la-auditoria-no-decide)
-- [13.4 Actor registrado no equivale a permiso](#134-actor-registrado-no-equivale-a-permiso)
-- [13.5 History no equivale a autorizacion](#135-history-no-equivale-a-autorizacion)
-- [13.6 Motivos no equivalentes](#136-motivos-no-equivalentes)
-- [13.7 Evento no reemplaza estado](#137-evento-no-reemplaza-estado)
-- [13.8 Cancelacion por obsolescencia no equivale a rechazo](#138-cancelacion-por-obsolescencia-no-equivale-a-rechazo)
-- [13.9 La auditoria no introduce nuevos estados](#139-la-auditoria-no-introduce-nuevos-estados)
-- [13.10 Regla corta](#1310-regla-corta)
+## Invariante 13 - La auditoria registra hechos y no gobierna el workflow
 
 ---
 
-## 13.1 Regla principal
+### 13.1 Regla principal
 
 La auditoria estructurada registra hechos del workflow formal.
 
@@ -827,7 +814,7 @@ No gobierna el workflow.
 
 ---
 
-## 13.2 La auditoria no cambia estados
+### 13.2 La auditoria no cambia estados
 
 La auditoria no puede cambiar el estado de una `SwapRequest`.
 
@@ -835,7 +822,7 @@ Los cambios de estado pertenecen al workflow formal de `swap_service`.
 
 ---
 
-## 13.3 La auditoria no decide
+### 13.3 La auditoria no decide
 
 La auditoria no puede:
 
@@ -852,7 +839,7 @@ La auditoria solo registra hechos ocurridos.
 
 ---
 
-## 13.4 Actor registrado no equivale a permiso
+### 13.4 Actor registrado no equivale a permiso
 
 Registrar un actor en un evento no implica que ese actor tenga permiso formal.
 
@@ -864,7 +851,7 @@ Los permisos, si se incorporan en el futuro, deben definirse en un contrato sepa
 
 ---
 
-## 13.5 History no equivale a autorizacion
+### 13.5 History no equivale a autorizacion
 
 `history` conserva trazabilidad.
 
@@ -872,7 +859,7 @@ Los permisos, si se incorporan en el futuro, deben definirse en un contrato sepa
 
 ---
 
-## 13.6 Motivos no equivalentes
+### 13.6 Motivos no equivalentes
 
 No deben mezclarse:
 
@@ -889,7 +876,7 @@ Cada motivo pertenece al evento o etapa correspondiente.
 
 ---
 
-## 13.7 Evento no reemplaza estado
+### 13.7 Evento no reemplaza estado
 
 La existencia de un evento auditable no reemplaza el estado formal de la request.
 
@@ -909,7 +896,7 @@ El estado formal sigue siendo la fuente de verdad del workflow.
 
 ---
 
-## 13.8 Cancelacion por obsolescencia no equivale a rechazo
+### 13.8 Cancelacion por obsolescencia no equivale a rechazo
 
 Una cancelacion por obsolescencia de roster no equivale a rechazo operativo.
 
@@ -917,7 +904,7 @@ Debe quedar distinguida en motivo, history o evento auditable.
 
 ---
 
-## 13.9 La auditoria no introduce nuevos estados
+### 13.9 La auditoria no introduce nuevos estados
 
 La auditoria estructurada no puede introducir estados nuevos de `SwapRequest`.
 
@@ -934,31 +921,17 @@ Cualquier nuevo estado requiere decision arquitectonica separada.
 
 ---
 
-## 13.10 Regla corta
+### 13.10 Regla corta
 
 La auditoria observa el workflow; no lo reemplaza.
 
 ---
 
-# Invariante 14 - El importador normaliza datos reales, no evalua ni decide
-
-## TOC
-
-- [14.1 Regla principal](#141-regla-principal)
-- [14.2 El importador no evalua swaps](#142-el-importador-no-evalua-swaps)
-- [14.3 El importador no decide workflow](#143-el-importador-no-decide-workflow)
-- [14.4 El importador no aplica](#144-el-importador-no-aplica)
-- [14.5 Celda vacia es franco](#145-celda-vacia-es-franco)
-- [14.6 A/B/C son turnos operativos](#146-abc-son-turnos-operativos)
-- [14.7 Codigos no operativos no entran al motor en V1](#147-codigos-no-operativos-no-entran-al-motor-en-v1)
-- [14.8 El importador no infiere puestos ni supervisores](#148-el-importador-no-infiere-puestos-ni-supervisores)
-- [14.9 roster_store no parsea](#149-rosterstore-no-parsea)
-- [14.10 RosterVersion se crea explicitamente](#1410-rosterversion-se-crea-explicitamente)
-- [14.11 Regla corta](#1411-regla-corta)
+## Invariante 14 - El importador normaliza datos reales, no evalua ni decide
 
 ---
 
-## 14.1 Regla principal
+### 14.1 Regla principal
 
 El importador normaliza datos reales de roster.
 
@@ -970,7 +943,7 @@ No aplica cambios operativos.
 
 ---
 
-## 14.2 El importador no evalua swaps
+### 14.2 El importador no evalua swaps
 
 El importador no puede llamar a:
 
@@ -982,7 +955,7 @@ Tampoco puede clasificar tecnicamente swaps.
 
 ---
 
-## 14.3 El importador no decide workflow
+### 14.3 El importador no decide workflow
 
 El importador no puede:
 
@@ -998,7 +971,7 @@ El workflow formal sigue perteneciendo a `swap_service`.
 
 ---
 
-## 14.4 El importador no aplica
+### 14.4 El importador no aplica
 
 El importador no puede ejecutar swaps ni modificar requests existentes.
 
@@ -1010,7 +983,7 @@ swap_service.aplicar_swap_request
 
 ---
 
-## 14.5 Celda vacia es franco
+### 14.5 Celda vacia es franco
 
 Una celda vacia representa franco.
 
@@ -1018,7 +991,7 @@ No genera `Asignacion` operativa.
 
 ---
 
-## 14.6 A/B/C son turnos operativos
+### 14.6 A/B/C son turnos operativos
 
 Los codigos:
 
@@ -1032,7 +1005,7 @@ representan turnos operativos y generan `Asignacion`.
 
 ---
 
-## 14.7 Codigos no operativos no entran al motor en V1
+### 14.7 Codigos no operativos no entran al motor en V1
 
 Codigos como:
 
@@ -1053,7 +1026,7 @@ Deben quedar como eventos no operativos, warnings o informacion auxiliar de impo
 
 ---
 
-## 14.8 El importador no infiere puestos ni supervisores
+### 14.8 El importador no infiere puestos ni supervisores
 
 El importador no debe inferir:
 
@@ -1071,7 +1044,7 @@ La posicion de una fila no debe usarse como regla general para determinar rol.
 
 ---
 
-## 14.9 roster_store no parsea
+### 14.9 roster_store no parsea
 
 `roster_store` no debe interpretar CSV, Excel ni matrices humanas.
 
@@ -1079,7 +1052,7 @@ Su responsabilidad es persistir y versionar rosters ya normalizados.
 
 ---
 
-## 14.10 RosterVersion se crea explicitamente
+### 14.10 RosterVersion se crea explicitamente
 
 Leer o parsear una matriz no debe crear una `RosterVersion` automaticamente de manera implicita.
 
@@ -1087,32 +1060,17 @@ La creacion de `RosterVersion` desde una importacion debe ser una accion explici
 
 ---
 
-## 14.11 Regla corta
+### 14.11 Regla corta
 
 El importador prepara datos; el motor tecnico valida reglas; el workflow formal decide y ejecuta.
 
 ---
 
-# Invariante 15 - El codigo del roster no alcanza para determinar elegibilidad
-
-## TOC
-
-- [15.1 Regla principal](#151-regla-principal)
-- [15.2 A/B/C son necesarios pero no suficientes](#152-abc-son-necesarios-pero-no-suficientes)
-- [15.3 Persona no operativa no participa](#153-persona-no-operativa-no-participa)
-- [15.4 CMA vencido bloquea operatividad general](#154-cma-vencido-bloquea-operatividad-general)
-- [15.5 Override administrativo negativo bloquea operatividad general](#155-override-administrativo-negativo-bloquea-operatividad-general)
-- [15.6 Override administrativo requiere trazabilidad](#156-override-administrativo-requiere-trazabilidad)
-- [15.7 Habilitacion TMA limita puesto, no operatividad general](#157-habilitacion-tma-limita-puesto-no-operatividad-general)
-- [15.8 Sin puesto definido no se aplica filtro TMA en V1](#158-sin-puesto-definido-no-se-aplica-filtro-tma-en-v1)
-- [15.9 Eventos no operativos no generan swaps](#159-eventos-no-operativos-no-generan-swaps)
-- [15.10 La ausencia de OF no implica disponibilidad](#1510-la-ausencia-de-of-no-implica-disponibilidad)
-- [15.11 El importador no decide elegibilidad compleja](#1511-el-importador-no-decide-elegibilidad-compleja)
-- [15.12 Regla corta](#1512-regla-corta)
+## Invariante 15 - El codigo del roster no alcanza para determinar elegibilidad
 
 ---
 
-## 15.1 Regla principal
+### 15.1 Regla principal
 
 El codigo del roster no alcanza para determinar elegibilidad para swaps normales.
 
@@ -1128,7 +1086,7 @@ puesto, si existe
 
 ---
 
-## 15.2 A/B/C son necesarios pero no suficientes
+### 15.2 A/B/C son necesarios pero no suficientes
 
 Los codigos:
 
@@ -1146,7 +1104,7 @@ La persona tambien debe estar operativa y pertenecer al universo operativo inter
 
 ---
 
-## 15.3 Persona no operativa no participa
+### 15.3 Persona no operativa no participa
 
 Si:
 
@@ -1160,7 +1118,7 @@ Esto aplica aunque tenga una asignacion `A`, `B` o `C`.
 
 ---
 
-## 15.4 CMA vencido bloquea operatividad general
+### 15.4 CMA vencido bloquea operatividad general
 
 Regla conceptual:
 
@@ -1173,7 +1131,7 @@ Un CMA / psicofisico vencido hace caer la operatividad general.
 
 ---
 
-## 15.5 Override administrativo negativo bloquea operatividad general
+### 15.5 Override administrativo negativo bloquea operatividad general
 
 Regla conceptual:
 
@@ -1186,7 +1144,7 @@ Un override administrativo negativo bloquea la participacion de la persona en sw
 
 ---
 
-## 15.6 Override administrativo requiere trazabilidad
+### 15.6 Override administrativo requiere trazabilidad
 
 Todo override administrativo debe registrar:
 
@@ -1200,7 +1158,7 @@ No debe existir override administrativo valido sin trazabilidad minima.
 
 ---
 
-## 15.7 Habilitacion TMA limita puesto, no operatividad general
+### 15.7 Habilitacion TMA limita puesto, no operatividad general
 
 No tener habilitacion TMA no vuelve necesariamente no operativa a la persona.
 
@@ -1210,7 +1168,7 @@ La persona puede seguir siendo elegible para otros puestos compatibles.
 
 ---
 
-## 15.8 Sin puesto definido no se aplica filtro TMA en V1
+### 15.8 Sin puesto definido no se aplica filtro TMA en V1
 
 Si el roster no define puestos, el sistema no debe inferirlos.
 
@@ -1224,7 +1182,7 @@ La compatibilidad por puesto queda reservada para V2.
 
 ---
 
-## 15.9 Eventos no operativos no generan swaps
+### 15.9 Eventos no operativos no generan swaps
 
 Eventos como:
 
@@ -1249,7 +1207,7 @@ Deben conservarse fuera de `Asignacion` operativa.
 
 ---
 
-## 15.10 La ausencia de OF no implica disponibilidad
+### 15.10 La ausencia de OF no implica disponibilidad
 
 Que una persona no tenga `OF` en un dia determinado no implica automaticamente que este disponible para swaps.
 
@@ -1257,7 +1215,7 @@ La disponibilidad requiere perfil operativo y estado operativo general compatibl
 
 ---
 
-## 15.11 El importador no decide elegibilidad compleja
+### 15.11 El importador no decide elegibilidad compleja
 
 El importador normaliza y separa datos.
 
@@ -1271,30 +1229,17 @@ No infiere roles.
 
 ---
 
-## 15.12 Regla corta
+### 15.12 Regla corta
 
 El evento del roster informa que hay asignado; no decide por si solo si puede intercambiarse.
 
 ---
 
-# Invariante 16 - El catalogo oficial no implica activacion local
-
-## TOC
-
-- [16.1 Regla principal](#161-regla-principal)
-- [16.2 Codigo conocido no equivale a codigo activo](#162-codigo-conocido-no-equivale-a-codigo-activo)
-- [16.3 Solo codigos operativos activos generan Asignacion](#163-solo-codigos-operativos-activos-generan-asignacion)
-- [16.4 Codigos no operativos quedan fuera de Asignacion](#164-codigos-no-operativos-quedan-fuera-de-asignacion)
-- [16.5 Codigos legacy requieren normalizacion explicita](#165-codigos-legacy-requieren-normalizacion-explicita)
-- [16.6 Codigos fuera de alcance no se aceptan silenciosamente](#166-codigos-fuera-de-alcance-no-se-aceptan-silenciosamente)
-- [16.7 La configuracion no evalua swaps](#167-la-configuracion-no-evalua-swaps)
-- [16.8 La configuracion no decide workflow](#168-la-configuracion-no-decide-workflow)
-- [16.9 Importacion y reglas tecnicas permanecen separadas](#169-importacion-y-reglas-tecnicas-permanecen-separadas)
-- [16.10 Regla corta](#1610-regla-corta)
+## Invariante 16 - El catalogo oficial no implica activacion local
 
 ---
 
-## 16.1 Regla principal
+### 16.1 Regla principal
 
 Que un codigo exista en el PR o en el catalogo documental no significa que este activo para una dependencia determinada.
 
@@ -1302,7 +1247,7 @@ La activacion depende de configuracion.
 
 ---
 
-## 16.2 Codigo conocido no equivale a codigo activo
+### 16.2 Codigo conocido no equivale a codigo activo
 
 Un codigo puede ser:
 
@@ -1319,7 +1264,7 @@ sin ser operativo activo.
 
 ---
 
-## 16.3 Solo codigos operativos activos generan Asignacion
+### 16.3 Solo codigos operativos activos generan Asignacion
 
 En V1, solo los codigos clasificados como:
 
@@ -1339,7 +1284,7 @@ C
 
 ---
 
-## 16.4 Codigos no operativos quedan fuera de Asignacion
+### 16.4 Codigos no operativos quedan fuera de Asignacion
 
 Codigos como:
 
@@ -1364,7 +1309,7 @@ Deben conservarse como eventos no operativos o informacion auxiliar de importaci
 
 ---
 
-## 16.5 Codigos legacy requieren normalizacion explicita
+### 16.5 Codigos legacy requieren normalizacion explicita
 
 Los codigos legacy no deben aceptarse silenciosamente.
 
@@ -1380,7 +1325,7 @@ La normalizacion debe ser explicita y trazable.
 
 ---
 
-## 16.6 Codigos fuera de alcance no se aceptan silenciosamente
+### 16.6 Codigos fuera de alcance no se aceptan silenciosamente
 
 Codigos oficiales pero fuera de alcance de una dependencia no deben aceptarse silenciosamente.
 
@@ -1397,7 +1342,7 @@ En otra dependencia no H24 podrian ser validos si la configuracion los habilita.
 
 ---
 
-## 16.7 La configuracion no evalua swaps
+### 16.7 La configuracion no evalua swaps
 
 La configuracion de codigos no puede evaluar swaps.
 
@@ -1411,7 +1356,7 @@ simulator
 
 ---
 
-## 16.8 La configuracion no decide workflow
+### 16.8 La configuracion no decide workflow
 
 La configuracion de codigos no puede:
 
@@ -1429,7 +1374,7 @@ El workflow formal sigue perteneciendo a `swap_service`.
 
 ---
 
-## 16.9 Importacion y reglas tecnicas permanecen separadas
+### 16.9 Importacion y reglas tecnicas permanecen separadas
 
 La configuracion de importacion no debe mezclarse con las reglas tecnicas del motor.
 
@@ -1447,30 +1392,17 @@ descanso minimo incumplido
 
 ---
 
-## 16.10 Regla corta
+### 16.10 Regla corta
 
 Un codigo oficial puede existir sin estar activo para una dependencia.
 
 ---
 
-# Invariante 17 - Persona operativa no equivale a rol institucional
-
-## TOC
-
-- [17.1 Regla principal](#171-regla-principal)
-- [17.2 Rol institucional no define elegibilidad](#172-rol-institucional-no-define-elegibilidad)
-- [17.3 Estado operativo general bloquea swaps](#173-estado-operativo-general-bloquea-swaps)
-- [17.4 CMA vencido bloquea operatividad](#174-cma-vencido-bloquea-operatividad)
-- [17.5 Override administrativo negativo bloquea operatividad](#175-override-administrativo-negativo-bloquea-operatividad)
-- [17.6 Override requiere trazabilidad](#176-override-requiere-trazabilidad)
-- [17.7 Habilitacion limita compatibilidad](#177-habilitacion-limita-compatibilidad)
-- [17.8 Sin puesto definido no se aplica filtro TMA](#178-sin-puesto-definido-no-se-aplica-filtro-tma)
-- [17.9 El importador no calcula perfil operativo](#179-el-importador-no-calcula-perfil-operativo)
-- [17.10 Regla corta](#1710-regla-corta)
+## Invariante 17 - Persona operativa no equivale a rol institucional
 
 ---
 
-## 17.1 Regla principal
+### 17.1 Regla principal
 
 El rol institucional de una persona no equivale a su elegibilidad para swaps normales.
 
@@ -1478,7 +1410,7 @@ La elegibilidad depende del perfil operativo, estado operativo general, asignaci
 
 ---
 
-## 17.2 Rol institucional no define elegibilidad
+### 17.2 Rol institucional no define elegibilidad
 
 No debe inferirse elegibilidad solo por rol.
 
@@ -1493,7 +1425,7 @@ Practicante -> OJT/SIM, no participa en swaps normales.
 
 ---
 
-## 17.3 Estado operativo general bloquea swaps
+### 17.3 Estado operativo general bloquea swaps
 
 Si:
 
@@ -1513,7 +1445,7 @@ C
 
 ---
 
-## 17.4 CMA vencido bloquea operatividad
+### 17.4 CMA vencido bloquea operatividad
 
 Regla conceptual:
 
@@ -1526,7 +1458,7 @@ El CMA / psicofisico vencido bloquea la operatividad general.
 
 ---
 
-## 17.5 Override administrativo negativo bloquea operatividad
+### 17.5 Override administrativo negativo bloquea operatividad
 
 Regla conceptual:
 
@@ -1539,7 +1471,7 @@ Un override administrativo negativo bloquea la participacion en swaps normales.
 
 ---
 
-## 17.6 Override requiere trazabilidad
+### 17.6 Override requiere trazabilidad
 
 Todo override administrativo debe tener:
 
@@ -1553,7 +1485,7 @@ No debe existir override administrativo valido sin trazabilidad minima.
 
 ---
 
-## 17.7 Habilitacion limita compatibilidad
+### 17.7 Habilitacion limita compatibilidad
 
 La falta de una habilitacion especifica no vuelve necesariamente no operativa a la persona completa.
 
@@ -1569,7 +1501,7 @@ puesto = TMA
 
 ---
 
-## 17.8 Sin puesto definido no se aplica filtro TMA
+### 17.8 Sin puesto definido no se aplica filtro TMA
 
 Si el roster no define puestos, el sistema no debe inferirlos.
 
@@ -1583,7 +1515,7 @@ La compatibilidad por puesto queda reservada para V2.
 
 ---
 
-## 17.9 El importador no calcula perfil operativo
+### 17.9 El importador no calcula perfil operativo
 
 El importador de roster no calcula:
 
@@ -1599,7 +1531,7 @@ El importador normaliza roster y separa asignaciones operativas de eventos no op
 
 ---
 
-## 17.10 Regla corta
+### 17.10 Regla corta
 
 El rol describe la funcion; el perfil operativo define si y donde puede operar.
 
@@ -1607,9 +1539,9 @@ El rol describe la funcion; el perfil operativo define si y donde puede operar.
 
 ---
 
-# Invariantes calendar-aware
+## Invariantes calendar-aware
 
-## Invariante CA-1 - LIBRE no equivale a NO_OPERATIVO_DOCUMENTADO
+### Invariante CA-1 - LIBRE no equivale a NO_OPERATIVO_DOCUMENTADO
 
 Un dia `LIBRE` representa una celda vacia del roster.
 
@@ -1631,7 +1563,7 @@ Un dia `NO_OPERATIVO_DOCUMENTADO` no debe contarse como dia libre.
 
 ---
 
-## Invariante CA-2 - La timeline diaria no reemplaza asignaciones operativas
+### Invariante CA-2 - La timeline diaria no reemplaza asignaciones operativas
 
 La timeline diaria importada complementa a las asignaciones operativas.
 
@@ -1645,7 +1577,7 @@ El objeto del swap sigue siendo un par de asignaciones dentro de una version de 
 
 ---
 
-## Invariante CA-3 - El diagnostico calendar-aware no reemplaza al engine
+### Invariante CA-3 - El diagnostico calendar-aware no reemplaza al engine
 
 El diagnostico calendar-aware no reemplaza `engine.py`.
 
@@ -1655,7 +1587,7 @@ El engine tradicional sigue siendo el motor tecnico vigente para el flujo formal
 
 ---
 
-## Invariante CA-4 - El entrypoint calendar-aware no decide swaps
+### Invariante CA-4 - El entrypoint calendar-aware no decide swaps
 
 El entrypoint calendar-aware no puede aprobar, rechazar, cancelar ni aplicar swaps.
 
@@ -1667,7 +1599,7 @@ No modifica versiones de roster.
 
 ---
 
-## Invariante CA-5 - El workflow formal no cambia
+### Invariante CA-5 - El workflow formal no cambia
 
 La incorporacion de timeline diaria, diagnostico calendar-aware y entrypoint paralelo no modifica el workflow formal:
 
@@ -1680,7 +1612,7 @@ PENDIENTE
 
 ---
 
-## Invariante CA-6 - La integracion al motor general requiere decision explicita
+### Invariante CA-6 - La integracion al motor general requiere decision explicita
 
 El camino calendar-aware puede convivir con el camino tradicional.
 

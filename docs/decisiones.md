@@ -3,15 +3,61 @@
 ## Tabla de contenido
 
 - [Arquitectura general](#arquitectura-general)
-- [Modelo de dominio](#modelo-de-dominio)
-- [Evaluacion tecnica](#evaluacion-tecnica)
-- [Decision operativa](#decision-operativa)
-- [Versionado y consistencia](#versionado-y-consistencia)
-- [Estrategia de evolucion](#estrategia-de-evolucion)
-- [Decision 45 - Fachada para crear request desde oferta y evaluar formalmente](#decision-45---fachada-para-crear-request-desde-oferta-y-evaluar-formalmente)
-- [Decision 46 - La evaluacion formal desde oferta no implica resolucion automatica](#decision-46---la-evaluacion-formal-desde-oferta-no-implica-resolucion-automatica)
-- [Decision 47 - Resolucion operativa posterior explicita](#decision-47---resolucion-operativa-posterior-explicita)
-- [Decision 48 - Aplicacion explicita solo desde APROBADO](#decision-48---aplicacion-explicita-solo-desde-aprobado)
+  - [Decision 1 - Separacion de capas](#decision-1---separacion-de-capas)
+  - [Decision 2 - Engine sin logica de negocio](#decision-2---engine-sin-logica-de-negocio)
+  - [Decision 3 - SwapRequest como entidad central](#decision-3---swaprequest-como-entidad-central)
+  - [Decision 4 - Evaluacion basada en clasificacion tecnica](#decision-4---evaluacion-basada-en-clasificacion-tecnica)
+  - [Decision 5 - Validacion por controlador](#decision-5---validacion-por-controlador)
+  - [Decision 6 - Versionado de roster](#decision-6---versionado-de-roster)
+  - [Decision 7 - Requests ligados a version](#decision-7---requests-ligados-a-version)
+  - [Decision 8 - Cancelacion de requests obsoletos](#decision-8---cancelacion-de-requests-obsoletos)
+  - [Decision 9 - Tests como contrato](#decision-9---tests-como-contrato)
+  - [Decision 10 - Refactor incremental](#decision-10---refactor-incremental)
+  - [Decision 11 - Separacion definitiva entre evaluacion tecnica, decision operativa y aplicacion](#decision-11---separacion-definitiva-entre-evaluacion-tecnica-decision-operativa-y-aplicacion)
+  - [Decision 12 - Fuente unica de verdad por responsabilidad](#decision-12---fuente-unica-de-verdad-por-responsabilidad)
+  - [Decision 13 - Ventana operativa como regla de negocio](#decision-13---ventana-operativa-como-regla-de-negocio)
+  - [Decision 14 - Dependencia permitida entre capas](#decision-14---dependencia-permitida-entre-capas)
+  - [Decision 15 - Refactor guiado por contratos antes que por movimiento de codigo](#decision-15---refactor-guiado-por-contratos-antes-que-por-movimiento-de-codigo)
+  - [Decision 16 - La clasificacion se define como clasificacion tecnica del swap](#decision-16---la-clasificacion-se-define-como-clasificacion-tecnica-del-swap)
+  - [Decision 17 - Separacion explicita entre clasificacion tecnica y decision operativa](#decision-17---separacion-explicita-entre-clasificacion-tecnica-y-decision-operativa)
+  - [Decision 18 - Restricciones operativas no alteran la clasificacion tecnica](#decision-18---restricciones-operativas-no-alteran-la-clasificacion-tecnica)
+  - [Decision 19 - El request debe poder distinguir evaluacion tecnica de rechazo operativo](#decision-19---el-request-debe-poder-distinguir-evaluacion-tecnica-de-rechazo-operativo)
+  - [Decision 20 - Definicion de version vigente, evaluable y aplicable](#decision-20---definicion-de-version-vigente-evaluable-y-aplicable)
+  - [Decision 21 - Fuente unica de verdad de reglas y configuracion](#decision-21---fuente-unica-de-verdad-de-reglas-y-configuracion)
+  - [Decision 22 - El objeto del swap son asignaciones, no indices](#decision-22---el-objeto-del-swap-son-asignaciones-no-indices)
+  - [Decision 23 - Frontera publica objetivo de simulator](#decision-23---frontera-publica-objetivo-de-simulator)
+  - [Decision 24 - Semantica del swap en el dominio](#decision-24---semantica-del-swap-en-el-dominio)
+  - [Decision 25 - Clasificacion tecnica como responsabilidad estable de simulator](#decision-25---clasificacion-tecnica-como-responsabilidad-estable-de-simulator)
+  - [Decision 26 - Presentacion textual fuera del nucleo de simulator](#decision-26---presentacion-textual-fuera-del-nucleo-de-simulator)
+  - [Decision 27 - Comparacion tecnica desacoplada de versionado formal](#decision-27---comparacion-tecnica-desacoplada-de-versionado-formal)
+  - [Decision 28 - Frontera definitiva entre simulator y swap_service](#decision-28---frontera-definitiva-entre-simulator-y-swap_service)
+  - [Decision 29 - Frontera publica de simulator](#decision-29---frontera-publica-de-simulator)
+  - [Decision 30 - Incorporacion de equidad historica como senal de priorizacion](#decision-30---incorporacion-de-equidad-historica-como-senal-de-priorizacion)
+  - [Decision 31 - Integracion de equidad historica fuera de simulator](#decision-31---integracion-de-equidad-historica-fuera-de-simulator)
+  - [Decision 32 - Equidad historica basada en eventos aplicados](#decision-32---equidad-historica-basada-en-eventos-aplicados)
+  - [Decision 33 - Ventana temporal configurable para equidad historica](#decision-33---ventana-temporal-configurable-para-equidad-historica)
+  - [Decision 34 - Modelo historico basado en eventos](#decision-34---modelo-historico-basado-en-eventos)
+  - [Decision 35 - Decaimiento calculado en lectura](#decision-35---decaimiento-calculado-en-lectura)
+  - [Decision 36 - Controlador castigado como senal derivada](#decision-36---controlador-castigado-como-senal-derivada)
+  - [Decision 37 - La equidad historica no reacciona a rechazo social ni a propuestas no materializadas](#decision-37---la-equidad-historica-no-reacciona-a-rechazo-social-ni-a-propuestas-no-materializadas)
+  - [Decision 38 - La equidad historica ordena ofertas pero no aprende de elecciones ni rechazos](#decision-38---la-equidad-historica-ordena-ofertas-pero-no-aprende-de-elecciones-ni-rechazos)
+  - [Decision 39 - Flujo de oferta con equidad historica no reactiva](#decision-39---flujo-de-oferta-con-equidad-historica-no-reactiva)
+  - [Decision 40 - Exploracion acotada centrada en request](#decision-40---exploracion-acotada-centrada-en-request)
+  - [Decision 41 - Candidate generation como capa separada](#decision-41---candidate-generation-como-capa-separada)
+  - [Decision 42 - Contrato de candidate_generation](#decision-42---contrato-de-candidate_generation)
+  - [Decision 43 - Introduccion de roster_index](#decision-43---introduccion-de-roster_index)
+  - [Decision 44 - candidate_generation consume roster_index](#decision-44---candidate_generation-consume-roster_index)
+  - [Decision 45 - Fachada para crear request desde oferta y evaluar formalmente](#decision-45---fachada-para-crear-request-desde-oferta-y-evaluar-formalmente)
+  - [Decision 46 - La evaluacion formal desde oferta no implica resolucion automatica](#decision-46---la-evaluacion-formal-desde-oferta-no-implica-resolucion-automatica)
+  - [Decision 47 - Resolucion operativa posterior explicita](#decision-47---resolucion-operativa-posterior-explicita)
+  - [Decision 48 - Aplicacion explicita solo desde APROBADO](#decision-48---aplicacion-explicita-solo-desde-aprobado)
+  - [Decision 49 - Auditoria estructurada minima del workflow formal](#decision-49---auditoria-estructurada-minima-del-workflow-formal)
+  - [Decision 50 - Importacion de roster real acotado](#decision-50---importacion-de-roster-real-acotado)
+  - [Decision 51 - Elegibilidad funcional inicial para swaps normales](#decision-51---elegibilidad-funcional-inicial-para-swaps-normales)
+  - [Decision 52 - Configuracion por dependencia y codigos de roster](#decision-52---configuracion-por-dependencia-y-codigos-de-roster)
+  - [Decision 53 - Perfil operativo de persona](#decision-53---perfil-operativo-de-persona)
+
+---
 
 ---
 
@@ -44,7 +90,7 @@ Evitar que se convierta en una "god class".
 
 ### Decision 3 - SwapRequest como entidad central
 
-### Decision
+#### Decision
 
 SwapRequest representa todo el ciclo:
 - creación
@@ -52,7 +98,7 @@ SwapRequest representa todo el ciclo:
 - resolución
 - aplicación
 
-### Motivo
+#### Motivo
 
 Trazabilidad completa y auditabilidad.
 
@@ -60,25 +106,25 @@ Trazabilidad completa y auditabilidad.
 
 ### Decision 4 - Evaluacion basada en clasificacion tecnica
 
-### Clasificacion tecnica
+#### Clasificacion tecnica
 
 - BENEFICIOSO
 - ACEPTABLE
 - RECHAZABLE
 
-### Mapeo normal hacia decision_sugerida
+#### Mapeo normal hacia decision_sugerida
 
 - BENEFICIOSO → VIABLE
 - ACEPTABLE → OBSERVAR
 - RECHAZABLE → RECHAZAR
 
-### Aclaracion
+#### Aclaracion
 
 Este mapeo expresa el tratamiento operativo sugerido derivado de la evaluación técnica, pero puede ser desplazado por restricciones operativas del flujo, como la ventana operativa.
 
 La `decision_sugerida` no equivale a resolucion operativa ni a estado terminal del workflow.
 
-### Motivo
+#### Motivo
 
 Separar análisis técnico de decisión operativa sin perder la posibilidad de rechazo por condiciones de negocio.
 
@@ -90,7 +136,7 @@ Separar análisis técnico de decisión operativa sin perder la posibilidad de r
 
 Las reglas se ejecutan por controlador (no global directo).
 
-### Motivo
+#### Motivo
 
 Modelo realista de fatiga y restricciones ATC.
 
@@ -100,7 +146,7 @@ Modelo realista de fatiga y restricciones ATC.
 
 Cada cambio genera una nueva versión.
 
-### Motivo
+#### Motivo
 
 - auditabilidad
 - rollback
@@ -110,11 +156,11 @@ Cada cambio genera una nueva versión.
 
 ### Decision 7 - Requests ligados a version
 
-### Decision
+#### Decision
 
 Un SwapRequest pertenece a una versión específica del roster.
 
-### Motivo
+#### Motivo
 
 Evitar aplicar swaps sobre estados inconsistentes.
 
@@ -128,7 +174,7 @@ Al cambiar la versión vigente del roster:
 - los requests no terminales asociados a la versión anterior pasan a ser obsoletos
 - dichos requests deben transicionar a estado CANCELADO
 
-### Motivo
+#### Motivo
 
 Distinguir entre:
 - obsolescencia como condición del dominio
@@ -140,7 +186,7 @@ Distinguir entre:
 
 Los tests existentes definen comportamiento esperado.
 
-### Motivo
+#### Motivo
 
 Evitar regresiones durante refactor.
 
@@ -152,7 +198,7 @@ Evitar regresiones durante refactor.
 
 Separar capas sin cambiar comportamiento observable.
 
-### Motivo
+#### Motivo
 
 Reducir riesgo.
 
@@ -168,7 +214,7 @@ Se consolida la separación estricta entre capas con esta distribución final:
 - swap_service → evaluacion formal, decision_sugerida, resolucion operativa, estados y aplicacion del flujo
 - (futuro) roster_service → versionado, vigencia y obsolescencia de roster
 
-### Definicion
+#### Definicion
 
 - engine responde si existen violaciones según reglas configuradas
 - scoring responde si el roster es válido y cuál es su score
@@ -177,11 +223,11 @@ Se consolida la separación estricta entre capas con esta distribución final:
 - resolver_swap_request decide explicitamente el destino operativo del SwapRequest
 - aplicar_swap_request ejecuta una request aprobada; no reevalúa ni reclasifica
 
-### Motivo
+#### Motivo
 
 Evitar duplicación de lógica, preservar contratos y permitir escalabilidad sin acoplamiento.
 
-### Consecuencia
+#### Consecuencia
 
 Queda prohibido:
 - que engine tome decisiones de negocio
@@ -200,7 +246,7 @@ Ver implementación contractual en:
 
 Cada pregunta crítica del sistema debe tener un único módulo responsable.
 
-### Asignacion
+#### Asignacion
 
 - validez técnica por reglas → engine / scoring
 - clasificación técnica del swap → simulator
@@ -208,7 +254,7 @@ Cada pregunta crítica del sistema debe tener un único módulo responsable.
 - resolucion operativa explicita → swap_service.resolver_swap_request
 - aplicación real y versionado → swap_service.aplicar_swap_request (temporalmente), luego roster_service
 
-### Motivo
+#### Motivo
 
 Reducir ambigüedad y evitar inconsistencias entre capas.
 
@@ -220,11 +266,11 @@ Reducir ambigüedad y evitar inconsistencias entre capas.
 
 La validación de ventana operativa pertenece a swap_service y no a simulator ni engine.
 
-### Motivo
+#### Motivo
 
 La ventana operativa no forma parte de la calidad técnica del roster, sino de la admisibilidad operativa del trámite de swap.
 
-### Consecuencia
+#### Consecuencia
 
 Si falla la ventana operativa:
 - la decision_sugerida es RECHAZAR
@@ -232,12 +278,12 @@ Si falla la ventana operativa:
 - la clasificación técnica no se modifica ni se falsifica
 - no se genera por si mismo un estado terminal RECHAZADO
 
-### Opcionalmente
+#### Opcionalmente
 
 - la clasificación técnica puede no calcularse
 - o puede conservarse separadamente si existe
 
-### Regla
+#### Regla
 
 Las restricciones operativas nunca redefinen la clasificación técnica.
 
@@ -247,19 +293,19 @@ Las restricciones operativas nunca redefinen la clasificación técnica.
 
 swap_service puede depender de simulator como colaborador técnico de evaluación.
 
-### Regla
+#### Regla
 
 - swap_service orquesta
 - simulator evalúa
 - engine valida
 
-### No se permite
+#### No se permite
 
 - simulator llamando a swap_service
 - engine llamando a swap_service
 - swap_service duplicando la clasificación del simulator
 
-### Motivo
+#### Motivo
 
 Mantener dependencia unidireccional y evitar ciclos de lógica.
 
@@ -267,11 +313,11 @@ Mantener dependencia unidireccional y evitar ciclos de lógica.
 
 ### Decision 15 - Refactor guiado por contratos antes que por movimiento de codigo
 
-### Decision
+#### Decision
 
 Antes de seguir moviendo lógica entre módulos, se congelan contratos de entrada/salida y responsabilidades.
 
-### Prioridad
+#### Prioridad
 
 1. fijar contrato de salida de simulator
 2. fijar contrato de mapeo en swap_service
@@ -279,7 +325,7 @@ Antes de seguir moviendo lógica entre módulos, se congelan contratos de entrad
 4. estabilizar tests
 5. luego extraer roster_service
 
-### Motivo
+#### Motivo
 
 Reducir regresiones y evitar degradación de diseño durante el refactor.
 
@@ -287,29 +333,29 @@ Reducir regresiones y evitar degradación de diseño durante el refactor.
 
 ### Decision 16 - La clasificacion se define como clasificacion tecnica del swap
 
-### Decision
+#### Decision
 
 La clasificación del sistema se redefine explícitamente como clasificación técnica del swap.
 
-### Definicion
+#### Definicion
 
 La clasificación técnica expresa exclusivamente el impacto comparativo del swap sobre el roster evaluado, sin incorporar restricciones operativas, estados del workflow ni decisiones de negocio.
 
-### Valores
+#### Valores
 
 - BENEFICIOSO
 - ACEPTABLE
 - RECHAZABLE
 
-### Origen
+#### Origen
 
 - simulator
 
-### Motivo
+#### Motivo
 
 Eliminar la ambigüedad entre evaluación técnica y tratamiento operativo del request.
 
-### Consecuencia
+#### Consecuencia
 
 swap_service no puede fabricar ni reemplazar clasificación técnica por motivos operativos.
 
@@ -317,28 +363,28 @@ swap_service no puede fabricar ni reemplazar clasificación técnica por motivos
 
 ### Decision 17 - Separacion explicita entre clasificacion tecnica y decision operativa
 
-### Decision
+#### Decision
 
 La decision_sugerida del request queda separada de la clasificación técnica, de la resolucion operativa y del estado del workflow.
 
-### Definicion
+#### Definicion
 
 - clasificacion_tecnica = resultado técnico del swap
 - decision_sugerida = tratamiento operativo sugerido durante la evaluacion formal
 - resolucion_operativa = accion explicita posterior que lleva el request a APROBADO, RECHAZADO o CANCELADO
 - estado_workflow = punto del ciclo de vida del request
 
-### Valores de decision_sugerida
+#### Valores de decision_sugerida
 
 - VIABLE
 - OBSERVAR
 - RECHAZAR
 
-### Origen
+#### Origen
 
 - swap_service.evaluar_swap_request
 
-### Motivo
+#### Motivo
 
 Preservar trazabilidad y permitir representar casos donde un swap sea técnicamente aceptable o beneficioso pero operativamente inadmisible, sin convertir automaticamente la sugerencia en estado terminal.
 
@@ -346,18 +392,18 @@ Preservar trazabilidad y permitir representar casos donde un swap sea técnicame
 
 ### Decision 18 - Restricciones operativas no alteran la clasificacion tecnica
 
-### Decision
+#### Decision
 
 Las restricciones operativas, incluyendo ventana operativa, no modifican la clasificación técnica del swap.
 
-### Consecuencia
+#### Consecuencia
 
 Si una restricción operativa impide continuar el request:
 - la decisión operativa puede ser RECHAZAR
 - el motivo debe registrarse explícitamente
 - la clasificación técnica permanece separada cuando exista
 
-### Motivo
+#### Motivo
 
 Evitar mezclar causas técnicas con causas operativas.
 
@@ -374,7 +420,7 @@ El modelo del request debe permitir distinguir explícitamente:
 - motivo_resolucion, cuando corresponda
 - cancelacion por obsolescencia, cuando corresponda
 
-### Motivo
+#### Motivo
 
 Mejorar auditabilidad, trazabilidad y consistencia conceptual del flujo.
 
@@ -388,17 +434,17 @@ Se distinguen explícitamente tres conceptos:
 - versión evaluable: versión sobre la cual se evalúa un request
 - versión aplicable: versión sobre la cual puede ejecutarse un swap
 
-### Regla
+#### Regla
 
 Un SwapRequest es evaluable y aplicable dentro del flujo si y solo si su `roster_version_id` coincide con la versión vigente.
 
-### Consecuencia
+#### Consecuencia
 
 - no se evalúan requests sobre versiones no vigentes
 - no se aplican swaps sobre versiones no vigentes
 - los requests no terminales asociados a versiones no vigentes se consideran obsoletos
 
-### Motivo
+#### Motivo
 
 Eliminar ambigüedad en el manejo de versiones y garantizar consistencia operativa.
 
@@ -408,12 +454,12 @@ Eliminar ambigüedad en el manejo de versiones y garantizar consistencia operati
 
 La semántica de todas las reglas hard/soft y sus parámetros configurables pertenece exclusivamente al subsistema de validación (engine + config).
 
-### Consecuencia
+#### Consecuencia
 
 - ningún otro módulo puede reinterpretar parámetros como min_horas
 - simulator y swap_service deben consumir resultados del engine sin reinterpretarlos
 
-### Motivo
+#### Motivo
 
 Evitar divergencia de comportamiento entre capas y garantizar consistencia técnica.
 
@@ -423,16 +469,16 @@ Evitar divergencia de comportamiento entre capas y garantizar consistencia técn
 
 El objeto real de un swap son dos asignaciones dentro de una versión de roster.
 
-### Aclaracion
+#### Aclaracion
 
 - los índices pueden utilizarse como referencia estructural
 - pero no definen la identidad del objeto del dominio
 
-### Consecuencia
+#### Consecuencia
 
 SwapRequest debe entenderse como una operación sobre asignaciones, no sobre posiciones.
 
-### Motivo
+#### Motivo
 
 Evitar ambigüedad en la identidad del dato y mejorar consistencia del modelo.
 
@@ -442,7 +488,7 @@ Evitar ambigüedad en la identidad del dato y mejorar consistencia del modelo.
 
 La frontera pública objetivo de `simulator` se limita a capacidades técnicas de simulación y evaluación comparativa de swaps.
 
-### Incluye
+#### Incluye
 
 - simulación de escenarios
 - evaluación técnica antes/después
@@ -450,7 +496,7 @@ La frontera pública objetivo de `simulator` se limita a capacidades técnicas d
 - clasificación técnica
 - exploración y ranking técnico de swaps
 
-### No incluye como diseño objetivo
+#### No incluye como diseno objetivo
 
 - creación de requests
 - evaluación de requests
@@ -459,7 +505,7 @@ La frontera pública objetivo de `simulator` se limita a capacidades técnicas d
 - presentación textual de resultados
 - workflow operativo
 
-### Motivo
+#### Motivo
 
 Preservar la separación entre evaluación técnica y ciclo de vida operativo del request.
 
@@ -469,13 +515,13 @@ Preservar la separación entre evaluación técnica y ciclo de vida operativo de
 
 El swap del dominio se define como una operación sobre dos asignaciones de una misma versión, consistente en intercambiar el turno o actividad asignado entre ellas.
 
-### Consecuencia
+#### Consecuencia
 
 - el objeto del swap sigue siendo un par de asignaciones
 - la transformación efectiva del dominio recae sobre el turno o actividad asignado
 - la identidad base de las asignaciones se preserva
 
-### Motivo
+#### Motivo
 
 Eliminar la ambigüedad entre “swap de asignaciones completas” y “swap de contenido de turno”, alineando arquitectura y semántica del dominio.
 
@@ -485,7 +531,7 @@ Eliminar la ambigüedad entre “swap de asignaciones completas” y “swap de 
 
 La clasificación del swap permanece en `simulator` como responsabilidad técnica pura.
 
-### Condicion
+#### Condicion
 
 `clasificar_swap(...)` solo puede usar criterios técnicos, incluyendo:
 - validez del escenario
@@ -493,7 +539,7 @@ La clasificación del swap permanece en `simulator` como responsabilidad técnic
 - deltas hard/soft
 - impacto técnico por controlador
 
-### Prohibicion
+#### Prohibicion
 
 No puede incorporar:
 - ventana operativa
@@ -502,7 +548,7 @@ No puede incorporar:
 - workflow
 - motivos operativos
 
-### Motivo
+#### Motivo
 
 Blindar la clasificación técnica frente a deriva hacia criterios de negocio.
 
@@ -512,15 +558,15 @@ Blindar la clasificación técnica frente a deriva hacia criterios de negocio.
 
 La generación de explicaciones o recomendaciones textuales no pertenece al diseño objetivo de `simulator`.
 
-### Definicion
+#### Definicion
 
 La presentación textual se considera responsabilidad de una capa de salida, reporting o interfaz, no del subsistema técnico de simulación.
 
-### Aclaracion
+#### Aclaracion
 
 La existencia temporal de funciones de recomendación textual dentro de `simulator` se considera deuda de frontera y no diseño objetivo.
 
-### Motivo
+#### Motivo
 
 Evitar mezcla entre evaluación técnica y presentación.
 
@@ -530,11 +576,11 @@ Evitar mezcla entre evaluación técnica y presentación.
 
 Los cálculos comparativos técnicos dentro de `simulator`, incluyendo impacto por controlador, deben depender de una estructura técnica neutral de comparación y no de `RosterVersion` ficticios.
 
-### Consecuencia
+#### Consecuencia
 
 El uso de versiones dummy para cálculos comparativos se considera transitorio y no forma parte de la arquitectura objetivo.
 
-### Motivo
+#### Motivo
 
 `RosterVersion` pertenece al plano de versionado real del sistema, mientras que la simulación necesita comparar escenarios hipotéticos sin forzar dependencia con la abstracción de versionado formal.
 
@@ -599,33 +645,33 @@ Eliminar ambiguedad de uso y alinear la API publica con la arquitectura definida
 
 ---
 
-### Decision 30 - Incorporacion de equidad historica como señal de priorizacion
+### Decision 30 - Incorporacion de equidad historica como senal de priorizacion
 
-### Decision
+#### Decision
 
 Se incorpora un criterio de equidad historica como señal soft de priorizacion en el sistema de swaps, sin afectar la evaluacion tecnica ni la decision operativa base.
 
-### Definicion
+#### Definicion
 
 La equidad historica representa el balance reciente de beneficios y perjuicios recibidos por cada controlador a partir de swaps aplicados.
 
 Un controlador se considera relativamente “castigado” cuando su saldo historico reciente es desfavorable respecto a otros.
 
-### Modelo adoptado
+#### Modelo adoptado
 
-#### Se adopta un modelo de ventana historica deslizante basada en:
+##### Se adopta un modelo de ventana historica deslizante basada en:
 
 ultimos 3 rosters (recomendado)
 o equivalente temporal acotado
 
-#### Dentro de esa ventana se calcula:
+##### Dentro de esa ventana se calcula:
 
 impacto neto por controlador
 mejoras vs deterioros recibidos
 
-### Naturaleza de la señal
+#### Naturaleza de la senal
 
-#### La equidad historica:
+##### La equidad historica:
 
 es una señal soft
 no es restriccion hard
@@ -633,28 +679,28 @@ no invalida swaps
 no redefine clasificacion tecnica
 no sustituye decision operativa
 
-### Ubicacion en la arquitectura
+#### Ubicacion en la arquitectura
 
-#### La equidad historica:
+##### La equidad historica:
 
 no pertenece a engine
 no pertenece a scoring tecnico base
 no modifica simulator en su contrato tecnico
 
-#### Se aplica como criterio adicional en:
+##### Se aplica como criterio adicional en:
 
 ranking de swaps
 priorizacion de alternativas
 desempate entre swaps tecnicamente equivalentes
 
-### Regla de integracion
+#### Regla de integracion
 
-#### La equidad historica solo puede actuar sobre:
+##### La equidad historica solo puede actuar sobre:
 
 ordenamiento entre swaps validos o aceptables
 priorizacion de swaps tecnicamente correctos
 
-#### No puede actuar sobre:
+##### No puede actuar sobre:
 
 validez tecnica
 clasificacion tecnica
@@ -662,7 +708,7 @@ decision operativa base
 aplicacion del swap
 Modelo de datos conceptual
 
-### Se requiere una estructura historica minima basada en eventos de swaps aplicados:
+#### Se requiere una estructura historica minima basada en eventos de swaps aplicados:
 
 controlador involucrado
 impacto recibido (mejora / neutro / deterioro)
@@ -671,15 +717,15 @@ timestamp
 
 Esta informacion permite calcular saldo historico dentro de la ventana definida.
 
-### Riesgos controlados
+#### Riesgos controlados
 memoria infinita → se limita por ventana
 sesgo acumulado → se acota a historia reciente
 injusticia inversa → peso bajo en ranking
 complejidad → modelo simple y auditable
 
-### Motivo
+#### Motivo
 
-#### Incorporar justicia operativa sin comprometer:
+##### Incorporar justicia operativa sin comprometer:
 
 consistencia tecnica
 separacion de capas
@@ -834,13 +880,13 @@ Mantener trazabilidad, evitar reescritura del historico y permitir ajustar la fo
 
 ---
 
-### Decision 36 - Controlador castigado como señal derivada
+### Decision 36 - Controlador castigado como senal derivada
 
 #### Decision
 
 La condicion de controlador relativamente castigado no se persiste como estado explicito. Se deriva a partir del historial reciente.
 
-#### Señales validas
+#### Senales validas
 
 - saldo historico ponderado desfavorable
 - baja frecuencia de mejoras recientes
@@ -1105,29 +1151,17 @@ Reducir drásticamente el espacio de búsqueda sin alterar la evaluación técni
 
 ---
 
-# Decision 45 - Fachada para crear request desde oferta y evaluar formalmente
-
-## TOC
-
-- [45.1 Estado](#451-estado)
-- [45.2 Contexto](#452-contexto)
-- [45.3 Decision](#453-decision)
-- [45.4 Alcance permitido](#454-alcance-permitido)
-- [45.5 Restricciones](#455-restricciones)
-- [45.6 Justificacion](#456-justificacion)
-- [45.7 Consecuencia](#457-consecuencia)
-- [45.8 Decision negativa explicita](#458-decision-negativa-explicita)
-- [45.9 Regla corta](#459-regla-corta)
+### Decision 45 - Fachada para crear request desde oferta y evaluar formalmente
 
 ---
 
-## 45.1 Estado
+#### 45.1 Estado
 
 Aceptada.
 
 ---
 
-## 45.2 Contexto
+#### 45.2 Contexto
 
 El sistema ya permite generar ofertas evaluadas, presentarlas al usuario, seleccionar una oferta y convertirla en una `SwapRequest` formal en estado `PENDIENTE`.
 
@@ -1152,7 +1186,7 @@ OfertaEvaluada
 
 ---
 
-## 45.3 Decision
+#### 45.3 Decision
 
 Se acepta incorporar una fachada de alto nivel denominada conceptualmente:
 
@@ -1171,7 +1205,7 @@ OfertaEvaluada seleccionada
 
 ---
 
-## 45.4 Alcance permitido
+#### 45.4 Alcance permitido
 
 La fachada puede:
 
@@ -1187,7 +1221,7 @@ La fachada puede:
 
 ---
 
-## 45.5 Restricciones
+#### 45.5 Restricciones
 
 La fachada no puede:
 
@@ -1206,7 +1240,7 @@ La fachada no puede:
 
 ---
 
-## 45.6 Justificacion
+#### 45.6 Justificacion
 
 La fachada no se incorpora como optimizacion de benchmark.
 
@@ -1220,7 +1254,7 @@ La mejora esperada es operativa:
 
 ---
 
-## 45.7 Consecuencia
+#### 45.7 Consecuencia
 
 La request creada desde oferta sigue naciendo primero en estado:
 
@@ -1240,7 +1274,7 @@ La informacion de `offer_origin` permanece como snapshot historico observado y n
 
 ---
 
-## 45.8 Decision negativa explicita
+#### 45.8 Decision negativa explicita
 
 No se acepta que una request creada desde oferta nazca directamente como:
 
@@ -1254,25 +1288,25 @@ No se acepta que la fachada apruebe, rechace, cancele o aplique swaps.
 
 ---
 
-## 45.9 Regla corta
+#### 45.9 Regla corta
 
 La fachada automatiza el encadenamiento operativo de crear y evaluar formalmente, pero no automatiza la resolucion ni la aplicacion.
 
 ---
 
-# Decision 46 - La evaluacion formal desde oferta no implica resolucion automatica
+### Decision 46 - La evaluacion formal desde oferta no implica resolucion automatica
 
-## Estado
+#### Estado
 
 Aceptada.
 
-## Contexto
+#### Contexto
 
 Luego de implementar `crear_request_desde_oferta_y_evaluar_formalmente`, el sistema puede crear una `SwapRequest` formal desde una oferta seleccionada y evaluarla mediante `swap_service.evaluar_swap_request`.
 
 El resultado esperado de esa fachada es una request en estado `EVALUADO`.
 
-## Decision
+#### Decision
 
 La evaluacion formal de una request creada desde oferta no implica resolucion automatica.
 
@@ -1285,13 +1319,13 @@ CANCELADO
 APLICADO
 ```
 
-## Justificacion
+#### Justificacion
 
 La evaluacion formal produce informacion tecnica y decision sugerida, pero la resolucion operativa pertenece a una etapa posterior del workflow.
 
 La decision `VIABLE`, `OBSERVAR` o `RECHAZAR` no equivale por si misma a una resolucion final.
 
-## Regla corta
+#### Regla corta
 
 ```text
 EVALUADO no significa APROBADO.
@@ -1301,30 +1335,17 @@ RECHAZAR como decision sugerida no significa RECHAZADO terminal.
 
 ---
 
-# Decision 47 - Resolucion operativa posterior explicita
-
-## TOC
-
-- [47.1 Estado](#471-estado)
-- [47.2 Contexto](#472-contexto)
-- [47.3 Decision](#473-decision)
-- [47.4 Modelo elegido para V1](#474-modelo-elegido-para-v1)
-- [47.5 Alcance permitido](#475-alcance-permitido)
-- [47.6 Restricciones](#476-restricciones)
-- [47.7 Justificacion](#477-justificacion)
-- [47.8 Consecuencias](#478-consecuencias)
-- [47.9 Decision negativa explicita](#479-decision-negativa-explicita)
-- [47.10 Regla corta](#4710-regla-corta)
+### Decision 47 - Resolucion operativa posterior explicita
 
 ---
 
-## 47.1 Estado
+#### 47.1 Estado
 
 Aceptada.
 
 ---
 
-## 47.2 Contexto
+#### 47.2 Contexto
 
 El sistema ya permite crear una `SwapRequest` formal desde una oferta evaluada seleccionada y luego evaluarla formalmente mediante `swap_service.evaluar_swap_request`.
 
@@ -1352,7 +1373,7 @@ Pero esa decision sugerida no constituye una resolucion operativa terminal.
 
 ---
 
-## 47.3 Decision
+#### 47.3 Decision
 
 La resolucion operativa posterior a una `SwapRequest` en estado `EVALUADO` debe ser explicita.
 
@@ -1370,7 +1391,7 @@ La resolucion no debe ser automatica por el solo hecho de existir una `decision_
 
 ---
 
-## 47.4 Modelo elegido para V1
+#### 47.4 Modelo elegido para V1
 
 Para V1 se adopta el modelo simple:
 
@@ -1390,7 +1411,7 @@ La aceptacion bilateral, contrapropuestas y bloqueos multiusuario quedan fuera d
 
 ---
 
-## 47.5 Alcance permitido
+#### 47.5 Alcance permitido
 
 La resolucion operativa puede:
 
@@ -1406,7 +1427,7 @@ La resolucion operativa puede:
 
 ---
 
-## 47.6 Restricciones
+#### 47.6 Restricciones
 
 La resolucion operativa no puede:
 
@@ -1422,7 +1443,7 @@ La resolucion operativa no puede:
 
 ---
 
-## 47.7 Justificacion
+#### 47.7 Justificacion
 
 La evaluacion formal informa, pero no decide terminalmente.
 
@@ -1443,7 +1464,7 @@ La separacion evita automatizar decisiones operativas antes de definir roles, su
 
 ---
 
-## 47.8 Consecuencias
+#### 47.8 Consecuencias
 
 Una `SwapRequest` en estado `EVALUADO` queda lista para resolucion, pero no esta aprobada automaticamente.
 
@@ -1460,7 +1481,7 @@ Pero la transicion a `APROBADO`, `RECHAZADO` o `CANCELADO` requiere accion expli
 
 ---
 
-## 47.9 Decision negativa explicita
+#### 47.9 Decision negativa explicita
 
 No se implementa por ahora:
 
@@ -1484,36 +1505,23 @@ No se implementa todavia workflow bilateral formal.
 
 ---
 
-## 47.10 Regla corta
+#### 47.10 Regla corta
 
 La evaluacion formal informa; la resolucion operativa decide; la aplicacion ejecuta.
 
 ---
 
-# Decision 48 - Aplicacion explicita solo desde APROBADO
-
-## TOC
-
-- [48.1 Estado](#481-estado)
-- [48.2 Contexto](#482-contexto)
-- [48.3 Decision](#483-decision)
-- [48.4 Alcance permitido](#484-alcance-permitido)
-- [48.5 Restricciones](#485-restricciones)
-- [48.6 Cancelacion de requests obsoletos](#486-cancelacion-de-requests-obsoletos)
-- [48.7 Justificacion](#487-justificacion)
-- [48.8 Consecuencias](#488-consecuencias)
-- [48.9 Decision negativa explicita](#489-decision-negativa-explicita)
-- [48.10 Regla corta](#4810-regla-corta)
+### Decision 48 - Aplicacion explicita solo desde APROBADO
 
 ---
 
-## 48.1 Estado
+#### 48.1 Estado
 
 Aceptada.
 
 ---
 
-## 48.2 Contexto
+#### 48.2 Contexto
 
 El workflow formal consolidado de `SwapRequest` es:
 
@@ -1541,7 +1549,7 @@ La aplicacion es la etapa posterior encargada de ejecutar el swap sobre el roste
 
 ---
 
-## 48.3 Decision
+#### 48.3 Decision
 
 La aplicacion de una `SwapRequest` debe ser una accion explicita y solo puede ejecutarse sobre una request en estado:
 
@@ -1559,7 +1567,7 @@ La aplicacion no debe ocurrir automaticamente como consecuencia de evaluar o res
 
 ---
 
-## 48.4 Alcance permitido
+#### 48.4 Alcance permitido
 
 La aplicacion puede:
 
@@ -1575,7 +1583,7 @@ La aplicacion puede:
 
 ---
 
-## 48.5 Restricciones
+#### 48.5 Restricciones
 
 La aplicacion no puede:
 
@@ -1599,7 +1607,7 @@ La aplicacion no puede:
 
 ---
 
-## 48.6 Cancelacion de requests obsoletos
+#### 48.6 Cancelacion de requests obsoletos
 
 Al crear una nueva version de roster, algunas requests asociadas a la version anterior pueden quedar obsoletas.
 
@@ -1630,7 +1638,7 @@ APLICADO
 
 ---
 
-## 48.7 Justificacion
+#### 48.7 Justificacion
 
 La aplicacion es la unica etapa que ejecuta consecuencias estructurales sobre el roster.
 
@@ -1648,7 +1656,7 @@ La separacion evita que una request tecnicamente viable o aprobada produzca camb
 
 ---
 
-## 48.8 Consecuencias
+#### 48.8 Consecuencias
 
 Una request `APROBADO` queda lista para aplicacion, pero no se aplica automaticamente.
 
@@ -1658,7 +1666,7 @@ La aplicacion crea una nueva version de roster y puede provocar obsolescencia de
 
 ---
 
-## 48.9 Decision negativa explicita
+#### 48.9 Decision negativa explicita
 
 No se implementa:
 
@@ -1685,38 +1693,23 @@ La aplicacion sigue siendo una compuerta propia.
 
 ---
 
-## 48.10 Regla corta
+#### 48.10 Regla corta
 
 La aplicacion solo ejecuta requests aprobadas y lo hace sobre una nueva version de roster.
 
 ---
 
-# Decision 49 - Auditoria estructurada minima del workflow formal
-
-## TOC
-
-- [49.1 Estado](#491-estado)
-- [49.2 Contexto](#492-contexto)
-- [49.3 Decision](#493-decision)
-- [49.4 Alcance permitido](#494-alcance-permitido)
-- [49.5 Restricciones](#495-restricciones)
-- [49.6 Diferencia entre history y audit trail](#496-diferencia-entre-history-y-audit-trail)
-- [49.7 Eventos minimos](#497-eventos-minimos)
-- [49.8 Campos minimos sugeridos](#498-campos-minimos-sugeridos)
-- [49.9 Justificacion](#499-justificacion)
-- [49.10 Consecuencias](#4910-consecuencias)
-- [49.11 Decision negativa explicita](#4911-decision-negativa-explicita)
-- [49.12 Regla corta](#4912-regla-corta)
+### Decision 49 - Auditoria estructurada minima del workflow formal
 
 ---
 
-## 49.1 Estado
+#### 49.1 Estado
 
 Aceptada.
 
 ---
 
-## 49.2 Contexto
+#### 49.2 Contexto
 
 El workflow formal de `SwapRequest` quedo consolidado como:
 
@@ -1749,7 +1742,7 @@ El sistema ya conserva `history`, pero se necesita definir un contrato semantico
 
 ---
 
-## 49.3 Decision
+#### 49.3 Decision
 
 Se adopta como proximo eje arquitectonico la auditoria estructurada minima del workflow formal.
 
@@ -1761,7 +1754,7 @@ La auditoria observa y registra lo ocurrido.
 
 ---
 
-## 49.4 Alcance permitido
+#### 49.4 Alcance permitido
 
 La auditoria estructurada puede definir:
 
@@ -1780,7 +1773,7 @@ La auditoria estructurada puede definir:
 
 ---
 
-## 49.5 Restricciones
+#### 49.5 Restricciones
 
 La auditoria estructurada no puede:
 
@@ -1803,7 +1796,7 @@ La auditoria estructurada no puede:
 
 ---
 
-## 49.6 Diferencia entre history y audit trail
+#### 49.6 Diferencia entre history y audit trail
 
 `history` representa trazabilidad existente del request.
 
@@ -1817,7 +1810,7 @@ En V1, `audit trail` puede implementarse sobre `history` si el modelo actual lo 
 
 ---
 
-## 49.7 Eventos minimos
+#### 49.7 Eventos minimos
 
 Eventos minimos recomendados:
 
@@ -1842,7 +1835,7 @@ La cancelacion por obsolescencia se mantiene como evento diferenciado porque no 
 
 ---
 
-## 49.8 Campos minimos sugeridos
+#### 49.8 Campos minimos sugeridos
 
 Campos minimos sugeridos para eventos auditables:
 
@@ -1867,7 +1860,7 @@ La implementacion futura debe definir cuales son requeridos por tipo de evento.
 
 ---
 
-## 49.9 Justificacion
+#### 49.9 Justificacion
 
 El workflow formal ya esta consolidado.
 
@@ -1883,7 +1876,7 @@ Esto permite:
 
 ---
 
-## 49.10 Consecuencias
+#### 49.10 Consecuencias
 
 El workflow no cambia.
 
@@ -1902,7 +1895,7 @@ La auditoria registra hechos del workflow.
 
 ---
 
-## 49.11 Decision negativa explicita
+#### 49.11 Decision negativa explicita
 
 No se implementa en esta decision:
 
@@ -1927,41 +1920,23 @@ No se modifica comportamiento productivo.
 
 ---
 
-## 49.12 Regla corta
+#### 49.12 Regla corta
 
 El workflow cambia estados; la auditoria registra hechos del workflow.
 
 ---
 
-# Decision 50 - Importacion de roster real acotado
-
-## TOC
-
-- [50.1 Estado](#501-estado)
-- [50.2 Contexto](#502-contexto)
-- [50.3 Decision](#503-decision)
-- [50.4 Formato minimo de entrada V1](#504-formato-minimo-de-entrada-v1)
-- [50.5 Interpretacion de celdas](#505-interpretacion-de-celdas)
-- [50.6 Codigos no operativos](#506-codigos-no-operativos)
-- [50.7 Continuidad entre meses](#507-continuidad-entre-meses)
-- [50.8 Supervisores y puestos](#508-supervisores-y-puestos)
-- [50.9 Validaciones de importacion](#509-validaciones-de-importacion)
-- [50.10 Ubicacion de responsabilidades](#5010-ubicacion-de-responsabilidades)
-- [50.11 Salida esperada](#5011-salida-esperada)
-- [50.12 Restricciones](#5012-restricciones)
-- [50.13 Consecuencias](#5013-consecuencias)
-- [50.14 Decision negativa explicita](#5014-decision-negativa-explicita)
-- [50.15 Regla corta](#5015-regla-corta)
+### Decision 50 - Importacion de roster real acotado
 
 ---
 
-## 50.1 Estado
+#### 50.1 Estado
 
 Aceptada.
 
 ---
 
-## 50.2 Contexto
+#### 50.2 Contexto
 
 Luego de consolidar el workflow formal de `SwapRequest`, la auditoria estructurada minima y el blindaje semantico de eventos auditables, el siguiente riesgo arquitectonico relevante es la calidad de entrada del roster real.
 
@@ -1992,7 +1967,7 @@ matriz real de roster
 
 ---
 
-## 50.3 Decision
+#### 50.3 Decision
 
 Se adopta como proximo eje la importacion de roster real acotado.
 
@@ -2006,7 +1981,7 @@ La importacion no aplica cambios sobre requests.
 
 ---
 
-## 50.4 Formato minimo de entrada V1
+#### 50.4 Formato minimo de entrada V1
 
 Para V1 se acepta como formato minimo:
 
@@ -2036,7 +2011,7 @@ La arquitectura queda preparada para que un Excel simple pueda convertirse luego
 
 ---
 
-## 50.5 Interpretacion de celdas
+#### 50.5 Interpretacion de celdas
 
 La interpretacion V1 es:
 
@@ -2057,7 +2032,7 @@ Los codigos no operativos no generan `Asignacion` operativa en V1.
 
 ---
 
-## 50.6 Codigos no operativos
+#### 50.6 Codigos no operativos
 
 Codigos no operativos conocidos pueden incluir, entre otros:
 
@@ -2080,7 +2055,7 @@ No deben contaminar reglas de descanso, secuencias, noches consecutivas o dotaci
 
 ---
 
-## 50.7 Continuidad entre meses
+#### 50.7 Continuidad entre meses
 
 La importacion V1 puede recibir contexto opcional del mes anterior.
 
@@ -2104,7 +2079,7 @@ No se proporciono contexto previo; algunas validaciones intermensuales pueden qu
 
 ---
 
-## 50.8 Supervisores y puestos
+#### 50.8 Supervisores y puestos
 
 El importador V1 no debe inferir supervisores.
 
@@ -2124,7 +2099,7 @@ La regla contextual "primeros N son supervisores" no debe incorporarse como cont
 
 ---
 
-## 50.9 Validaciones de importacion
+#### 50.9 Validaciones de importacion
 
 La importacion debe distinguir errores bloqueantes y warnings.
 
@@ -2168,7 +2143,7 @@ strict = False
 
 ---
 
-## 50.10 Ubicacion de responsabilidades
+#### 50.10 Ubicacion de responsabilidades
 
 La responsabilidad principal debe vivir en una frontera de importacion.
 
@@ -2194,7 +2169,7 @@ Responsabilidades:
 
 ---
 
-## 50.11 Salida esperada
+#### 50.11 Salida esperada
 
 La salida de importacion no debe ser solo `list[Asignacion]`.
 
@@ -2219,7 +2194,7 @@ La creacion de `RosterVersion` debe ser una accion explicita posterior al parseo
 
 ---
 
-## 50.12 Restricciones
+#### 50.12 Restricciones
 
 La importacion no puede:
 
@@ -2241,7 +2216,7 @@ La importacion no puede:
 
 ---
 
-## 50.13 Consecuencias
+#### 50.13 Consecuencias
 
 El sistema queda preparado para usar datos reales acotados sin contaminar el motor tecnico.
 
@@ -2255,7 +2230,7 @@ El importador se convierte en una frontera previa al roster interno.
 
 ---
 
-## 50.14 Decision negativa explicita
+#### 50.14 Decision negativa explicita
 
 No se implementa todavia:
 
@@ -2282,44 +2257,23 @@ No se modifica `engine`, `scoring`, `simulator`, `swap_service` ni `candidate_se
 
 ---
 
-## 50.15 Regla corta
+#### 50.15 Regla corta
 
 El importador normaliza datos reales; no evalua swaps ni decide workflow.
 
 ---
 
-# Decision 51 - Elegibilidad funcional inicial para swaps normales
-
-## TOC
-
-- [51.1 Estado](#511-estado)
-- [51.2 Contexto](#512-contexto)
-- [51.3 Decision](#513-decision)
-- [51.4 Regla general de elegibilidad](#514-regla-general-de-elegibilidad)
-- [51.5 Rol institucional y perfil operativo](#515-rol-institucional-y-perfil-operativo)
-- [51.6 Estado operativo general](#516-estado-operativo-general)
-- [51.7 CMA / psicofisico](#517-cma--psicofisico)
-- [51.8 Override administrativo CMA](#518-override-administrativo-cma)
-- [51.9 Habilitaciones RADAR y TMA](#519-habilitaciones-radar-y-tma)
-- [51.10 Codigos de roster y elegibilidad](#5110-codigos-de-roster-y-elegibilidad)
-- [51.11 Eventos no operativos](#5111-eventos-no-operativos)
-- [51.12 Puestos no definidos en V1](#5112-puestos-no-definidos-en-v1)
-- [51.13 Configuracion por dependencia](#5113-configuracion-por-dependencia)
-- [51.14 Relacion con importador](#5114-relacion-con-importador)
-- [51.15 Relacion con candidate_generation y technical_prefilter](#5115-relacion-con-candidategeneration-y-technicalprefilter)
-- [51.16 Consecuencias](#5116-consecuencias)
-- [51.17 Decision negativa explicita](#5117-decision-negativa-explicita)
-- [51.18 Regla corta](#5118-regla-corta)
+### Decision 51 - Elegibilidad funcional inicial para swaps normales
 
 ---
 
-## 51.1 Estado
+#### 51.1 Estado
 
 Aceptada.
 
 ---
 
-## 51.2 Contexto
+#### 51.2 Contexto
 
 A partir del analisis documental del PR-GOPE-044 y de aclaraciones operativas del ACC Cordoba, se identifica que la elegibilidad para swaps normales no depende solamente del codigo de roster.
 
@@ -2338,7 +2292,7 @@ puesto afectado, si existe
 
 ---
 
-## 51.3 Decision
+#### 51.3 Decision
 
 Se reconoce la elegibilidad funcional para swaps normales como una regla de dominio compuesta.
 
@@ -2354,7 +2308,7 @@ Las reglas mas finas por puesto, habilitacion y dependencia quedan documentadas 
 
 ---
 
-## 51.4 Regla general de elegibilidad
+#### 51.4 Regla general de elegibilidad
 
 Para que una asignacion pueda participar en un swap normal deben cumplirse, conceptualmente, estas condiciones:
 
@@ -2370,7 +2324,7 @@ Si alguna condicion bloqueante falla, la asignacion no debe considerarse elegibl
 
 ---
 
-## 51.5 Rol institucional y perfil operativo
+#### 51.5 Rol institucional y perfil operativo
 
 El rol institucional no debe confundirse con elegibilidad automatica.
 
@@ -2399,7 +2353,7 @@ perfil_operativo_para_swaps
 
 ---
 
-## 51.6 Estado operativo general
+#### 51.6 Estado operativo general
 
 El estado operativo general representa si la persona puede operar en terminos generales.
 
@@ -2415,7 +2369,7 @@ Este estado puede caer por vencimiento del CMA / psicofisico o por override admi
 
 ---
 
-## 51.7 CMA / psicofisico
+#### 51.7 CMA / psicofisico
 
 El vencimiento del CMA / psicofisico afecta directamente el estado operativo general.
 
@@ -2438,7 +2392,7 @@ Queda documentada como dominio futuro para perfil operativo de persona.
 
 ---
 
-## 51.8 Override administrativo CMA
+#### 51.8 Override administrativo CMA
 
 Puede existir un override administrativo sobre la aptitud operativa asociada al CMA / psicofisico.
 
@@ -2465,7 +2419,7 @@ Representa una decision administrativa registrada que afecta el estado operativo
 
 ---
 
-## 51.9 Habilitaciones RADAR y TMA
+#### 51.9 Habilitaciones RADAR y TMA
 
 Para este nivel conceptual inicial, solo se reconocen como habilitaciones relevantes:
 
@@ -2497,7 +2451,7 @@ La compatibilidad por puesto queda fuera de V1 si el roster no define puestos.
 
 ---
 
-## 51.10 Codigos de roster y elegibilidad
+#### 51.10 Codigos de roster y elegibilidad
 
 Para el contexto actual ACC, los codigos operativos activos son:
 
@@ -2528,7 +2482,7 @@ RET -> RTB
 
 ---
 
-## 51.11 Eventos no operativos
+#### 51.11 Eventos no operativos
 
 Los eventos no operativos deben existir fuera de `Asignacion` operativa.
 
@@ -2559,7 +2513,7 @@ evento no operativo -> no elegible para swap normal
 
 ---
 
-## 51.12 Puestos no definidos en V1
+#### 51.12 Puestos no definidos en V1
 
 Si el roster importado no define puestos, el sistema no debe inferirlos.
 
@@ -2576,7 +2530,7 @@ Esto evita falsos rechazos por falta de datos.
 
 ---
 
-## 51.13 Configuracion por dependencia
+#### 51.13 Configuracion por dependencia
 
 La configuracion por dependencia es necesaria para determinar:
 
@@ -2607,7 +2561,7 @@ config
 
 ---
 
-## 51.14 Relacion con importador
+#### 51.14 Relacion con importador
 
 El importador normaliza datos reales.
 
@@ -2635,7 +2589,7 @@ La ausencia de un evento no operativo, por ejemplo `OF` en fin de semana, no imp
 
 ---
 
-## 51.15 Relacion con candidate_generation y technical_prefilter
+#### 51.15 Relacion con candidate_generation y technical_prefilter
 
 `candidate_generation` debe operar solo sobre asignaciones operativas swappeables.
 
@@ -2654,7 +2608,7 @@ No se implementa todavia esta logica.
 
 ---
 
-## 51.16 Consecuencias
+#### 51.16 Consecuencias
 
 La elegibilidad queda reconocida como una frontera de dominio propia.
 
@@ -2676,7 +2630,7 @@ La decision solo documenta el dominio necesario para evitar confundir codigo de 
 
 ---
 
-## 51.17 Decision negativa explicita
+#### 51.17 Decision negativa explicita
 
 No se implementa todavia:
 
@@ -2706,41 +2660,23 @@ No se modifica el workflow formal de `SwapRequest`.
 
 ---
 
-## 51.18 Regla corta
+#### 51.18 Regla corta
 
 El codigo del roster describe el evento; la elegibilidad para swap se determina por persona, aptitud, asignacion y contexto.
 
 ---
 
-# Decision 52 - Configuracion por dependencia y codigos de roster
-
-## TOC
-
-- [52.1 Estado](#521-estado)
-- [52.2 Contexto](#522-contexto)
-- [52.3 Decision](#523-decision)
-- [52.4 Catalogo oficial y configuracion local](#524-catalogo-oficial-y-configuracion-local)
-- [52.5 Categorias de codigos](#525-categorias-de-codigos)
-- [52.6 Configuracion para ACC actual](#526-configuracion-para-acc-actual)
-- [52.7 Dependencias no H24](#527-dependencias-no-h24)
-- [52.8 Normalizaciones](#528-normalizaciones)
-- [52.9 Error y warning de importacion](#529-error-y-warning-de-importacion)
-- [52.10 Separacion de configuracion](#5210-separacion-de-configuracion)
-- [52.11 Relacion con importador](#5211-relacion-con-importador)
-- [52.12 Relacion con elegibilidad](#5212-relacion-con-elegibilidad)
-- [52.13 Consecuencias](#5213-consecuencias)
-- [52.14 Decision negativa explicita](#5214-decision-negativa-explicita)
-- [52.15 Regla corta](#5215-regla-corta)
+### Decision 52 - Configuracion por dependencia y codigos de roster
 
 ---
 
-## 52.1 Estado
+#### 52.1 Estado
 
 Aceptada.
 
 ---
 
-## 52.2 Contexto
+#### 52.2 Contexto
 
 El PR-GOPE-044 define un catalogo de codigos posibles para listas de turno.
 
@@ -2761,7 +2697,7 @@ Por lo tanto, el sistema no debe asumir que todo codigo oficial esta activo o es
 
 ---
 
-## 52.3 Decision
+#### 52.3 Decision
 
 Se introduce conceptualmente una configuracion por dependencia para interpretar codigos de roster.
 
@@ -2785,7 +2721,7 @@ La configuracion por dependencia no reemplaza al `engine`.
 
 ---
 
-## 52.4 Catalogo oficial y configuracion local
+#### 52.4 Catalogo oficial y configuracion local
 
 Se separan dos niveles conceptuales.
 
@@ -2817,11 +2753,11 @@ La dependencia define como se interpretan en su contexto.
 
 ---
 
-## 52.5 Categorias de codigos
+#### 52.5 Categorias de codigos
 
 La configuracion por dependencia debe poder clasificar codigos en categorias conceptuales.
 
-### Operativo activo
+##### Operativo activo
 
 Codigo que genera `Asignacion` operativa en la dependencia actual.
 
@@ -2833,7 +2769,7 @@ B
 C
 ```
 
-### Operativo configurable
+##### Operativo configurable
 
 Codigo oficial que podria generar `Asignacion` operativa si la configuracion lo habilita.
 
@@ -2844,7 +2780,7 @@ D
 X
 ```
 
-### No operativo
+##### No operativo
 
 Codigo que representa licencia, ausencia, capacitacion, comision, gestion, psicofisico, practica o evento no swappeable.
 
@@ -2865,7 +2801,7 @@ TW
 OF
 ```
 
-### Normalizable
+##### Normalizable
 
 Codigo aceptado como entrada, pero convertido al estandar vigente.
 
@@ -2877,7 +2813,7 @@ REM -> RTA
 RET -> RTB
 ```
 
-### Legacy
+##### Legacy
 
 Codigo conocido por historia o uso anterior, pero no estandar vigente.
 
@@ -2888,7 +2824,7 @@ REM
 RET
 ```
 
-### Fuera de alcance de dependencia
+##### Fuera de alcance de dependencia
 
 Codigo oficial o conocido, pero no aplicable a la dependencia actual.
 
@@ -2901,7 +2837,7 @@ AEC
 
 ---
 
-## 52.6 Configuracion para ACC actual
+#### 52.6 Configuracion para ACC actual
 
 Para el contexto actual ACC, la configuracion conceptual es:
 
@@ -2943,7 +2879,7 @@ fuera_de_alcance:
 
 ---
 
-## 52.7 Dependencias no H24
+#### 52.7 Dependencias no H24
 
 Los codigos `AE` y `AEC` no se consideran invalidos globalmente.
 
@@ -2955,7 +2891,7 @@ Por lo tanto, no debe hardcodearse una regla global que rechace siempre `AE` o `
 
 ---
 
-## 52.8 Normalizaciones
+#### 52.8 Normalizaciones
 
 Las normalizaciones vigentes son:
 
@@ -2975,7 +2911,7 @@ No pertenece al workflow formal de `SwapRequest`.
 
 ---
 
-## 52.9 Error y warning de importacion
+#### 52.9 Error y warning de importacion
 
 La configuracion debe permitir distinguir errores bloqueantes y warnings.
 
@@ -3009,7 +2945,7 @@ IN -> warning + normalizacion
 
 ---
 
-## 52.10 Separacion de configuracion
+#### 52.10 Separacion de configuracion
 
 La configuracion debe mantener separadas las responsabilidades.
 
@@ -3047,7 +2983,7 @@ rechazar_fuera_de_alcance
 
 ---
 
-## 52.11 Relacion con importador
+#### 52.11 Relacion con importador
 
 El importador puede usar la configuracion para:
 
@@ -3076,7 +3012,7 @@ llamar simulator
 
 ---
 
-## 52.12 Relacion con elegibilidad
+#### 52.12 Relacion con elegibilidad
 
 La configuracion de codigos es una entrada para la elegibilidad funcional futura.
 
@@ -3101,7 +3037,7 @@ habilitaciones, si corresponde
 
 ---
 
-## 52.13 Consecuencias
+#### 52.13 Consecuencias
 
 El sistema queda preparado para interpretar codigos de roster segun dependencia sin hardcodear ACC Cordoba.
 
@@ -3111,7 +3047,7 @@ Los codigos oficiales quedan separados de su activacion local.
 
 ---
 
-## 52.14 Decision negativa explicita
+#### 52.14 Decision negativa explicita
 
 No se implementa todavia:
 
@@ -3147,42 +3083,23 @@ No se hardcodea ACC Cordoba como caso especial.
 
 ---
 
-## 52.15 Regla corta
+#### 52.15 Regla corta
 
 El codigo existe en el PR; la dependencia define como se interpreta en ese contexto.
 
 ---
 
-# Decision 53 - Perfil operativo de persona
-
-## TOC
-
-- [53.1 Estado](#531-estado)
-- [53.2 Contexto](#532-contexto)
-- [53.3 Decision](#533-decision)
-- [53.4 Rol institucional y perfil operativo](#534-rol-institucional-y-perfil-operativo)
-- [53.5 Universo operativo intercambiable](#535-universo-operativo-intercambiable)
-- [53.6 Estado operativo general](#536-estado-operativo-general)
-- [53.7 CMA / psicofisico](#537-cma--psicofisico)
-- [53.8 Override administrativo CMA](#538-override-administrativo-cma)
-- [53.9 Habilitaciones RADAR y TMA](#539-habilitaciones-radar-y-tma)
-- [53.10 Operatividad general y compatibilidad por puesto](#5310-operatividad-general-y-compatibilidad-por-puesto)
-- [53.11 Relacion con configuracion por dependencia](#5311-relacion-con-configuracion-por-dependencia)
-- [53.12 Relacion con importador](#5312-relacion-con-importador)
-- [53.13 Relacion con elegibilidad funcional](#5313-relacion-con-elegibilidad-funcional)
-- [53.14 Consecuencias](#5314-consecuencias)
-- [53.15 Decision negativa explicita](#5315-decision-negativa-explicita)
-- [53.16 Regla corta](#5316-regla-corta)
+### Decision 53 - Perfil operativo de persona
 
 ---
 
-## 53.1 Estado
+#### 53.1 Estado
 
 Aceptada.
 
 ---
 
-## 53.2 Contexto
+#### 53.2 Contexto
 
 Luego de documentar la elegibilidad funcional inicial y la configuracion por dependencia, queda identificada una frontera de dominio adicional: el perfil operativo de persona.
 
@@ -3192,7 +3109,7 @@ Tambien depende de si la persona puede operar, si pertenece al universo operativ
 
 ---
 
-## 53.3 Decision
+#### 53.3 Decision
 
 Se reconoce conceptualmente el perfil operativo de persona como una frontera de dominio futura.
 
@@ -3212,7 +3129,7 @@ Esta decision no implementa todavia una entidad `PersonaProfile`, tabla, enum ni
 
 ---
 
-## 53.4 Rol institucional y perfil operativo
+#### 53.4 Rol institucional y perfil operativo
 
 El rol institucional describe la funcion o posicion de una persona.
 
@@ -3243,7 +3160,7 @@ Practicante -> aparece como OJT/SIM, no participa en swaps normales.
 
 ---
 
-## 53.5 Universo operativo intercambiable
+#### 53.5 Universo operativo intercambiable
 
 El universo operativo intercambiable representa el conjunto de personas que pueden participar en swaps normales si cumplen las demas condiciones.
 
@@ -3261,7 +3178,7 @@ La ausencia de un evento no operativo, por ejemplo `OF` en un fin de semana, no 
 
 ---
 
-## 53.6 Estado operativo general
+#### 53.6 Estado operativo general
 
 El estado operativo general indica si una persona puede operar en terminos generales.
 
@@ -3282,7 +3199,7 @@ override administrativo CMA negativo
 
 ---
 
-## 53.7 CMA / psicofisico
+#### 53.7 CMA / psicofisico
 
 El CMA / psicofisico afecta directamente el estado operativo general.
 
@@ -3305,7 +3222,7 @@ No se implementa todavia en codigo.
 
 ---
 
-## 53.8 Override administrativo CMA
+#### 53.8 Override administrativo CMA
 
 Puede existir un override administrativo sobre la aptitud operativa asociada al CMA / psicofisico.
 
@@ -3332,7 +3249,7 @@ Representa una decision administrativa registrada que afecta el estado operativo
 
 ---
 
-## 53.9 Habilitaciones RADAR y TMA
+#### 53.9 Habilitaciones RADAR y TMA
 
 Para esta etapa conceptual se reconocen como habilitaciones relevantes:
 
@@ -3354,7 +3271,7 @@ Puede limitar la compatibilidad con determinados puestos o contextos.
 
 ---
 
-## 53.10 Operatividad general y compatibilidad por puesto
+#### 53.10 Operatividad general y compatibilidad por puesto
 
 Se separan dos conceptos:
 
@@ -3395,7 +3312,7 @@ Si el roster no define puestos, en V1 no se aplica filtro TMA.
 
 ---
 
-## 53.11 Relacion con configuracion por dependencia
+#### 53.11 Relacion con configuracion por dependencia
 
 La configuracion por dependencia define el contexto donde se interpreta el perfil operativo.
 
@@ -3415,7 +3332,7 @@ Ambos conceptos son complementarios.
 
 ---
 
-## 53.12 Relacion con importador
+#### 53.12 Relacion con importador
 
 El importador de roster no debe calcular el perfil operativo completo de una persona.
 
@@ -3444,7 +3361,7 @@ Los datos de perfil operativo pertenecen a una frontera futura distinta del rost
 
 ---
 
-## 53.13 Relacion con elegibilidad funcional
+#### 53.13 Relacion con elegibilidad funcional
 
 El perfil operativo de persona es una entrada conceptual para la elegibilidad funcional.
 
@@ -3469,7 +3386,7 @@ No decide workflow.
 
 ---
 
-## 53.14 Consecuencias
+#### 53.14 Consecuencias
 
 Queda documentado que la persona necesita una frontera conceptual propia para determinar disponibilidad operativa.
 
@@ -3489,7 +3406,7 @@ Se prepara el sistema para una futura implementacion controlada de perfil operat
 
 ---
 
-## 53.15 Decision negativa explicita
+#### 53.15 Decision negativa explicita
 
 No se implementa todavia:
 
@@ -3526,6 +3443,6 @@ No se infiere disponibilidad por ausencia de codigo no operativo.
 
 ---
 
-## 53.16 Regla corta
+#### 53.16 Regla corta
 
 El rol describe la funcion; el perfil operativo determina si y donde puede operar.

@@ -1,6 +1,6 @@
 # CHECKPOINTS DEL PROYECTO - SISTEMA SWAPS ATC
 
-Registro activo desde v96. Preparacion de v112; v112 aun no cerrado.
+Registro activo desde v96. Base cerrada confirmada: v113. Revision v114 en curso.
 
 Indice anterior: [v1-v95](docs/hitos/indice_checkpoints_v1_v95.md).
 Historia integra previa: tag `checkpoint-v111-auditoria-documental-integral-v110`.
@@ -4476,5 +4476,65 @@ No se alteran datos operativos ni el workflow formal.
 
 v114 - reparacion de documentos canonicos.
 Definir alcance concreto contra la auditoria antes de editar.
+
+---
+
+## checkpoint-v114-reparacion-estructural-documentos-canonicos
+
+Fecha: 2026-09-10
+
+### Base confirmada
+
+v113 cerrado: commit 3229bb3, tag checkpoint-v113-clasificacion-estructura-documental.
+El archivo activo se recupero desde v113 tras una sustitucion local por el historico.
+Commit, indice y archivo local coincidieron en el objeto Git:
+8ac93473ee6c00d959ece88fe33af3ced749be69.
+La copia sustituida quedo respaldada fuera del repositorio.
+
+### Archivos del alcance
+
+- docs/contexto_sistema.md
+- docs/contratos.md
+- docs/decisiones.md
+- docs/diccionario.md
+- docs/invariantes.md
+- docs/modelo_dominio.md
+- docs/estado_actual.md
+- docs/mapa_documental.yml
+- checkpoints.md
+
+### Reparaciones estructurales
+
+Un titulo principal por documento, indices generales actualizados y jerarquia
+sin saltos. Cierre del fence del contexto y recuperacion de sus titulos.
+Se conservan Decision 53 y Contrato 25, sin agregar secciones funcionales nuevas.
+Se preservan identificadores I, Invariante y CA, sin renumeracion conceptual.
+Controlador 4.4 precede a Turno 4.5; la definicion anterior de Turno se conserva
+como subapartado identificado y con contradiccion explicita pendiente.
+
+### Conservacion y limites
+
+Se verifico conservacion del texto de reglas y definiciones fuera de titulos e
+indices; en modelo se verifico contenido y multiplicidad tras el reordenamiento.
+Las notas editoriales nuevas se identifican separadamente.
+El contexto sigue desactualizado en contenido, con aviso y referencia al estado vigente.
+No se resuelve aqui la contradiccion entrenamiento/Turno ni la referencia futura
+a roster_service de Decision 1. Se registran para conciliacion conceptual.
+No se modifica codigo, configuracion, datos reales, workflow ni elegibilidad.
+
+### Seguimiento y validacion
+
+Estado y mapa distinguen estructura reparada de contenido funcional actualizado.
+El encabezado del registro activo se actualiza; los bloques v96-v113 se conservan.
+En la preparacion: indices con destinos existentes, fences cerrados, identificadores
+preservados y git diff --check sin errores para los seis documentos reparados.
+El mapa mantiene 17 rutas, verificadas localmente en v113; YAML parseado en esta revision.
+No se reejecuto pytest: ultimo resultado registrado, 463 passed sobre v110.
+Pendientes al redactar: comprobacion final local de nueve archivos, commit, tag y push.
+
+### Proximo paso
+
+v115 - actualizacion funcional documental y conciliacion conceptual identificada.
+Revisar evidencia del codigo antes de modificar afirmaciones funcionales.
 
 ---

@@ -9,12 +9,33 @@
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Flujo operativo](#flujo-operativo)
 - [Capas del sistema](#capas-del-sistema)
+  - [src.engine](#srcengine)
+  - [src.swap_service](#srcswap_service)
+  - [src.simulator](#srcsimulator)
+  - [src.scoring](#srcscoring)
+  - [src.models](#srcmodels)
+  - [src.rule_types](#srcrule_types)
 - [Estado actual](#estado-actual)
+  - [Refactor en curso](#refactor-en-curso)
+  - [Problemas identificados](#problemas-identificados)
+  - [Estado de testing](#estado-de-testing)
 - [Reglas de negocio](#reglas-de-negocio)
-- [Principios de diseño](#principios-de-diseno)
+  - [Hard](#hard)
+  - [Soft](#soft)
+- [Principios de diseno](#principios-de-diseno)
 - [Evolucion planificada](#evolucion-planificada)
+  - [Proximo paso](#proximo-paso)
 - [Restricciones](#restricciones)
 - [Forma de trabajo](#forma-de-trabajo)
+
+---
+
+> Revision estructural v114. Este documento conserva afirmaciones antiguas
+> que no describen la base v110-v113, incluidos el refactor inestable,
+> los ~50 tests y roster_service futuro. No usarlas como estado vigente.
+> Consultar [estado_actual.md](estado_actual.md) y la
+> [auditoria v110](hitos/auditoria_documental_v110.md).
+> La actualizacion funcional del contenido queda pendiente para v115.
 
 ---
 
@@ -102,6 +123,8 @@ tests/
 ├── test_versioning.py
 
 
+```
+
 ## Flujo operativo
 
 El flujo de un swap se compone de:
@@ -120,8 +143,8 @@ El flujo de un swap se compone de:
 Referencia formal:
 [Ref: contratos.md #8]
 
-Capas del sistema
-src.engine
+## Capas del sistema
+### src.engine
 
 Responsabilidad:
 
@@ -133,7 +156,7 @@ No debe:
 
 tomar decisiones de negocio
 participar del flujo de swap
-src.swap_service
+### src.swap_service
 
 Responsabilidad:
 
@@ -147,7 +170,7 @@ crear_swap_request
 evaluar_swap_request
 resolver_swap_request
 aplicar_swap_request
-src.simulator
+### src.simulator
 
 Responsabilidad:
 
@@ -160,13 +183,13 @@ No debe:
 persistir
 modificar requests
 tomar decisiones operativas
-src.scoring
+### src.scoring
 
 Responsabilidad:
 
 validación del roster
 cálculo de score
-src.models
+### src.models
 
 Define entidades del dominio:
 
@@ -175,44 +198,44 @@ RosterVersion
 Asignacion
 Controlador
 Turno
-src.rule_types
+### src.rule_types
 
 Define estructuras técnicas:
 
 RuleResult
 Violation
-Estado actual
-Refactor en curso
+## Estado actual
+### Refactor en curso
 
 Separación de capas en progreso:
 
 ✔ swap_service implementado
 ✔ engine parcialmente desacoplado
 ❌ contratos aún inestables
-Problemas identificados
+### Problemas identificados
 inconsistencias entre índices y controladores
 decisiones incorrectas (RECHAZAR vs VIABLE)
 desalineación en parámetros dinámicos (min_horas)
 errores derivados de refactor incompleto
 tests fallando en evaluación de swap
-Estado de testing
+### Estado de testing
 cobertura amplia (~50+ tests)
 estado actual: inestable
 prioridad: estabilización
-Reglas de negocio
-Hard
+## Reglas de negocio
+### Hard
 invalidan el roster
 bloquean aprobación
-Soft
+### Soft
 penalizan score
 permiten comparación entre alternativas
-Principios de diseño
+## Principios de diseno
 preservar integridad operativa
 no violar reglas hard
 minimizar penalización soft
 mantener consistencia del modelo
-Evolucion planificada
-Proximo paso
+## Evolucion planificada
+### Proximo paso
 
 Introducir:
 
@@ -223,12 +246,12 @@ Responsabilidades futuras:
 versionado de roster
 gestión de versiones
 manejo de obsolescencia
-Restricciones
+## Restricciones
 no romper tests existentes
 no introducir hacks
 mantener separación de capas
 evitar acoplamiento entre engine y servicios
-Forma de trabajo
+## Forma de trabajo
 
 El sistema se desarrolla en tres contextos separados:
 
@@ -239,5 +262,3 @@ testing/debug
 Cada contexto tiene responsabilidades definidas y no debe mezclar concerns.
 
 ---
-
-

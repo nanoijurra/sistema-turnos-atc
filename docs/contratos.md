@@ -7,38 +7,12 @@
 - [3. Referencias](#3-referencias)
 - [4. Definiciones](#4-definiciones)
 - [5. Estructura principal](#5-estructura-principal)
-  - [5.1 Capas del sistema](#51-capas-del-sistema)
 - [6. Contratos funcionales](#6-contratos-funcionales)
-  - [6.1 validar_todo](#61-validar_todo)
-  - [6.2 evaluar_swap](#62-evaluar_swap)
-  - [6.3 evaluar_swap_request](#63-evaluar_swap_request)
-  - [6.3.1 resolver_swap_request](#631-resolver_swap_request)
-  - [6.4 aplicar_swap_request](#64-aplicar_swap_request)
-  - [6.5 Contrato de clasificacion y decision](#65-contrato-de-clasificacion-y-decision)
 - [7. Responsabilidades](#7-responsabilidades)
-  - [7.1 Contrato definitivo de src.engine](#71-contrato-definitivo-de-srcengine)
-  - [7.2 Contrato definitivo de src.simulator](#72-contrato-definitivo-de-srcsimulator)
-  - [7.3 Contrato definitivo de src.swap_service](#73-contrato-definitivo-de-srcswap_service)
-  - [7.4 Contrato de ventana operativa](#74-contrato-de-ventana-operativa)
-  - [7.5 Contrato de dependencia entre modulos](#75-contrato-de-dependencia-entre-modulos)
 - [8. Flujo](#8-flujo)
-  - [8.1 Contrato definitivo de evaluacion y decision](#81-contrato-definitivo-de-evaluacion-y-decision)
 - [9. Notas](#9-notas)
-  - [9.1 Nota de evolucion](#91-nota-de-evolucion)
-  - [9.2 Aclaracion sobre indices estructurales](#92-aclaracion-sobre-indices-estructurales)
-  - [9.3 Aclaracion sobre mapeo normal](#93-aclaracion-sobre-mapeo-normal)
-  - [9.4 Diferencia entre obsolescencia y cancelacion](#94-diferencia-entre-obsolescencia-y-cancelacion)
 - [10. Reglas criticas](#10-reglas-criticas)
-  - [10.1 Reglas de consistencia](#101-reglas-de-consistencia)
-  - [10.2 Contrato minimo de salida de evaluar_swap](#102-contrato-minimo-de-salida-de-evaluar_swap)
-  - [10.3 Contrato de mapeo clasificacion tecnica a decision operativa](#103-contrato-de-mapeo-clasificacion-tecnica-a-decision-operativa)
-  - [10.4 Regla de separacion de planos](#104-regla-de-separacion-de-planos)
-  - [10.5 Regla critica de frontera](#105-regla-critica-de-frontera)
 - [11. Trazabilidad](#11-trazabilidad)
-  - [11.1 Contrato de estados de SwapRequest](#111-contrato-de-estados-de-swaprequest)
-  - [11.2 Contratos de consistencia de datos](#112-contratos-de-consistencia-de-datos)
-  - [11.3 Contratos de frontera de simulator](#113-contratos-de-frontera-de-simulator)
-  - [11.4 Contrato consolidado entre simulator y swap_service](#114-contrato-consolidado-entre-simulator-y-swap_service)
 - [12. Contrato de frontera publica de simulator](#12-contrato-de-frontera-publica-de-simulator)
 - [13. Contrato de priorizacion historica de swaps](#13-contrato-de-priorizacion-historica-de-swaps)
 - [14. Contrato de equidad historica avanzada](#14-contrato-de-equidad-historica-avanzada)
@@ -48,6 +22,13 @@
 - [Contrato 18 - Fachada para crear request desde oferta y evaluar formalmente](#contrato-18---fachada-para-crear-request-desde-oferta-y-evaluar-formalmente)
 - [Contrato 19 - Resolucion operativa posterior de SwapRequest evaluada](#contrato-19---resolucion-operativa-posterior-de-swaprequest-evaluada)
 - [Contrato 20 - Aplicacion de SwapRequest aprobada](#contrato-20---aplicacion-de-swaprequest-aprobada)
+- [Contrato 21 - Auditoria estructurada minima del workflow formal](#contrato-21---auditoria-estructurada-minima-del-workflow-formal)
+- [Contrato 22 - Importacion y normalizacion de roster real acotado](#contrato-22---importacion-y-normalizacion-de-roster-real-acotado)
+- [Contrato 23 - Frontera de elegibilidad funcional para swaps normales](#contrato-23---frontera-de-elegibilidad-funcional-para-swaps-normales)
+- [Contrato 24 - Interpretacion configurable de codigos de roster](#contrato-24---interpretacion-configurable-de-codigos-de-roster)
+- [Contrato 25 - Estado operativo general y habilitaciones](#contrato-25---estado-operativo-general-y-habilitaciones)
+
+---
 
 ---
 
@@ -360,7 +341,7 @@ Debe persistir al menos:
 
 👉 Fuente de verdad de decisión
 
-#### Aclaración sobre clasificación técnica ausente
+#### Aclaracion sobre clasificacion tecnica ausente
 
 Si la evaluación técnica no se ejecuta por una restricción operativa:
 
@@ -716,7 +697,7 @@ Las restricciones operativas del flujo pueden forzar una decisión operativa má
 Consecuencia:
 No debe interpretarse que clasificación técnica y decisión operativa son equivalentes.
 
-### 9.4 Diferencia entre obsolescencia y cancelación
+### 9.4 Diferencia entre obsolescencia y cancelacion
 
 - obsolescencia → condición del dominio (pierde vigencia)
 - CANCELADO → estado del workflow que refleja dicha condición
@@ -1197,7 +1178,7 @@ El decaimiento de los eventos historicos se calcula en lectura.
 No debe persistirse como valor fijo en el store.
 
 
-### Señal derivada
+### Senal derivada
 
 La condicion de controlador castigado se deriva a partir del historial reciente y no se persiste como estado propio del sistema.
 
@@ -1565,27 +1546,11 @@ Estas funciones no deben mezclarse.
 
 ---
 
-# Contrato 18 - Fachada para crear request desde oferta y evaluar formalmente
-
-## TOC
-
-- [18.1 Proposito](#181-proposito)
-- [18.2 Contexto](#182-contexto)
-- [18.3 Flujo contractual](#183-flujo-contractual)
-- [18.4 Responsabilidades permitidas](#184-responsabilidades-permitidas)
-- [18.5 Responsabilidades prohibidas](#185-responsabilidades-prohibidas)
-- [18.6 Estado inicial obligatorio](#186-estado-inicial-obligatorio)
-- [18.7 Evaluacion formal](#187-evaluacion-formal)
-- [18.8 Separacion entre evidencia observada y evaluacion formal](#188-separacion-entre-evidencia-observada-y-evaluacion-formal)
-- [18.9 Resultado esperado](#189-resultado-esperado)
-- [18.10 Divergencia entre oferta y evaluacion formal](#1810-divergencia-entre-oferta-y-evaluacion-formal)
-- [18.11 Beneficio esperado](#1811-beneficio-esperado)
-- [18.12 Relacion con otros contratos](#1812-relacion-con-otros-contratos)
-- [18.13 Regla corta](#1813-regla-corta)
+## Contrato 18 - Fachada para crear request desde oferta y evaluar formalmente
 
 ---
 
-## 18.1 Proposito
+### 18.1 Proposito
 
 Definir el contrato arquitectonico de la fachada de alto nivel encargada de crear una `SwapRequest` formal desde una oferta evaluada seleccionada y ejecutar inmediatamente su evaluacion formal mediante `swap_service`.
 
@@ -1597,7 +1562,7 @@ crear_request_desde_oferta_y_evaluar_formalmente
 
 ---
 
-## 18.2 Contexto
+### 18.2 Contexto
 
 El sistema ya permite:
 
@@ -1619,7 +1584,7 @@ swap_service.evaluar_swap_request
 
 ---
 
-## 18.3 Flujo contractual
+### 18.3 Flujo contractual
 
 La fachada debe coordinar el siguiente flujo:
 
@@ -1635,7 +1600,7 @@ OfertaEvaluada seleccionada
 
 ---
 
-## 18.4 Responsabilidades permitidas
+### 18.4 Responsabilidades permitidas
 
 La fachada puede:
 
@@ -1652,7 +1617,7 @@ La fachada puede:
 
 ---
 
-## 18.5 Responsabilidades prohibidas
+### 18.5 Responsabilidades prohibidas
 
 La fachada no puede:
 
@@ -1672,7 +1637,7 @@ La fachada no puede:
 
 ---
 
-## 18.6 Estado inicial obligatorio
+### 18.6 Estado inicial obligatorio
 
 Toda `SwapRequest` creada desde una oferta debe nacer primero en estado:
 
@@ -1694,7 +1659,7 @@ EVALUADO
 
 ---
 
-## 18.7 Evaluacion formal
+### 18.7 Evaluacion formal
 
 La evaluacion formal debe realizarse exclusivamente mediante:
 
@@ -1706,7 +1671,7 @@ La fachada puede invocar esa funcion, pero no puede reemplazarla ni simular su r
 
 ---
 
-## 18.8 Separacion entre evidencia observada y evaluacion formal
+### 18.8 Separacion entre evidencia observada y evaluacion formal
 
 La informacion contenida en `offer_origin` representa evidencia tecnica observada durante la generacion de la oferta.
 
@@ -1723,7 +1688,7 @@ Estos valores pueden coincidir, pero no son semanticamente equivalentes.
 
 ---
 
-## 18.9 Resultado esperado
+### 18.9 Resultado esperado
 
 El resultado exitoso de la fachada es una request formal evaluada, pero no resuelta:
 
@@ -1743,7 +1708,7 @@ APLICADO
 
 ---
 
-## 18.10 Divergencia entre oferta y evaluacion formal
+### 18.10 Divergencia entre oferta y evaluacion formal
 
 Si la clasificacion formal difiere de la clasificacion observada en `offer_origin`, la divergencia debe conservarse como informacion de trazabilidad o advertencia operativa.
 
@@ -1758,7 +1723,7 @@ Esto no implica error automatico. Indica que la evaluacion formal vigente no coi
 
 ---
 
-## 18.11 Beneficio esperado
+### 18.11 Beneficio esperado
 
 El beneficio principal de esta fachada es operativo, no de performance.
 
@@ -1782,7 +1747,7 @@ candidate_generation
 
 ---
 
-## 18.12 Relacion con otros contratos
+### 18.12 Relacion con otros contratos
 
 Este contrato no modifica:
 
@@ -1797,33 +1762,17 @@ Este contrato no modifica:
 
 ---
 
-## 18.13 Regla corta
+### 18.13 Regla corta
 
 La fachada puede crear y evaluar formalmente una request desde oferta, pero no puede resolverla ni aplicarla.
 
 ---
 
-# Contrato 19 - Resolucion operativa posterior de SwapRequest evaluada
-
-## TOC
-
-- [19.1 Proposito](#191-proposito)
-- [19.2 Contexto](#192-contexto)
-- [19.3 Flujo contractual](#193-flujo-contractual)
-- [19.4 Estado de entrada](#194-estado-de-entrada)
-- [19.5 Estados de salida](#195-estados-de-salida)
-- [19.6 Responsabilidades permitidas](#196-responsabilidades-permitidas)
-- [19.7 Responsabilidades prohibidas](#197-responsabilidades-prohibidas)
-- [19.8 Tratamiento de decision_sugerida](#198-tratamiento-de-decisionsugerida)
-- [19.9 Tratamiento de OBSERVAR](#199-tratamiento-de-observar)
-- [19.10 Tratamiento de offer_origin](#1910-tratamiento-de-offerorigin)
-- [19.11 Relacion con aplicacion](#1911-relacion-con-aplicacion)
-- [19.12 Modelo V1 sin workflow bilateral](#1912-modelo-v1-sin-workflow-bilateral)
-- [19.13 Regla corta](#1913-regla-corta)
+## Contrato 19 - Resolucion operativa posterior de SwapRequest evaluada
 
 ---
 
-## 19.1 Proposito
+### 19.1 Proposito
 
 Definir el contrato arquitectonico de la resolucion operativa posterior de una `SwapRequest` que ya fue evaluada formalmente.
 
@@ -1837,7 +1786,7 @@ CANCELADO
 
 ---
 
-## 19.2 Contexto
+### 19.2 Contexto
 
 Una request creada desde oferta o creada manualmente puede pasar por evaluacion formal mediante:
 
@@ -1855,7 +1804,7 @@ La evaluacion formal puede producir una `decision_sugerida`, pero esa decision n
 
 ---
 
-## 19.3 Flujo contractual
+### 19.3 Flujo contractual
 
 El flujo contractual de resolucion es:
 
@@ -1875,7 +1824,7 @@ APROBADO
 
 ---
 
-## 19.4 Estado de entrada
+### 19.4 Estado de entrada
 
 La resolucion operativa solo puede operar sobre una request en estado:
 
@@ -1895,7 +1844,7 @@ APLICADO
 
 ---
 
-## 19.5 Estados de salida
+### 19.5 Estados de salida
 
 La resolucion operativa puede llevar la request a uno de estos estados:
 
@@ -1913,7 +1862,7 @@ APLICADO
 
 ---
 
-## 19.6 Responsabilidades permitidas
+### 19.6 Responsabilidades permitidas
 
 La resolucion operativa puede:
 
@@ -1930,7 +1879,7 @@ La resolucion operativa puede:
 
 ---
 
-## 19.7 Responsabilidades prohibidas
+### 19.7 Responsabilidades prohibidas
 
 La resolucion operativa no puede:
 
@@ -1948,7 +1897,7 @@ La resolucion operativa no puede:
 
 ---
 
-## 19.8 Tratamiento de decision_sugerida
+### 19.8 Tratamiento de decision_sugerida
 
 La `decision_sugerida` orienta la resolucion, pero no la reemplaza.
 
@@ -1964,7 +1913,7 @@ La resolucion debe ser una accion explicita.
 
 ---
 
-## 19.9 Tratamiento de OBSERVAR
+### 19.9 Tratamiento de OBSERVAR
 
 Si la `decision_sugerida` es:
 
@@ -1980,7 +1929,7 @@ En una version futura, `OBSERVAR` podria requerir rol supervisor o validacion ad
 
 ---
 
-## 19.10 Tratamiento de offer_origin
+### 19.10 Tratamiento de offer_origin
 
 Si la request proviene de una oferta, el bloque `offer_origin` debe permanecer como evidencia observada.
 
@@ -1997,7 +1946,7 @@ La resolucion puede consultar esa informacion como trazabilidad, pero no debe co
 
 ---
 
-## 19.11 Relacion con aplicacion
+### 19.11 Relacion con aplicacion
 
 La resolucion no aplica el swap.
 
@@ -2018,7 +1967,7 @@ segun el contrato vigente de aplicacion.
 
 ---
 
-## 19.12 Modelo V1 sin workflow bilateral
+### 19.12 Modelo V1 sin workflow bilateral
 
 Para V1 no se incorpora workflow bilateral formal.
 
@@ -2037,33 +1986,17 @@ La aceptacion bilateral, contrapropuestas y bloqueos multiusuario quedan reserva
 
 ---
 
-## 19.13 Regla corta
+### 19.13 Regla corta
 
 Una request evaluada puede ser resuelta explicitamente, pero no puede resolverse automaticamente ni aplicarse dentro de la misma etapa.
 
 ---
 
-# Contrato 20 - Aplicacion de SwapRequest aprobada
-
-## TOC
-
-- [20.1 Proposito](#201-proposito)
-- [20.2 Contexto](#202-contexto)
-- [20.3 Flujo contractual](#203-flujo-contractual)
-- [20.4 Estado de entrada](#204-estado-de-entrada)
-- [20.5 Estados de entrada prohibidos](#205-estados-de-entrada-prohibidos)
-- [20.6 Estado de salida](#206-estado-de-salida)
-- [20.7 Responsabilidades permitidas](#207-responsabilidades-permitidas)
-- [20.8 Responsabilidades prohibidas](#208-responsabilidades-prohibidas)
-- [20.9 Versionado de roster](#209-versionado-de-roster)
-- [20.10 Cancelacion de obsoletos](#2010-cancelacion-de-obsoletos)
-- [20.11 Relacion con oferta evaluada](#2011-relacion-con-oferta-evaluada)
-- [20.12 Relacion con evaluacion y resolucion](#2012-relacion-con-evaluacion-y-resolucion)
-- [20.13 Regla corta](#2013-regla-corta)
+## Contrato 20 - Aplicacion de SwapRequest aprobada
 
 ---
 
-## 20.1 Proposito
+### 20.1 Proposito
 
 Definir el contrato arquitectonico de aplicacion de una `SwapRequest` aprobada.
 
@@ -2071,7 +2004,7 @@ La aplicacion es la etapa que ejecuta el swap sobre el roster y crea una nueva v
 
 ---
 
-## 20.2 Contexto
+### 20.2 Contexto
 
 El workflow formal de una `SwapRequest` separa:
 
@@ -2089,7 +2022,7 @@ APROBADO
 
 ---
 
-## 20.3 Flujo contractual
+### 20.3 Flujo contractual
 
 El flujo contractual de aplicacion es:
 
@@ -2103,7 +2036,7 @@ SwapRequest APROBADO
 
 ---
 
-## 20.4 Estado de entrada
+### 20.4 Estado de entrada
 
 La aplicacion solo puede operar sobre una request en estado:
 
@@ -2113,7 +2046,7 @@ APROBADO
 
 ---
 
-## 20.5 Estados de entrada prohibidos
+### 20.5 Estados de entrada prohibidos
 
 La aplicacion no puede operar sobre requests en estado:
 
@@ -2127,7 +2060,7 @@ APLICADO
 
 ---
 
-## 20.6 Estado de salida
+### 20.6 Estado de salida
 
 El estado esperado luego de una aplicacion exitosa es:
 
@@ -2137,7 +2070,7 @@ APLICADO
 
 ---
 
-## 20.7 Responsabilidades permitidas
+### 20.7 Responsabilidades permitidas
 
 `aplicar_swap_request` puede:
 
@@ -2154,7 +2087,7 @@ APLICADO
 
 ---
 
-## 20.8 Responsabilidades prohibidas
+### 20.8 Responsabilidades prohibidas
 
 `aplicar_swap_request` no puede:
 
@@ -2176,7 +2109,7 @@ APLICADO
 
 ---
 
-## 20.9 Versionado de roster
+### 20.9 Versionado de roster
 
 La aplicacion debe crear una nueva version de roster.
 
@@ -2188,7 +2121,7 @@ La request aplicada debe quedar asociada a la trazabilidad de la version sobre l
 
 ---
 
-## 20.10 Cancelacion de obsoletos
+### 20.10 Cancelacion de obsoletos
 
 Cuando una aplicacion crea una nueva version de roster, otras requests asociadas a la version anterior pueden quedar obsoletas.
 
@@ -2221,7 +2154,7 @@ APLICADO
 
 ---
 
-## 20.11 Relacion con oferta evaluada
+### 20.11 Relacion con oferta evaluada
 
 Si la request aplicada proviene de una oferta, `offer_origin` debe permanecer inmutable.
 
@@ -2239,7 +2172,7 @@ La oferta no se aplica. Se aplica la `SwapRequest` formal aprobada.
 
 ---
 
-## 20.12 Relacion con evaluacion y resolucion
+### 20.12 Relacion con evaluacion y resolucion
 
 La aplicacion no reemplaza evaluacion formal ni resolucion operativa.
 
@@ -2255,32 +2188,17 @@ La aplicacion presupone que la request ya fue evaluada y aprobada por el flujo c
 
 ---
 
-## 20.13 Regla corta
+### 20.13 Regla corta
 
 Solo se aplica una `SwapRequest` aprobada; aplicar ejecuta sobre roster y no decide.
 
 ---
 
-# Contrato 21 - Auditoria estructurada minima del workflow formal
-
-## TOC
-
-- [21.1 Proposito](#211-proposito)
-- [21.2 Contexto](#212-contexto)
-- [21.3 Principio contractual](#213-principio-contractual)
-- [21.4 Eventos auditables minimos](#214-eventos-auditables-minimos)
-- [21.5 Campos base de evento auditable](#215-campos-base-de-evento-auditable)
-- [21.6 Responsabilidades permitidas](#216-responsabilidades-permitidas)
-- [21.7 Responsabilidades prohibidas](#217-responsabilidades-prohibidas)
-- [21.8 Actor registrado no equivale a permiso](#218-actor-registrado-no-equivale-a-permiso)
-- [21.9 Motivos diferenciados](#219-motivos-diferenciados)
-- [21.10 Relacion con history](#2110-relacion-con-history)
-- [21.11 Relacion con workflow formal](#2111-relacion-con-workflow-formal)
-- [21.12 Regla corta](#2112-regla-corta)
+## Contrato 21 - Auditoria estructurada minima del workflow formal
 
 ---
 
-## 21.1 Proposito
+### 21.1 Proposito
 
 Definir el contrato arquitectonico de auditoria estructurada minima para el workflow formal de `SwapRequest`.
 
@@ -2288,7 +2206,7 @@ La auditoria estructurada registra hechos relevantes del workflow de manera cons
 
 ---
 
-## 21.2 Contexto
+### 21.2 Contexto
 
 El workflow formal vigente es:
 
@@ -2306,7 +2224,7 @@ Cada etapa produce hechos relevantes que deben poder auditarse sin modificar la 
 
 ---
 
-## 21.3 Principio contractual
+### 21.3 Principio contractual
 
 La auditoria estructurada no gobierna el workflow.
 
@@ -2319,7 +2237,7 @@ La auditoria registra hechos del workflow.
 
 ---
 
-## 21.4 Eventos auditables minimos
+### 21.4 Eventos auditables minimos
 
 Los eventos auditables minimos son:
 
@@ -2344,7 +2262,7 @@ El evento `REQUEST_CANCELADA_POR_OBSOLESCENCIA` debe mantenerse separado para no
 
 ---
 
-## 21.5 Campos base de evento auditable
+### 21.5 Campos base de evento auditable
 
 Un evento auditable puede contener:
 
@@ -2369,7 +2287,7 @@ La implementacion futura debe definir validaciones especificas por evento.
 
 ---
 
-## 21.6 Responsabilidades permitidas
+### 21.6 Responsabilidades permitidas
 
 La auditoria estructurada puede:
 
@@ -2386,7 +2304,7 @@ La auditoria estructurada puede:
 
 ---
 
-## 21.7 Responsabilidades prohibidas
+### 21.7 Responsabilidades prohibidas
 
 La auditoria estructurada no puede:
 
@@ -2408,7 +2326,7 @@ La auditoria estructurada no puede:
 
 ---
 
-## 21.8 Actor registrado no equivale a permiso
+### 21.8 Actor registrado no equivale a permiso
 
 El campo `actor` representa quien o que fue registrado como ejecutor u origen del evento.
 
@@ -2434,7 +2352,7 @@ La autorizacion formal, si se implementa en el futuro, debe definirse en un cont
 
 ---
 
-## 21.9 Motivos diferenciados
+### 21.9 Motivos diferenciados
 
 Los motivos deben mantenerse semanticamente separados.
 
@@ -2453,7 +2371,7 @@ La auditoria estructurada debe permitir distinguir el motivo asociado al evento 
 
 ---
 
-## 21.10 Relacion con history
+### 21.10 Relacion con history
 
 `history` puede seguir existiendo como trazabilidad historica del request.
 
@@ -2463,7 +2381,7 @@ No se exige en esta etapa una nueva tabla ni un refactor de persistencia.
 
 ---
 
-## 21.11 Relacion con workflow formal
+### 21.11 Relacion con workflow formal
 
 La auditoria debe acompañar las transiciones del workflow, no reemplazarlas.
 
@@ -2484,33 +2402,17 @@ Pero la existencia de un evento no debe ser usada como sustituto del estado form
 
 ---
 
-## 21.12 Regla corta
+### 21.12 Regla corta
 
 La auditoria conserva hechos; no decide transiciones.
 
 ---
 
-# Contrato 22 - Importacion y normalizacion de roster real acotado
-
-## TOC
-
-- [22.1 Proposito](#221-proposito)
-- [22.2 Contexto](#222-contexto)
-- [22.3 Entrada soportada V1](#223-entrada-soportada-v1)
-- [22.4 Interpretacion de codigos](#224-interpretacion-de-codigos)
-- [22.5 Salida contractual](#225-salida-contractual)
-- [22.6 Responsabilidades permitidas](#226-responsabilidades-permitidas)
-- [22.7 Responsabilidades prohibidas](#227-responsabilidades-prohibidas)
-- [22.8 Validaciones estructurales](#228-validaciones-estructurales)
-- [22.9 Eventos no operativos](#229-eventos-no-operativos)
-- [22.10 Contexto intermensual](#2210-contexto-intermensual)
-- [22.11 Relacion con roster_store](#2211-relacion-con-rosterstore)
-- [22.12 Relacion con engine y workflow](#2212-relacion-con-engine-y-workflow)
-- [22.13 Regla corta](#2213-regla-corta)
+## Contrato 22 - Importacion y normalizacion de roster real acotado
 
 ---
 
-## 22.1 Proposito
+### 22.1 Proposito
 
 Definir el contrato arquitectonico de importacion y normalizacion de roster real acotado.
 
@@ -2518,7 +2420,7 @@ La importacion convierte una matriz mensual simple en datos internos confiables 
 
 ---
 
-## 22.2 Contexto
+### 22.2 Contexto
 
 El sistema opera internamente con asignaciones y versiones de roster.
 
@@ -2535,7 +2437,7 @@ sin alterar el workflow formal de `SwapRequest`.
 
 ---
 
-## 22.3 Entrada soportada V1
+### 22.3 Entrada soportada V1
 
 La entrada soportada en V1 es:
 
@@ -2563,7 +2465,7 @@ Reglas:
 
 ---
 
-## 22.4 Interpretacion de codigos
+### 22.4 Interpretacion de codigos
 
 La interpretacion contractual es:
 
@@ -2580,7 +2482,7 @@ El importador no debe interpretar codigos no operativos como turnos operativos.
 
 ---
 
-## 22.5 Salida contractual
+### 22.5 Salida contractual
 
 La salida conceptual debe ser:
 
@@ -2603,7 +2505,7 @@ roster_version
 
 ---
 
-## 22.6 Responsabilidades permitidas
+### 22.6 Responsabilidades permitidas
 
 El importador puede:
 
@@ -2622,7 +2524,7 @@ El importador puede:
 
 ---
 
-## 22.7 Responsabilidades prohibidas
+### 22.7 Responsabilidades prohibidas
 
 El importador no puede:
 
@@ -2646,7 +2548,7 @@ El importador no puede:
 
 ---
 
-## 22.8 Validaciones estructurales
+### 22.8 Validaciones estructurales
 
 Errores bloqueantes recomendados:
 
@@ -2676,7 +2578,7 @@ supervisores no definidos
 
 ---
 
-## 22.9 Eventos no operativos
+### 22.9 Eventos no operativos
 
 Los codigos no operativos conocidos deben quedar fuera del motor tecnico en V1.
 
@@ -2699,7 +2601,7 @@ No deben generar `Asignacion` operativa.
 
 ---
 
-## 22.10 Contexto intermensual
+### 22.10 Contexto intermensual
 
 El importador puede recibir contexto previo opcional:
 
@@ -2717,7 +2619,7 @@ Si falta contexto previo, el importador puede emitir warning.
 
 ---
 
-## 22.11 Relacion con roster_store
+### 22.11 Relacion con roster_store
 
 `roster_store` persiste y versiona rosters.
 
@@ -2727,7 +2629,7 @@ La creacion de una `RosterVersion` desde una importacion debe ser una accion exp
 
 ---
 
-## 22.12 Relacion con engine y workflow
+### 22.12 Relacion con engine y workflow
 
 La importacion no reemplaza al `engine`.
 
@@ -2748,36 +2650,17 @@ PENDIENTE
 
 ---
 
-## 22.13 Regla corta
+### 22.13 Regla corta
 
 Importar roster convierte datos reales en asignaciones internas; no evalua, no decide y no aplica.
 
 ---
 
-# Contrato 23 - Frontera de elegibilidad funcional para swaps normales
-
-## TOC
-
-- [23.1 Proposito](#231-proposito)
-- [23.2 Contexto](#232-contexto)
-- [23.3 Principio contractual](#233-principio-contractual)
-- [23.4 Condiciones conceptuales de elegibilidad](#234-condiciones-conceptuales-de-elegibilidad)
-- [23.5 Persona operativa general](#235-persona-operativa-general)
-- [23.6 CMA / psicofisico](#236-cma--psicofisico)
-- [23.7 Override administrativo](#237-override-administrativo)
-- [23.8 Habilitaciones RADAR y TMA](#238-habilitaciones-radar-y-tma)
-- [23.9 Codigos operativos y no operativos](#239-codigos-operativos-y-no-operativos)
-- [23.10 Eventos no operativos](#2310-eventos-no-operativos)
-- [23.11 Puestos no definidos](#2311-puestos-no-definidos)
-- [23.12 Responsabilidades permitidas del importador](#2312-responsabilidades-permitidas-del-importador)
-- [23.13 Responsabilidades prohibidas del importador](#2313-responsabilidades-prohibidas-del-importador)
-- [23.14 Relacion con candidate_generation](#2314-relacion-con-candidategeneration)
-- [23.15 Relacion futura con technical_prefilter](#2315-relacion-futura-con-technicalprefilter)
-- [23.16 Regla corta](#2316-regla-corta)
+## Contrato 23 - Frontera de elegibilidad funcional para swaps normales
 
 ---
 
-## 23.1 Proposito
+### 23.1 Proposito
 
 Definir la frontera conceptual de elegibilidad funcional para swaps normales.
 
@@ -2785,7 +2668,7 @@ El contrato evita confundir codigo de roster con elegibilidad automatica.
 
 ---
 
-## 23.2 Contexto
+### 23.2 Contexto
 
 El sistema importa rosters reales y genera asignaciones operativas internas.
 
@@ -2803,7 +2686,7 @@ puesto afectado, si existe
 
 ---
 
-## 23.3 Principio contractual
+### 23.3 Principio contractual
 
 El codigo del roster no alcanza para determinar elegibilidad.
 
@@ -2815,7 +2698,7 @@ persona + asignacion + contexto
 
 ---
 
-## 23.4 Condiciones conceptuales de elegibilidad
+### 23.4 Condiciones conceptuales de elegibilidad
 
 Para que una asignacion pueda participar en un swap normal, conceptualmente deben cumplirse:
 
@@ -2829,7 +2712,7 @@ puesto compatible si el puesto esta definido
 
 ---
 
-## 23.5 Persona operativa general
+### 23.5 Persona operativa general
 
 Una persona con:
 
@@ -2843,7 +2726,7 @@ Esto bloquea cualquier asignacion operativa, incluso si el roster muestra `A`, `
 
 ---
 
-## 23.6 CMA / psicofisico
+### 23.6 CMA / psicofisico
 
 El CMA / psicofisico afecta el estado operativo general.
 
@@ -2860,7 +2743,7 @@ No se implementa en este contrato.
 
 ---
 
-## 23.7 Override administrativo
+### 23.7 Override administrativo
 
 El override administrativo puede afectar la aptitud operativa.
 
@@ -2883,7 +2766,7 @@ Sin esos datos, el override no debe considerarse trazable.
 
 ---
 
-## 23.8 Habilitaciones RADAR y TMA
+### 23.8 Habilitaciones RADAR y TMA
 
 Las habilitaciones reconocidas conceptualmente en esta etapa son:
 
@@ -2900,7 +2783,7 @@ Si el puesto no esta definido, la compatibilidad TMA queda fuera de V1.
 
 ---
 
-## 23.9 Codigos operativos y no operativos
+### 23.9 Codigos operativos y no operativos
 
 Codigos operativos activos para el contexto actual:
 
@@ -2931,7 +2814,7 @@ Su aplicacion futura debe depender de configuracion por dependencia.
 
 ---
 
-## 23.10 Eventos no operativos
+### 23.10 Eventos no operativos
 
 Los eventos no operativos deben conservarse fuera de `Asignacion` operativa.
 
@@ -2956,7 +2839,7 @@ Estos eventos pueden conservarse para trazabilidad, pero no generan swaps normal
 
 ---
 
-## 23.11 Puestos no definidos
+### 23.11 Puestos no definidos
 
 Si el roster no define puestos, el sistema no debe inferirlos.
 
@@ -2970,7 +2853,7 @@ La elegibilidad por puesto queda reservada para V2.
 
 ---
 
-## 23.12 Responsabilidades permitidas del importador
+### 23.12 Responsabilidades permitidas del importador
 
 El importador puede:
 
@@ -2986,7 +2869,7 @@ preservar trazabilidad de eventos no operativos
 
 ---
 
-## 23.13 Responsabilidades prohibidas del importador
+### 23.13 Responsabilidades prohibidas del importador
 
 El importador no puede:
 
@@ -3007,7 +2890,7 @@ aplicar requests
 
 ---
 
-## 23.14 Relacion con candidate_generation
+### 23.14 Relacion con candidate_generation
 
 `candidate_generation` solo debe generar candidatos desde asignaciones operativas swappeables.
 
@@ -3015,7 +2898,7 @@ No debe generar candidatos sobre eventos no operativos.
 
 ---
 
-## 23.15 Relacion futura con technical_prefilter
+### 23.15 Relacion futura con technical_prefilter
 
 `technical_prefilter` se reconoce como posible frontera futura para evaluar:
 
@@ -3031,41 +2914,23 @@ Esta logica no se implementa todavia.
 
 ---
 
-## 23.16 Regla corta
+### 23.16 Regla corta
 
 Solo una persona operativa, con asignacion operativa y contexto compatible, puede participar en swaps normales.
 
 ---
 
-# Contrato 24 - Interpretacion configurable de codigos de roster
-
-## TOC
-
-- [24.1 Proposito](#241-proposito)
-- [24.2 Contexto](#242-contexto)
-- [24.3 Principio contractual](#243-principio-contractual)
-- [24.4 Catalogo oficial](#244-catalogo-oficial)
-- [24.5 Configuracion de dependencia](#245-configuracion-de-dependencia)
-- [24.6 Categorias de codigos](#246-categorias-de-codigos)
-- [24.7 Configuracion conceptual ACC](#247-configuracion-conceptual-acc)
-- [24.8 Normalizaciones](#248-normalizaciones)
-- [24.9 Codigos fuera de alcance](#249-codigos-fuera-de-alcance)
-- [24.10 Politica de errores y warnings](#2410-politica-de-errores-y-warnings)
-- [24.11 Responsabilidades permitidas](#2411-responsabilidades-permitidas)
-- [24.12 Responsabilidades prohibidas](#2412-responsabilidades-prohibidas)
-- [24.13 Relacion con engine](#2413-relacion-con-engine)
-- [24.14 Relacion con elegibilidad](#2414-relacion-con-elegibilidad)
-- [24.15 Regla corta](#2415-regla-corta)
+## Contrato 24 - Interpretacion configurable de codigos de roster
 
 ---
 
-## 24.1 Proposito
+### 24.1 Proposito
 
 Definir el contrato conceptual para interpretar codigos de roster mediante configuracion por dependencia.
 
 ---
 
-## 24.2 Contexto
+### 24.2 Contexto
 
 El PR-GOPE-044 define codigos oficiales o documentales para listas de turno.
 
@@ -3085,7 +2950,7 @@ codigo fuera de alcance
 
 ---
 
-## 24.3 Principio contractual
+### 24.3 Principio contractual
 
 El catalogo oficial no implica activacion local.
 
@@ -3093,7 +2958,7 @@ Un codigo puede existir documentalmente y, aun asi, estar desactivado o fuera de
 
 ---
 
-## 24.4 Catalogo oficial
+### 24.4 Catalogo oficial
 
 El catalogo oficial representa codigos conocidos o documentados.
 
@@ -3128,7 +2993,7 @@ Este catalogo no decide por si solo si el codigo genera una `Asignacion` operati
 
 ---
 
-## 24.5 Configuracion de dependencia
+### 24.5 Configuracion de dependencia
 
 La configuracion de dependencia define como interpretar codigos en un contexto operativo determinado.
 
@@ -3148,7 +3013,7 @@ politica strict
 
 ---
 
-## 24.6 Categorias de codigos
+### 24.6 Categorias de codigos
 
 Las categorias conceptuales son:
 
@@ -3168,7 +3033,7 @@ Los codigos `NO_OPERATIVO` deben conservarse como eventos no operativos o datos 
 
 ---
 
-## 24.7 Configuracion conceptual ACC
+### 24.7 Configuracion conceptual ACC
 
 Para el contexto actual ACC:
 
@@ -3212,7 +3077,7 @@ No implica implementacion inmediata.
 
 ---
 
-## 24.8 Normalizaciones
+### 24.8 Normalizaciones
 
 Las normalizaciones vigentes son:
 
@@ -3228,7 +3093,7 @@ La normalizacion no debe ocurrir silenciosamente si afecta trazabilidad.
 
 ---
 
-## 24.9 Codigos fuera de alcance
+### 24.9 Codigos fuera de alcance
 
 Un codigo fuera de alcance no es necesariamente invalido en todo el sistema.
 
@@ -3243,7 +3108,7 @@ Estos codigos quedan fuera de alcance para ACC actual, pero podrian aplicar a de
 
 ---
 
-## 24.10 Politica de errores y warnings
+### 24.10 Politica de errores y warnings
 
 Errores bloqueantes recomendados:
 
@@ -3268,7 +3133,7 @@ La politica exacta debe depender de la configuracion de importacion.
 
 ---
 
-## 24.11 Responsabilidades permitidas
+### 24.11 Responsabilidades permitidas
 
 La configuracion de codigos puede ser usada para:
 
@@ -3284,7 +3149,7 @@ determinar si un codigo queda como evento no operativo
 
 ---
 
-## 24.12 Responsabilidades prohibidas
+### 24.12 Responsabilidades prohibidas
 
 La configuracion de codigos no puede:
 
@@ -3303,7 +3168,7 @@ reemplazar reglas tecnicas del engine
 
 ---
 
-## 24.13 Relacion con engine
+### 24.13 Relacion con engine
 
 El `engine` valida reglas tecnicas.
 
@@ -3323,7 +3188,7 @@ validacion tecnica de descanso, secuencias o noches
 
 ---
 
-## 24.14 Relacion con elegibilidad
+### 24.14 Relacion con elegibilidad
 
 La configuracion de codigos es una condicion previa para elegibilidad funcional.
 
@@ -3346,35 +3211,17 @@ o si el puesto definido exige una habilitacion que la persona no tiene.
 
 ---
 
-## 24.15 Regla corta
+### 24.15 Regla corta
 
 El catalogo dice que codigos existen; la configuracion dice que codigos aplican.
 
 ---
 
-# Contrato 25 - Estado operativo general y habilitaciones
-
-## TOC
-
-- [25.1 Proposito](#251-proposito)
-- [25.2 Contexto](#252-contexto)
-- [25.3 Principio contractual](#253-principio-contractual)
-- [25.4 Perfil operativo de persona](#254-perfil-operativo-de-persona)
-- [25.5 Estado operativo general](#255-estado-operativo-general)
-- [25.6 CMA / psicofisico](#256-cma--psicofisico)
-- [25.7 Override administrativo CMA](#257-override-administrativo-cma)
-- [25.8 Habilitaciones reconocidas](#258-habilitaciones-reconocidas)
-- [25.9 Compatibilidad por puesto](#259-compatibilidad-por-puesto)
-- [25.10 Puesto no definido](#2510-puesto-no-definido)
-- [25.11 Responsabilidades permitidas futuras](#2511-responsabilidades-permitidas-futuras)
-- [25.12 Responsabilidades prohibidas actuales](#2512-responsabilidades-prohibidas-actuales)
-- [25.13 Relacion con importacion](#2513-relacion-con-importacion)
-- [25.14 Relacion con technical_prefilter](#2514-relacion-con-technicalprefilter)
-- [25.15 Regla corta](#2515-regla-corta)
+## Contrato 25 - Estado operativo general y habilitaciones
 
 ---
 
-## 25.1 Proposito
+### 25.1 Proposito
 
 Definir el contrato conceptual del estado operativo general y las habilitaciones como parte del perfil operativo de persona.
 
@@ -3382,7 +3229,7 @@ Este contrato no implica implementacion inmediata.
 
 ---
 
-## 25.2 Contexto
+### 25.2 Contexto
 
 La elegibilidad para swaps normales requiere conocer si la persona puede operar en terminos generales y si posee habilitaciones compatibles con el contexto o puesto afectado.
 
@@ -3390,7 +3237,7 @@ El codigo de roster no alcanza para responder esto.
 
 ---
 
-## 25.3 Principio contractual
+### 25.3 Principio contractual
 
 El perfil operativo de persona determina si una persona puede operar y, cuando corresponda, donde puede operar.
 
@@ -3402,7 +3249,7 @@ No reemplaza al `simulator`.
 
 ---
 
-## 25.4 Perfil operativo de persona
+### 25.4 Perfil operativo de persona
 
 Conceptualmente, el perfil operativo de persona puede incluir:
 
@@ -3422,7 +3269,7 @@ Este contrato no obliga todavia a crear una clase, tabla o dataclass.
 
 ---
 
-## 25.5 Estado operativo general
+### 25.5 Estado operativo general
 
 El estado operativo general indica si una persona puede operar en terminos generales.
 
@@ -3437,7 +3284,7 @@ Esto bloquea cualquier asignacion operativa de esa persona para swaps normales.
 
 ---
 
-## 25.6 CMA / psicofisico
+### 25.6 CMA / psicofisico
 
 El vencimiento del CMA / psicofisico hace caer el estado operativo general.
 
@@ -3454,7 +3301,7 @@ No se implementa todavia.
 
 ---
 
-## 25.7 Override administrativo CMA
+### 25.7 Override administrativo CMA
 
 El override administrativo puede bloquear la operatividad general aunque el CMA se encuentre dentro de fecha.
 
@@ -3477,7 +3324,7 @@ No debe existir override valido sin trazabilidad minima.
 
 ---
 
-## 25.8 Habilitaciones reconocidas
+### 25.8 Habilitaciones reconocidas
 
 Las habilitaciones reconocidas conceptualmente en esta etapa son:
 
@@ -3499,7 +3346,7 @@ No necesariamente bloquean la operatividad general completa.
 
 ---
 
-## 25.9 Compatibilidad por puesto
+### 25.9 Compatibilidad por puesto
 
 La compatibilidad por puesto evalua si una persona puede cubrir un puesto determinado segun sus habilitaciones.
 
@@ -3521,7 +3368,7 @@ La persona puede seguir operativa para otros puestos compatibles.
 
 ---
 
-## 25.10 Puesto no definido
+### 25.10 Puesto no definido
 
 Si el roster no define puestos, el sistema no debe inferirlos.
 
@@ -3535,7 +3382,7 @@ La compatibilidad por puesto queda reservada para V2.
 
 ---
 
-## 25.11 Responsabilidades permitidas futuras
+### 25.11 Responsabilidades permitidas futuras
 
 Una futura capa de perfil operativo podria:
 
@@ -3550,7 +3397,7 @@ proveer datos a elegibilidad funcional
 
 ---
 
-## 25.12 Responsabilidades prohibidas actuales
+### 25.12 Responsabilidades prohibidas actuales
 
 En la etapa actual, este contrato no habilita:
 
@@ -3569,7 +3416,7 @@ modificar swap_service
 
 ---
 
-## 25.13 Relacion con importacion
+### 25.13 Relacion con importacion
 
 El importador de roster no calcula el estado operativo general.
 
@@ -3581,7 +3428,7 @@ El importador normaliza el roster mensual y separa asignaciones operativas de ev
 
 ---
 
-## 25.14 Relacion con technical_prefilter
+### 25.14 Relacion con technical_prefilter
 
 `technical_prefilter` queda reconocido como posible frontera futura para usar el perfil operativo de persona.
 
@@ -3598,6 +3445,6 @@ No se implementa esta logica todavia.
 
 ---
 
-## 25.15 Regla corta
+### 25.15 Regla corta
 
 La aptitud general define si la persona puede operar; las habilitaciones definen donde puede operar.
