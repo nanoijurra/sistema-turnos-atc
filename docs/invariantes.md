@@ -53,6 +53,10 @@
   - [Invariante CA-4 - El entrypoint calendar-aware no decide swaps](#invariante-ca-4---el-entrypoint-calendar-aware-no-decide-swaps)
   - [Invariante CA-5 - El workflow formal no cambia](#invariante-ca-5---el-workflow-formal-no-cambia)
   - [Invariante CA-6 - La integracion al motor general requiere decision explicita](#invariante-ca-6---la-integracion-al-motor-general-requiere-decision-explicita)
+  - [Invariante CA-7 - Reporte diagnostico no equivale a aprobacion](#invariante-ca-7---reporte-diagnostico-no-equivale-a-aprobacion)
+  - [Invariante CA-8 - Agregacion mensual no acredita continuidad](#invariante-ca-8---agregacion-mensual-no-acredita-continuidad)
+  - [Invariante CA-9 - La importacion ACC separa entrenamiento de asignaciones](#invariante-ca-9---la-importacion-acc-separa-entrenamiento-de-asignaciones)
+- [Limites de reglas observados en v115](#limites-de-reglas-observados-en-v115)
 
 ---
 
@@ -1621,3 +1625,31 @@ No debe integrarse al engine general por efecto lateral.
 Cualquier reemplazo, integracion o uso decisorio debe definirse mediante una decision arquitectonica y contrato especifico posterior.
 
 ---
+
+---
+
+### Invariante CA-7 - Reporte diagnostico no equivale a aprobacion
+
+Los totales y estado general del reporte no resuelven solicitudes ni aplican
+swaps. Limitar el detalle no cambia el universo contabilizado en los totales.
+Fuentes: roster_calendar_aware_report.py y tests de reporte existentes.
+
+### Invariante CA-8 - Agregacion mensual no acredita continuidad
+
+El resumen multimes conserva el alcance de los diagnosticos independientes que
+agrega. No debe presentarse como control de descanso o rachas entre meses.
+El indicador apto_para_revision_carga tampoco amplia ese alcance.
+
+### Invariante CA-9 - La importacion ACC separa entrenamiento de asignaciones
+
+OJT, SIM y EN se representan como eventos no operativos en la configuracion ACC
+actual. No se infiere de ello una validacion interna de la dataclass Turno ni una
+politica universal para configuraciones futuras.
+
+## Limites de reglas observados en v115
+
+El codigo timeline aplica maximos separados de A/B y C, no un maximo universal
+de toda secuencia mixta. Sus defaults no cubren 18 turnos o 144 horas mensuales.
+Descanso timeline: <= 12 por defecto; tradicional: < 12 por defecto.
+El entrypoint paralelo no recibe parametros de reglas. La reconciliacion con
+requisitos operativos y configuracion se mantiene como deuda funcional explicita.

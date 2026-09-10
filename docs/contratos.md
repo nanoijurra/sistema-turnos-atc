@@ -27,6 +27,8 @@
 - [Contrato 23 - Frontera de elegibilidad funcional para swaps normales](#contrato-23---frontera-de-elegibilidad-funcional-para-swaps-normales)
 - [Contrato 24 - Interpretacion configurable de codigos de roster](#contrato-24---interpretacion-configurable-de-codigos-de-roster)
 - [Contrato 25 - Estado operativo general y habilitaciones](#contrato-25---estado-operativo-general-y-habilitaciones)
+- [Contrato 26 - Diagnostico calendar-aware y reporte operativo](#contrato-26---diagnostico-calendar-aware-y-reporte-operativo)
+- [Contrato 27 - Carga multimes y adaptador CSV ACC CBA](#contrato-27---carga-multimes-y-adaptador-csv-acc-cba)
 
 ---
 
@@ -671,7 +673,9 @@ aplicar_swap_request no reevalúa, no reclasifica y no decide nuevamente.
 
 ### 9.1 Nota de evolucion
 
-Actualmente swap_service realiza la aplicación y versionado.
+Actualmente `swap_service.aplicar_swap_request` coordina la aplicacion; delega
+la nueva version en `engine.crear_nueva_version_desde_roster_vigente`, que utiliza
+`roster_store`. No existe un modulo roster_service en la base v114.
 
 En la arquitectura objetivo:
 - swap_service autoriza la aplicación dentro del flujo del request
@@ -3448,3 +3452,72 @@ No se implementa esta logica todavia.
 ### 25.15 Regla corta
 
 La aptitud general define si la persona puede operar; las habilitaciones definen donde puede operar.
+
+---
+
+## Contrato 26 - Diagnostico calendar-aware y reporte operativo
+
+### 26.1 Estado y fuentes
+
+Contrato descriptivo del comportamiento observado en v114, incorporado en v115.
+Fuentes: `src/roster_calendar_aware_entrypoint.py`,
+`src/roster_timeline_diagnostics.py` y `src/roster_calendar_aware_report.py`.
+No reemplaza Contrato 25 ni modifica el workflow formal.
+
+### 26.2 Entrada y resultado
+
+`diagnosticar_importacion_calendar_aware(resultado_importacion)` consume
+`dias_importados`; la ausencia de ese atributo produce ValueError.
+`diagnosticar_dias_importados_calendar_aware(dias_importados)` consume un iterable.
+Ambas funciones devuelven `ResultadoDiagnosticoCalendarAware` con total de dias,
+violaciones, HARD/SOFT, bandera `valido_sin_hard`, conteos y violaciones.
+El entrypoint usa los defaults del validador; no expone parametros de reglas.
+
+### 26.3 Reporte
+
+`generar_reporte_operativo_calendar_aware(resultado, *, limite_detalles=None)`
+devuelve `ReporteOperativoCalendarAware`. El atajo
+`generar_reporte_operativo_importacion_calendar_aware` diagnostica y luego reporta.
+Un limite no positivo produce ValueError. Limitar detalles no cambia los totales.
+Los codigos se ordenan por cantidad descendente y, en empate, por codigo.
+`to_dict()` devuelve los datos serializables del reporte.
+
+### 26.4 Frontera
+
+`VALIDO_SIN_HARD` / `INVALIDO_CON_HARD` son estados del diagnostico, no del request.
+No acreditan importacion completa ni aprobacion operativa. Estas funciones no
+crean versiones, resuelven solicitudes ni aplican swaps. Importar sus dependencias
+puede inicializar tablas SQLite; la frontera no promete cero acceso a DB.
+
+## Contrato 27 - Carga multimes y adaptador CSV ACC CBA
+
+### 27.1 Entrada
+
+Fuente: `src/roster_calendar_aware_multimonth.py`.
+`EntradaCargaRosterMes(anio, mes, csv_path, formato=FORMATO_CSV_SIMPLE)` describe
+cada archivo. La funcion `diagnosticar_carga_multimes_calendar_aware` recibe un
+iterable, con `strict=True`, `omitir_faltantes=True` y `limite_detalles=None`.
+
+### 27.2 Lectura ACC CBA
+
+`FORMATO_CSV_ACC_CBA` selecciona `importar_roster_acc_cba_desde_csv`.
+El adaptador busca un encabezado con celdas numericas entre las primeras tres
+filas y toma el nombre desde la columna anterior al primer dia. Reconstruye una
+matriz que delega en `importar_roster_desde_matriz`. Intenta UTF-8-SIG, CP1252 y
+Latin-1; estima coma o punto y coma desde la primera linea. Es un adaptador acotado,
+no un lector universal de planillas. El anio y mes se proporcionan explicitamente.
+
+### 27.3 Salida y omisiones
+
+Se entrega un `DiagnosticoCargaMultiMesCalendarAware` con resultados por mes y
+totales agregados. Archivo ausente: mes no disponible con `CSV_NO_DISPONIBLE`, o
+FileNotFoundError si se desactiva la omision. Formato no soportado de archivo
+existente: ValueError. No se exige aqui una secuencia mensual completa o unica.
+
+### 27.4 Limite de continuidad
+
+Cada mes se diagnostica independientemente. No se unen timelines entre entradas.
+`apto_para_revision_carga` global exige al menos una entrada, ninguna omitida,
+ninguna con errores de importacion y ninguna con HARD calendar-aware mensual.
+No acredita descanso ni rachas en la frontera de dos meses, ni autoriza swaps.
+Una timeline concatenada manualmente es una entrada distinta del resumen multimes.

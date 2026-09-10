@@ -2,263 +2,134 @@
 
 ## Tabla de contenido
 
-- [Proposito](#proposito)
-- [Alcance](#alcance)
-- [Dominio del problema](#dominio-del-problema)
-- [Arquitectura actual](#arquitectura-actual)
-- [Estructura del proyecto](#estructura-del-proyecto)
-- [Flujo operativo](#flujo-operativo)
-- [Capas del sistema](#capas-del-sistema)
-  - [src.engine](#srcengine)
-  - [src.swap_service](#srcswap_service)
-  - [src.simulator](#srcsimulator)
-  - [src.scoring](#srcscoring)
-  - [src.models](#srcmodels)
-  - [src.rule_types](#srcrule_types)
-- [Estado actual](#estado-actual)
-  - [Refactor en curso](#refactor-en-curso)
-  - [Problemas identificados](#problemas-identificados)
-  - [Estado de testing](#estado-de-testing)
-- [Reglas de negocio](#reglas-de-negocio)
-  - [Hard](#hard)
-  - [Soft](#soft)
-- [Principios de diseno](#principios-de-diseno)
-- [Evolucion planificada](#evolucion-planificada)
-  - [Proximo paso](#proximo-paso)
-- [Restricciones](#restricciones)
-- [Forma de trabajo](#forma-de-trabajo)
+- [Proposito y base](#proposito-y-base)
+- [Arquitectura implementada](#arquitectura-implementada)
+- [Flujo formal](#flujo-formal)
+- [Importacion y Turno](#importacion-y-turno)
+- [Diagnostico y reporte](#diagnostico-y-reporte)
+- [Alcance multimes y reglas](#alcance-multimes-y-reglas)
+- [Evidencia y limites de validacion](#evidencia-y-limites-de-validacion)
+- [Continuidad del trabajo](#continuidad-del-trabajo)
 
 ---
 
-> Revision estructural v114. Este documento conserva afirmaciones antiguas
-> que no describen la base v110-v113, incluidos el refactor inestable,
-> los ~50 tests y roster_service futuro. No usarlas como estado vigente.
-> Consultar [estado_actual.md](estado_actual.md) y la
-> [auditoria v110](hitos/auditoria_documental_v110.md).
-> La actualizacion funcional del contenido queda pendiente para v115.
+## Proposito y base
 
----
+Sistema Python de evaluacion y gestion formal de cambios de turno ATC.
+Revision v115 contrastada con el codigo del archivo exportado desde v114,
+commit `a9abc31`. El cierre Git y la evidencia de tests se consultan en
+[estado_actual.md](estado_actual.md); este documento describe arquitectura y limites.
+No reemplaza decisiones, contratos, invariantes ni el modelo de dominio.
 
-## Proposito
+## Arquitectura implementada
 
-Describir el contexto operativo, arquitectónico y de estado del sistema de swaps ATC.
+| Componente | Responsabilidad actual |
+| --- | --- |
+| `src/engine.py` | Ejecucion de reglas configuradas y funciones de creacion de versiones; conserva responsabilidades adicionales a la validacion |
+| `src/validator.py` | Reglas tradicionales sobre asignaciones |
+| `src/scoring.py` | Agregacion tecnica y utilidades de mapeo |
+| `src/simulator.py` | Simular y comparar; producir clasificacion tecnica |
+| `src/swap_service.py` | Workflow formal, resolucion y aplicacion; coordina versiones y obsolescencia |
+| `src/roster_store.py` | Persistencia SQLite y consulta de versiones |
+| `src/request_store.py` | Persistencia de solicitudes e historial |
+| `src/roster_import_service.py` | Importacion, normalizacion y creacion explicita de version si se solicita |
+| `src/roster_day_timeline.py` | Representacion de dias, agrupacion y rachas |
+| `src/roster_timeline_validator.py` | Reglas calendar-aware sobre dias recibidos |
+| `src/roster_timeline_diagnostics.py` | Resumen y comparacion diagnostica |
+| `src/roster_calendar_aware_entrypoint.py` | Entrada publica del diagnostico paralelo |
+| `src/roster_calendar_aware_report.py` | Reporte diagnostico serializable |
+| `src/roster_calendar_aware_multimonth.py` | Adaptador CSV ACC CBA y resumen de diagnosticos mensuales independientes |
 
-Este documento provee una visión global del sistema en su estado actual.
+No existe `src/roster_service.py` en la base revisada. Su extraccion aparece como
+objetivo historico; no es un requisito para usar las funciones de versionado ya
+implementadas en engine y coordinadas desde swap_service.
 
----
+## Flujo formal
 
-## Alcance
+`crear_swap_request -> evaluar_swap_request -> resolver_swap_request -> aplicar_swap_request`.
+La evaluacion produce informacion tecnica y decision sugerida. La resolucion
+explicita cambia el estado; la aplicacion exige `APROBADO`, version vigente y
+coherencia de indices/controladores. Crea una nueva version, cancela solicitudes
+obsoletas y registra la aplicacion. No reevalua tecnicamente durante la aplicacion.
 
-Define:
+La exploracion y las fachadas de oferta se mantienen separadas de la resolucion.
+La clasificacion tecnica, la decision sugerida y el estado del workflow no son
+intercambiables. El diagnostico calendar-aware tampoco sustituye esos planos.
 
-- contexto del sistema
-- arquitectura actual
-- estructura del proyecto
-- flujo operativo
-- estado del sistema
-- lineamientos de evolución
+## Importacion y Turno
 
-No define:
+El importador ACC usa `crear_esquema_8h()`: A 06:30, B 14:30 y C 22:30, ocho horas
+cada uno. La configuracion ACC activa A/B/C; D/X son configurables no activos.
+El catalogo reconoce otros codigos, pero reconocer un codigo no lo activa.
 
-- modelo de dominio (ver modelo_dominio.md)
-- invariantes (ver invariantes.md)
-- contratos entre módulos (ver contratos.md)
-- decisiones arquitectónicas (ver decisiones.md)
+`Turno` es una dataclass con codigo, inicio, duracion, categoria y banderas.
+No valida por si sola una lista de codigos. La frontera operacional de la
+importacion ACC proviene de su configuracion y del esquema de ocho horas.
+`OJT`, `SIM`, `EN` y otros eventos no operativos no generan `Asignacion` operativa.
 
----
+| Entrada | Normalizacion ACC | Resultado |
+| --- | --- | --- |
+| Vacia | Vacia | Dia LIBRE, sin asignacion |
+| FC | Vacia | Dia LIBRE, con trazabilidad de normalizacion |
+| IN/C | C | Dia OPERATIVO y asignacion C |
+| IN | EN | Evento no operativo |
+| REM / RET | RTA / RTB | Eventos no operativos |
 
-## Dominio del problema
+El adaptador `importar_roster_acc_cba_desde_csv` esta definido en
+`src/roster_calendar_aware_multimonth.py`, no en roster_import_service.
 
-Sistema basado en operaciones reales ATC donde:
+## Diagnostico y reporte
 
-- cada controlador tiene asignaciones por fecha
-- los swaps impactan restricciones operativas
-- existen reglas hard (inviolables) y soft (penalización)
+El entrypoint recibe una importacion con `dias_importados` o un iterable de dias.
+El reporte expone dias, totales HARD/SOFT, codigos principales, detalles y metadata.
+`limite_detalles` recorta solo detalles, sin alterar totales. Los codigos se ordenan
+por cantidad descendente y luego por codigo. `to_dict()` permite serializacion.
 
-El sistema debe comportarse como un entorno real, no como una simple permuta.
+`VALIDO_SIN_HARD` significa ausencia de HARD en el diagnostico ejecutado; no implica
+importacion sin errores, aprobacion de solicitud ni cobertura de todas las reglas.
+El reporte no crea versiones, requests ni aplica cambios. Sin embargo, la carga de
+modulos dependientes puede inicializar tablas SQLite: no se garantiza ausencia
+absoluta de acceso a DB por el solo hecho de importar los modulos.
 
----
+## Alcance multimes y reglas
 
-## Arquitectura actual
+`diagnosticar_carga_multimes_calendar_aware` procesa cada entrada por separado y
+agrega resultados. No concatena timelines ni verifica automaticamente el cruce
+entre meses. El entrypoint sobre dias puede recibir una concatenacion construida
+por el llamador; ese encadenamiento no lo realiza la fachada multimes.
 
-El sistema está organizado en capas con responsabilidades diferenciadas:
+`apto_para_revision_carga` exige entradas presentes, sin errores de importacion ni
+HARD mensuales y al menos un mes. Puede seguir omitiendo una infraccion de frontera.
+Los meses faltantes se omiten por defecto; con `omitir_faltantes=False` se lanza
+`FileNotFoundError`. Los formatos soportados son CSV_SIMPLE y CSV_ACC_CBA.
 
-- engine → validación técnica de reglas
-- simulator → evaluación técnica y clasificación del swap
-- swap_service → decisión operativa, workflow y aplicación
-- scoring → cálculo de validez agregada y score a partir de resultados técnicos
-- (futuro) roster_service → versionado y consistencia
+El timeline usa por defecto maximo 5 A/B consecutivos, 3 C consecutivos, aviso SOFT
+por mas de 5 libres, y descanso insuficiente cuando es menor o igual a 12 horas.
+No equivale a un control universal de cinco jornadas operativas mixtas, ni incluye
+por si mismo maximos mensuales de 18 turnos o 144 horas.
 
----
+El validador tradicional usa por defecto 12 horas pero compara con `<`, no `<=`.
+`config_equilibrado.json` declara `min_horas`, mientras la funcion acepta
+`horas_minimas`: engine filtra el nombre no reconocido y utiliza el default.
+El entrypoint calendar-aware no recibe ni propaga parametros de reglas.
+Estos son limites del codigo observado, no una validacion de normativa operativa.
+Conciliar el requisito operativo de descanso, los umbrales y su configuracion
+requiere un cambio funcional explicito posterior.
 
-## Estructura del proyecto
+## Evidencia y limites de validacion
 
-```text
-src/
-├── engine.py
-├── swap_service.py
-├── simulator.py
-├── scoring.py
-├── models.py
-├── rule_types.py
-├── validator.py
-│
-├── roster_store.py
-├── request_store.py
-│
-├── scenarios/
-│   ├── v3_controladores_mixto.py
-│   ├── v4_controladores_beneficioso.py
-│   ├── v5_controladores_beneficioso_mutuo.py
-│
-└── config/
-    └── config_equilibrado.json
+Los tests v106, v109 y v110 dependen de CSV locales y pueden quedar omitidos si
+faltan. v110 busca un par para smoke, llama a `simulator.evaluar_swap`, comprueba
+la copia simulada y la conservacion de asignaciones originales. No es una
+aprobacion ni una aplicacion real de swap.
 
-tests/
-├── test_simulator.py
-├── test_operacion.py
-├── test_request_store.py
-├── test_roster_store.py
-├── test_scoring.py
-├── test_versioning.py
+Las verificaciones v115 y su alcance se registran en
+[hitos/conciliacion_funcional_v115.md](hitos/conciliacion_funcional_v115.md).
+No se modifica codigo ni se declara una ejecucion nueva de la suite completa.
 
+## Continuidad del trabajo
 
-```
-
-## Flujo operativo
-
-El flujo de un swap se compone de:
-
-1. crear_swap_request
-2. evaluar_swap_request
-   - validación de ventana operativa
-   - simulación técnica del swap (simulator)
-   - clasificación técnica
-   - decisión operativa
-3. resolver_swap_request
-4. aplicar_swap_request
-   - creación de nueva versión de roster
-   - cancelación de requests obsoletos
-
-Referencia formal:
-[Ref: contratos.md #8]
-
-## Capas del sistema
-### src.engine
-
-Responsabilidad:
-
-validación global (validar_todo)
-ejecución de reglas
-utilidades técnicas
-
-No debe:
-
-tomar decisiones de negocio
-participar del flujo de swap
-### src.swap_service
-
-Responsabilidad:
-
-orquestación del flujo de swap
-decisiones operativas
-persistencia del request
-
-Incluye:
-
-crear_swap_request
-evaluar_swap_request
-resolver_swap_request
-aplicar_swap_request
-### src.simulator
-
-Responsabilidad:
-
-simulación de swaps
-evaluación técnica comparativa
-cálculo de impacto
-
-No debe:
-
-persistir
-modificar requests
-tomar decisiones operativas
-### src.scoring
-
-Responsabilidad:
-
-validación del roster
-cálculo de score
-### src.models
-
-Define entidades del dominio:
-
-SwapRequest
-RosterVersion
-Asignacion
-Controlador
-Turno
-### src.rule_types
-
-Define estructuras técnicas:
-
-RuleResult
-Violation
-## Estado actual
-### Refactor en curso
-
-Separación de capas en progreso:
-
-✔ swap_service implementado
-✔ engine parcialmente desacoplado
-❌ contratos aún inestables
-### Problemas identificados
-inconsistencias entre índices y controladores
-decisiones incorrectas (RECHAZAR vs VIABLE)
-desalineación en parámetros dinámicos (min_horas)
-errores derivados de refactor incompleto
-tests fallando en evaluación de swap
-### Estado de testing
-cobertura amplia (~50+ tests)
-estado actual: inestable
-prioridad: estabilización
-## Reglas de negocio
-### Hard
-invalidan el roster
-bloquean aprobación
-### Soft
-penalizan score
-permiten comparación entre alternativas
-## Principios de diseno
-preservar integridad operativa
-no violar reglas hard
-minimizar penalización soft
-mantener consistencia del modelo
-## Evolucion planificada
-### Proximo paso
-
-Introducir:
-
-src.roster_service
-
-Responsabilidades futuras:
-
-versionado de roster
-gestión de versiones
-manejo de obsolescencia
-## Restricciones
-no romper tests existentes
-no introducir hacks
-mantener separación de capas
-evitar acoplamiento entre engine y servicios
-## Forma de trabajo
-
-El sistema se desarrolla en tres contextos separados:
-
-arquitectura
-implementación
-testing/debug
-
-Cada contexto tiene responsabilidades definidas y no debe mezclar concerns.
-
----
+Consultar el estado y el mapa documental antes de retomar. La deuda de
+semantic_guard y la generacion de derivados mantienen sus etapas propias.
+No subir CSV reales locales ni mezclar una correccion de reglas con un cierre
+exclusivamente documental.

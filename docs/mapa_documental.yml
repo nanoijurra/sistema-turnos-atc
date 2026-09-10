@@ -1,10 +1,11 @@
 # Mapa documental del sistema ATC
 version_esquema: 1
-base_cerrada: v113
-revision_documental: v114
+base_cerrada: v114
+revision_documental: v115
 cierre_v113_confirmado: true
-cierre_v114_confirmado: false
-alcance: "17 rutas verificadas en v113; reparacion estructural v114 pendiente de cierre Git"
+cierre_v114_confirmado: true
+cierre_v115_confirmado: false
+alcance: "Base v114 exportada; 18 rutas documentales existentes en propuesta v115; cierre Git pendiente"
 reglas:
   - "Canonicos: revision humana; no reescritura conceptual automatica"
   - "Historicos: conservar; no usarlos como estado vigente"
@@ -23,76 +24,76 @@ documentos:
     accion_pendiente: "Completar como entrada estable; no duplicar estado"
   - ruta: "checkpoints.md"
     tipo: "historia_activa"
-    estado: "registro_v114_agregado_cierre_pendiente"
+    estado: "revisado_v115_cierre_pendiente"
     fuentes: ["Git: commits, tags y diffs", "Resultados de validacion"]
     dependencias: ["docs/hitos/indice_checkpoints_v1_v95.md"]
     revisar_cuando: ["Cierre de checkpoint"]
     modo_actual: "manual"
-    ultima_revision: "v114: registro preparado sobre v113 recuperado"
-    accion_pendiente: "Verificar diff final y cerrar v114 en Git"
+    ultima_revision: "v115: conciliacion documental contra base v114"
+    accion_pendiente: "Verificar diff y cerrar v115; preservar historia activa anterior"
   - ruta: "docs/estado_actual.md"
     tipo: "estado_vigente"
-    estado: "actualizado_para_revision_v114"
-    fuentes: ["docs/hitos/auditoria_documental_v110.md", "Git: cierre v113"]
+    estado: "revisado_v115_cierre_pendiente"
+    fuentes: ["docs/hitos/auditoria_documental_v110.md", "Git: cierre v114"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md", "checkpoints.md"]
     revisar_cuando: ["Cambio funcional, limite, deuda, validacion o eje aprobado"]
     modo_actual: "manual"
-    ultima_revision: "v114: seguimiento actualizado; cierre Git pendiente"
-    accion_pendiente: "Actualizar al reanudar desde evidencia Git y ante cambios de capacidades o deuda"
+    ultima_revision: "v115: conciliacion documental contra base v114"
+    accion_pendiente: "Verificar cierre local v115 y priorizar deuda funcional detectada"
   - ruta: "docs/contexto_sistema.md"
     tipo: "canonico"
-    estado: "estructura_reparada_contenido_desactualizado"
+    estado: "revisado_v115_cierre_pendiente"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
     modo_actual: "manual"
-    ultima_revision: "v114: reparacion estructural"
-    accion_pendiente: "Actualizar contenido funcional en v115; conservar distincion entre evidencia historica y estado vigente"
+    ultima_revision: "v115: conciliacion documental contra base v114"
+    accion_pendiente: "Mantener arquitectura y limites segun codigo; deuda funcional no resuelta por documentacion"
   - ruta: "docs/decisiones.md"
     tipo: "canonico"
-    estado: "estructura_reparada_revision_conceptual_pendiente"
+    estado: "revisado_v115_cierre_pendiente"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
     modo_actual: "manual"
-    ultima_revision: "v114: reparacion estructural"
-    accion_pendiente: "Revisar incorporaciones calendar-aware y vigencia de Decision 1; preservar Decision 53"
+    ultima_revision: "v115: conciliacion documental contra base v114"
+    accion_pendiente: "Conservar Decision 54 descriptiva; resolver deuda funcional con decision explicita"
   - ruta: "docs/contratos.md"
     tipo: "canonico"
-    estado: "estructura_reparada_cobertura_funcional_pendiente"
+    estado: "revisado_v115_cierre_pendiente"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
     modo_actual: "manual"
-    ultima_revision: "v114: reparacion estructural"
-    accion_pendiente: "Revisar incorporaciones calendar-aware; preservar Contrato 25"
+    ultima_revision: "v115: conciliacion documental contra base v114"
+    accion_pendiente: "Mantener Contratos 26/27; no presentar diagnostico como aprobacion"
   - ruta: "docs/invariantes.md"
     tipo: "canonico"
-    estado: "estructura_reparada_cobertura_funcional_pendiente"
+    estado: "revisado_v115_cierre_pendiente"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
     modo_actual: "manual"
-    ultima_revision: "v114: reparacion estructural"
-    accion_pendiente: "Verificar cobertura funcional; conservar series I, bloques Invariante y CA"
+    ultima_revision: "v115: conciliacion documental contra base v114"
+    accion_pendiente: "Mantener CA-7/8/9 y limites; conciliar reglas en checkpoint funcional"
   - ruta: "docs/modelo_dominio.md"
     tipo: "canonico"
-    estado: "estructura_reparada_contradiccion_turno_pendiente"
+    estado: "revisado_v115_cierre_pendiente"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
     modo_actual: "manual"
-    ultima_revision: "v114: reparacion estructural"
-    accion_pendiente: "Conciliar definicion de Turno y ejemplo entrenamiento contra contratos y codigo; no habilitarlo por esta reparacion"
+    ultima_revision: "v115: conciliacion documental contra base v114"
+    accion_pendiente: "Entrenamiento conciliado para ACC; mantener distincion dataclass y frontera de importacion"
   - ruta: "docs/diccionario.md"
     tipo: "canonico"
-    estado: "estructura_reparada_cobertura_funcional_pendiente"
+    estado: "revisado_v115_cierre_pendiente"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
     modo_actual: "manual"
-    ultima_revision: "v114: reparacion estructural"
-    accion_pendiente: "Agregar terminos vigentes de v105-v110 en v115"
+    ultima_revision: "v115: conciliacion documental contra base v114"
+    accion_pendiente: "Mantener terminos de reporte, multimes y normalizaciones conforme a codigo"
   - ruta: "docs/contexto_resumen.md"
     tipo: "derivado"
     estado: "desactualizado"
@@ -158,10 +159,19 @@ documentos:
     accion_pendiente: "Mantener limites probatorios; cotejo con Git confirmado en v112"
   - ruta: "docs/mapa_documental.yml"
     tipo: "registro_documental"
-    estado: "actualizado_para_revision_v114"
-    fuentes: ["docs/hitos/auditoria_documental_v110.md", "Inventario documental aportado", "Git: cierre v113"]
+    estado: "revisado_v115_cierre_pendiente"
+    fuentes: ["docs/hitos/auditoria_documental_v110.md", "Inventario documental aportado", "Git: cierre v114"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Alta, baja, reclasificacion o cambio de fuentes de documentos"]
     modo_actual: "manual"
-    ultima_revision: "v114: seguimiento actualizado; cierre Git pendiente"
-    accion_pendiente: "Mantener clasificacion y seguimiento; estructura reparada no equivale a vigencia funcional"
+    ultima_revision: "v115: conciliacion documental contra base v114"
+    accion_pendiente: "Mantener 18 entradas y seguimiento; derivados pendientes v117"
+  - ruta: "docs/hitos/conciliacion_funcional_v115.md"
+    tipo: "historico"
+    estado: "revision_v115_cierre_pendiente"
+    fuentes: ["Codigo y tests exportados desde v114", "Comprobaciones sinteticas aisladas v115"]
+    dependencias: ["docs/contexto_sistema.md", "docs/contratos.md", "docs/decisiones.md"]
+    revisar_cuando: ["Nueva evidencia: registrar seguimiento sin falsear evidencia anterior"]
+    modo_actual: "manual"
+    ultima_revision: "v115: creado"
+    accion_pendiente: "Cerrar checkpoint y tratar deuda funcional mediante alcance explicito"

@@ -56,6 +56,7 @@
   - [Decision 51 - Elegibilidad funcional inicial para swaps normales](#decision-51---elegibilidad-funcional-inicial-para-swaps-normales)
   - [Decision 52 - Configuracion por dependencia y codigos de roster](#decision-52---configuracion-por-dependencia-y-codigos-de-roster)
   - [Decision 53 - Perfil operativo de persona](#decision-53---perfil-operativo-de-persona)
+  - [Decision 54 - Documentar el camino calendar-aware implementado y sus limites](#decision-54---documentar-el-camino-calendar-aware-implementado-y-sus-limites)
 
 ---
 
@@ -64,6 +65,10 @@
 ## Arquitectura general
 
 ### Decision 1 - Separacion de capas
+
+> Vigencia revisada en v115: roster_service sigue siendo una extraccion propuesta.
+> El versionado ya existe en engine/roster_store y lo coordina swap_service.
+> Ver Decision 54 para arquitectura implementada y limites actuales.
 
 El sistema se separa en capas claras:
 
@@ -3446,3 +3451,43 @@ No se infiere disponibilidad por ausencia de codigo no operativo.
 #### 53.16 Regla corta
 
 El rol describe la funcion; el perfil operativo determina si y donde puede operar.
+
+---
+
+### Decision 54 - Documentar el camino calendar-aware implementado y sus limites
+
+#### Estado
+
+Conciliacion documental v115 del codigo exportado desde v114. No introduce
+una integracion nueva ni altera las decisiones 1-53.
+
+#### Comportamiento confirmado
+
+Se reconoce el camino paralelo timeline -> diagnostico -> entrypoint -> reporte,
+y el agregador de diagnosticos mensuales independientes. Se documentan mediante
+Contratos 26 y 27; Decision 53 y Contrato 25 conservan sus significados originales.
+
+La aplicacion y el versionado ya existen en swap_service, engine y roster_store.
+Las referencias anteriores a un futuro roster_service describen una extraccion
+arquitectonica propuesta, no una carencia actual de versionado.
+
+#### Conciliacion de Turno
+
+En la importacion ACC vigente se generan asignaciones operativas A/B/C;
+OJT, SIM y EN son no operativos. Se retira del modelo vigente el ejemplo anterior
+de entrenamiento como Turno operativo. La evidencia anterior permanece en el tag
+v114. La dataclass Turno no impone por si sola esta frontera; la impone la ruta de
+importacion con configuracion y esquema ACC. No se modifica su implementacion.
+
+#### Limites que se mantienen abiertos
+
+El resumen multimes no evalua continuidad intermensual automaticamente.
+El descanso timeline usa por defecto 12 y `<=`; el tradicional usa 12 y `<`.
+La clave min_horas de config_equilibrado no coincide con horas_minimas y es
+filtrada por engine. Cambiar parametros, comparadores o integracion requiere
+alcance funcional posterior. No se afirma cumplimiento de todas las reglas ATC.
+
+#### Evidencia
+
+Ver `docs/hitos/conciliacion_funcional_v115.md`, fuentes de codigo y pruebas
+sinteticas alli registradas. La suite completa no se reejecuto en v115.

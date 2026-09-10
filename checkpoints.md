@@ -1,6 +1,6 @@
 # CHECKPOINTS DEL PROYECTO - SISTEMA SWAPS ATC
 
-Registro activo desde v96. Base cerrada confirmada: v113. Revision v114 en curso.
+Registro activo desde v96. Base cerrada confirmada: v114. Revision v115 en curso.
 
 Indice anterior: [v1-v95](docs/hitos/indice_checkpoints_v1_v95.md).
 Historia integra previa: tag `checkpoint-v111-auditoria-documental-integral-v110`.
@@ -4538,3 +4538,60 @@ v115 - actualizacion funcional documental y conciliacion conceptual identificada
 Revisar evidencia del codigo antes de modificar afirmaciones funcionales.
 
 ---
+
+---
+
+## checkpoint-v115-conciliacion-funcional-documental
+
+Fecha: 2026-09-10
+
+### Base
+
+Codigo exportado desde v114, commit a9abc31 confirmado por el usuario.
+V115 es documental; no altera codigo, reglas, tests, configuracion ni datos reales.
+
+### Archivos del alcance
+
+- docs/contexto_sistema.md
+- docs/contratos.md
+- docs/decisiones.md
+- docs/modelo_dominio.md
+- docs/diccionario.md
+- docs/invariantes.md
+- docs/hitos/conciliacion_funcional_v115.md
+- docs/estado_actual.md
+- docs/mapa_documental.yml
+- checkpoints.md
+
+### Cambios
+
+Contexto actualizado contra codigo; entrenamiento retirado como ejemplo operativo
+ACC; dataclass Turno diferenciada de configuracion y esquema de importacion.
+Decision 54, Contratos 26/27 y CA-7/8/9 documentan camino paralelo, reporte y limites.
+Cobertura explicita de reporte, multimes, CSV ACC CBA, FC, IN/C y alcance de smokes.
+Estado/mapa actualizados; mapa con 18 entradas e informe de evidencia nuevo.
+Numeraciones anteriores y bloques historicos preservados.
+
+### Hallazgos funcionales registrados sin corregir codigo
+
+Multimes procesa meses separados y no valida automaticamente sus fronteras.
+Descanso timeline <=12 por defecto; tradicional <12; min_horas configurado se filtra
+por no coincidir con horas_minimas. Ventana operativa default configurada de 12 horas.
+No se acredita cobertura de maximos mensuales ni jornadas mixtas mediante timeline.
+Importar dependencias puede inicializar tablas SQLite. No prometer cero acceso a DB.
+Estos limites requieren alcance funcional propio y conciliacion con requisitos operativos.
+
+### Evidencia de validacion
+
+Inspeccion de modulos y tests existentes. Sin pytest instalado en este entorno;
+no se reejecuta suite ni smokes con CSV reales. Ultimo resultado completo registrado:
+463 passed sobre v110, reportado por el usuario.
+Comprobaciones sinteticas aisladas: FC/IN-C/OJT/SIM, reporte y frontera mensual.
+C30-jun/A1-jul: 0 HARD mensual agregado y 1 HARD en timeline concatenada.
+Comprobaciones estructurales del paquete y alcance documental; cotejo local final,
+commit, tag y push pendientes al redactar. Evidencia detallada en informe v115.
+
+### Proximo paso
+
+v116 - correccion de semantic_guard, con alcance definido antes de editar.
+Priorizar explicitamente la deuda funcional detectada antes de uso decisorio.

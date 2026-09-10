@@ -59,6 +59,10 @@
   - [DESCONOCIDO](#desconocido)
   - [Relacion con Asignacion](#relacion-con-asignacion)
   - [Relacion con diagnostico calendar-aware](#relacion-con-diagnostico-calendar-aware)
+- [Objetos de reporte y carga calendar-aware](#objetos-de-reporte-y-carga-calendar-aware)
+  - [ReporteOperativoCalendarAware](#reporteoperativocalendaraware)
+  - [EntradaCargaRosterMes y DiagnosticoCargaRosterMes](#entradacargarostermes-y-diagnosticocargarostermes)
+  - [DiagnosticoCargaMultiMesCalendarAware](#diagnosticocargamultimescalendaraware)
 
 ---
 
@@ -389,23 +393,18 @@ RET -> RTB
 ```
 
 
-#### Definicion anterior de Turno conservada
+#### Representacion implementada y conciliacion v115
 
-> Revision estructural v114: este texto anterior se conserva para trazabilidad.
-> Su ejemplo de entrenamiento contradice la frontera operativa descrita arriba.
-> La contradiccion sigue pendiente de conciliacion conceptual; este apartado
-> no agrega entrenamiento al conjunto de turnos operativos admitidos.
+`src/models.py` define Turno como dataclass frozen con codigo, hora_inicio,
+duracion_horas, categoria, es_nocturno y habilitado. No restringe por si sola
+los codigos ni valida elegibilidad funcional.
 
-##### Definicion
-
-Tipo de actividad asignada en una fecha.
-
-##### Ejemplos
-
-- turno mañana
-- turno tarde
-- turno noche
-- entrenamiento
+El importador ACC crea asignaciones con el esquema de ocho horas A/B/C.
+Entrenamiento no es un ejemplo de Turno operativo en esa ruta: OJT, SIM y EN
+se conservan como eventos no operativos. El ejemplo contradictorio anterior se
+retira de la definicion vigente y permanece recuperable en el tag v114.
+D/X requieren tanto una configuracion adecuada como un esquema compatible;
+marcarlos activos no agrega automaticamente esos turnos al esquema 8H.
 
 ---
 
@@ -424,7 +423,8 @@ Tipo de actividad asignada en una fecha.
   Cada asignación corresponde a un controlador.
 
 - Asignacion ↔ Turno  
-  Cada asignación define un turno o actividad.
+  Cada asignacion operativa referencia un Turno; los eventos no operativos
+  importados se representan separadamente.
 
 ---
 
@@ -1103,3 +1103,26 @@ huecos reales entre turnos
 ```
 
 ---
+
+---
+
+## Objetos de reporte y carga calendar-aware
+
+### ReporteOperativoCalendarAware
+
+Dataclass frozen de `src/roster_calendar_aware_report.py`: mensaje, estado_general,
+total_dias_importados, total_violaciones, total_hard, total_soft, valido_sin_hard,
+codigos_principales, detalles y metadata. `to_dict()` expone datos serializables.
+Sus estados generales no son estados de SwapRequest.
+
+### EntradaCargaRosterMes y DiagnosticoCargaRosterMes
+
+La entrada identifica anio, mes, ruta CSV y formato. El diagnostico conserva
+fuente, disponibilidad, motivo de omision, conteos de importacion, posibilidad de
+crear version, conteos calendar-aware y reporte opcional. No es una RosterVersion.
+
+### DiagnosticoCargaMultiMesCalendarAware
+
+Contiene una tupla de resultados mensuales y propiedades de agregacion. No es
+una timeline unificada ni demuestra continuidad entre meses. El atributo
+apto_para_revision_carga no representa aprobacion de un cambio de turno.

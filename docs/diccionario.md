@@ -62,6 +62,17 @@
   - [entrypoint paralelo calendar-aware](#entrypoint-paralelo-calendar-aware)
   - [ResultadoDiagnosticoCalendarAware](#resultadodiagnosticocalendaraware)
   - [EXCESO_LIBRES_CONSECUTIVOS](#exceso_libres_consecutivos)
+- [Terminos de reporte y carga incorporados en v115](#terminos-de-reporte-y-carga-incorporados-en-v115)
+  - [ReporteOperativoCalendarAware](#reporteoperativocalendaraware)
+  - [generar_reporte_operativo_calendar_aware](#generar_reporte_operativo_calendar_aware)
+  - [VALIDO_SIN_HARD e INVALIDO_CON_HARD](#valido_sin_hard-e-invalido_con_hard)
+  - [DiagnosticoCargaMultiMesCalendarAware](#diagnosticocargamultimescalendaraware)
+  - [diagnosticar_carga_multimes_calendar_aware](#diagnosticar_carga_multimes_calendar_aware)
+  - [apto_para_revision_carga](#apto_para_revision_carga)
+  - [importar_roster_acc_cba_desde_csv y FORMATO_CSV_ACC_CBA](#importar_roster_acc_cba_desde_csv-y-formato_csv_acc_cba)
+  - [FC](#fc)
+  - [IN/C](#inc)
+  - [Entrenamiento y Turno operativo ACC](#entrenamiento-y-turno-operativo-acc)
 
 ---
 
@@ -1144,3 +1155,56 @@ Codigo de violacion soft usado cuando una timeline contiene mas de 5 dias consec
 Los dias `NO_OPERATIVO_DOCUMENTADO` no cuentan como `LIBRE`.
 
 ---
+
+---
+
+## Terminos de reporte y carga incorporados en v115
+
+### ReporteOperativoCalendarAware
+
+Salida del reporte diagnostico: totales, codigos, detalles y metadata, serializable
+mediante to_dict(). No es una resolucion operativa.
+
+### generar_reporte_operativo_calendar_aware
+
+Transforma ResultadoDiagnosticoCalendarAware en reporte. limite_detalles solo
+recorta detalles. No modifica los totales ni evalua solicitudes.
+
+### VALIDO_SIN_HARD e INVALIDO_CON_HARD
+
+Estados generales del reporte relativos a las reglas ejecutadas. No equivalen
+a importacion sin errores ni a APROBADO/RECHAZADO del workflow.
+
+### DiagnosticoCargaMultiMesCalendarAware
+
+Agregado de diagnosticos mensuales independientes, no una timeline concatenada.
+
+### diagnosticar_carga_multimes_calendar_aware
+
+Lee entradas mensuales, diagnostica cada mes y agrega resultados. No controla
+automaticamente descanso o rachas en la frontera entre dos entradas.
+
+### apto_para_revision_carga
+
+Indicador preliminar de disponibilidad, errores de importacion y HARD mensuales.
+No es una autorizacion de carga o de swap ni evidencia de continuidad intermensual.
+
+### importar_roster_acc_cba_desde_csv y FORMATO_CSV_ACC_CBA
+
+Adaptador y selector definidos en roster_calendar_aware_multimonth.py. La lectura
+ACC CBA se convierte en matriz simple y se delega al importador existente.
+
+### FC
+
+En la configuracion ACC actual se normaliza a cadena vacia y produce un dia LIBRE,
+sin asignacion ni evento no operativo; se conserva la trazabilidad de normalizacion.
+
+### IN/C
+
+Se normaliza a C y genera asignacion operativa nocturna. No confundir con IN,
+que se normaliza a EN y permanece no operativo.
+
+### Entrenamiento y Turno operativo ACC
+
+OJT, SIM y EN no generan Asignacion operativa en el importador ACC actual.
+La dataclass Turno es mas general y no implementa esa restriccion por si misma.
