@@ -1,266 +1,35 @@
 # Estado de documentacion
 
-## 1. Version conceptual del sistema
-
-Estado:
-
-```text
-estable
-en evolucion controlada
-con camino calendar-aware paralelo en diagnostico
-```
-
-Ultima revision documental:
-
-```text
-checkpoint-v103-actualizacion-contexto-sistema-calendar-aware
-```
-
-Validacion actual:
-
-```text
-py -m pytest -q
-440 passed
-```
-
----
-
-## 2. Estado de documentos principales
-
-### decisiones.md
-
-Estado:
-
-```text
-consistente
-compatibilizado con calendar-aware
-```
-
-Ultima decision relevante:
-
-```text
-Decision 53 - Timeline diaria y diagnostico calendar-aware paralelo
-```
-
----
-
-### contratos.md
-
-Estado:
-
-```text
-consistente
-compatibilizado con calendar-aware
-```
-
-Ultimo contrato relevante:
-
-```text
-Contrato 25 - EntryPoint paralelo calendar-aware
-```
-
----
-
-### invariantes.md
-
-Estado:
-
-```text
-consistente
-incluye invariantes calendar-aware
-```
-
-Invariantes calendar-aware agregadas:
-
-```text
-CA-1 - LIBRE no equivale a NO_OPERATIVO_DOCUMENTADO
-CA-2 - La timeline diaria no reemplaza asignaciones operativas
-CA-3 - El diagnostico calendar-aware no reemplaza al engine
-CA-4 - El entrypoint calendar-aware no decide swaps
-CA-5 - El workflow formal no cambia
-CA-6 - La integracion al motor general requiere decision explicita
-```
-
----
-
-### modelo_dominio.md
-
-Estado:
-
-```text
-consistente
-incluye timeline diaria importada
-```
-
-Conceptos incorporados:
-
-```text
-RosterDiaImportado
-RosterDayStatus
-OPERATIVO
-LIBRE
-NO_OPERATIVO_DOCUMENTADO
-OPERATIVO_CONFIGURABLE_NO_ACTIVO
-FUERA_DE_ALCANCE
-DESCONOCIDO
-```
-
----
-
-### diccionario.md
-
-Estado:
-
-```text
-consistente
-incluye terminos calendar-aware
-```
-
-Terminos incorporados:
-
-```text
-calendar-aware
-timeline diaria
-dias_importados
-RosterDiaImportado
-RosterDayStatus
-LIBRE
-NO_OPERATIVO_DOCUMENTADO
-diagnostico calendar-aware
-entrypoint paralelo calendar-aware
-ResultadoDiagnosticoCalendarAware
-EXCESO_LIBRES_CONSECUTIVOS
-```
-
----
-
-### contexto_sistema.md
-
-Estado:
-
-```text
-actualizado
-compatibilizado con v96-v103
-```
-
-Incluye:
-
-```text
-arquitectura actual
-estructura del proyecto
-flujo operativo
-capas del sistema
-camino calendar-aware paralelo
-estado actual
-restricciones vigentes
-```
-
----
-
-### contexto_resumen.md
-
-Estado:
-
-```text
-actualizado en v104
-resumen breve del estado vigente
-```
-
----
-
-## 3. Decisiones recientes relevantes
-
-Checkpoints recientes:
-
-```text
-v96 -> validadores calendar-aware sobre timeline
-v97 -> diagnostico tecnico calendar-aware
-v98 -> comparacion tradicional vs timeline
-v99 -> smoke diagnostico sobre CSV real local
-v100 -> entrypoint paralelo calendar-aware
-v101 -> smoke entrypoint calendar-aware sobre CSV real local
-v102 -> compatibilizacion documental calendar-aware
-v103 -> actualizacion contexto_sistema calendar-aware
-```
-
----
-
-## 4. Estado arquitectonico resumido
-
-Camino tradicional:
-
-```text
-swap_service
--> simulator
--> engine.py
--> validator.py
-```
-
-Camino calendar-aware paralelo:
-
-```text
-resultado_importacion / dias_importados
--> roster_calendar_aware_entrypoint.py
--> diagnostico timeline
--> ResultadoDiagnosticoCalendarAware
-```
-
-Ambos caminos conviven.
-
-El camino calendar-aware no reemplaza al camino tradicional.
-
----
-
-## 5. Terminos criticos
-
-```text
-clasificacion tecnica != decision operativa
-decision operativa != estado del workflow
-diagnostico calendar-aware != decision de swap
-timeline diaria != Asignacion
-LIBRE != NO_OPERATIVO_DOCUMENTADO
-entrypoint calendar-aware != engine.py
-validator.py tradicional sigue vigente
-```
-
----
-
-## 6. Deudas o pendientes documentales
-
-Pendientes posibles:
-
-```text
-revisar contexto_resumen.md cuando cambie la arquitectura
-revisar estado_docs.md despues de cada bloque documental grande
-evaluar reporte operativo calendar-aware en checkpoint futuro
-definir integracion al motor general solo mediante decision explicita futura
-```
-
-No hay deuda vigente que obligue a modificar codigo.
-
----
-
-## 7. Checklist previo a tag
-
-Antes de crear un tag:
-
-```text
-git status limpio antes de empezar
-diff revisado
-tests en verde
-checkpoint agregado
-commit realizado
-tag creado
-push realizado
-working tree clean al cierre
-```
-
----
-
-## 8. Regla principal
-
-La clasificacion tecnica, la decision operativa, el estado del workflow y el diagnostico calendar-aware representan planos distintos del sistema.
-
-No deben confundirse ni colapsarse.
-
----
+Generado por `tools/generar_documentacion.py`. No editar manualmente.
+
+Fuente: [mapa_documental.yml](mapa_documental.yml).
+
+<!-- fuente-sha256: bc688a0229d529e2dd5511a88332fe29ae3896a6107dc9c441a4103ff7a7b2c2; generador-sha256: a191210826215580dcff5d40a16452a81e5ec843d7e5ba66f4d9856ee503ca9e -->
+
+Los estados se transcriben del mapa; generar esta tabla no certifica vigencia ni repara documentos.
+
+Documentos registrados: 19.
+
+| Documento | Tipo | Estado | Modo | Ultima revision | Accion pendiente |
+| --- | --- | --- | --- | --- | --- |
+| README.md | entrada | vacio_segun_auditoria | manual | v111: auditado, no reparado | Completar como entrada estable; no duplicar estado |
+| checkpoints.md | historia_activa | revision_v117_cierre_pendiente | manual | v117: generacion sistematica, cierre Git pendiente | Registrar validacion y cierre v117; regenerar derivados al cambiar fuentes |
+| docs/contexto_resumen.md | derivado | generado_desde_fuente_declarada | generado | v117: generacion sistematica, cierre Git pendiente | Regenerar ante cambios de fuente y ejecutar --check |
+| docs/contexto_sistema.md | canonico | revisado_v115 | manual | v115: conciliacion documental contra base v114 | Mantener arquitectura y limites segun codigo; deuda funcional no resuelta por documentacion |
+| docs/contratos.md | canonico | revisado_v115 | manual | v115: conciliacion documental contra base v114 | Mantener Contratos 26/27; no presentar diagnostico como aprobacion |
+| docs/contratos_resumen.md | redundante_obsoleto | no_vigente_retiro_material_pendiente | manual | v111: retiro como vigente aprobado | Retirar materialmente en checkpoint documental posterior |
+| docs/decisiones.md | canonico | revisado_v115 | manual | v115: conciliacion documental contra base v114 | Conservar Decision 54 descriptiva; resolver deuda funcional con decision explicita |
+| docs/diccionario.md | canonico | revisado_v115 | manual | v115: conciliacion documental contra base v114 | Mantener terminos de reporte, multimes y normalizaciones conforme a codigo |
+| docs/estado_actual.md | estado_vigente | revision_v117_cierre_pendiente | manual | v117: generacion sistematica, cierre Git pendiente | Registrar validacion y cierre v117; regenerar derivados al cambiar fuentes |
+| docs/estado_docs.md | derivado | generado_desde_fuente_declarada | generado | v117: generacion sistematica, cierre Git pendiente | Regenerar ante cambios de fuente y ejecutar --check |
+| docs/generacion_documental.md | tecnico | revision_v117_cierre_pendiente | manual | v117: creado | Mantener contrato del generador y registrar cierre |
+| docs/hitos/auditoria_documental_v110.md | historico | cerrado | manual | v111: incorporado | Conservar como evidencia |
+| docs/hitos/cierre_ambiguedad_semantica.md | historico | cerrado | manual | v111: clasificado historico | Conservar; sin actualizacion continua |
+| docs/hitos/conciliacion_funcional_v115.md | historico | revision_v115_cerrada | manual | v115: creado | V115 cerrado; tratar deuda funcional mediante alcance explicito |
+| docs/hitos/indice_checkpoints_v1_v95.md | indice_historico | incorporado_v112 | manual | v112: creado | Mantener limites probatorios; cotejo con Git confirmado en v112 |
+| docs/invariantes.md | canonico | revisado_v115 | manual | v115: conciliacion documental contra base v114 | Mantener CA-7/8/9 y limites; conciliar reglas en checkpoint funcional |
+| docs/mapa_documental.yml | registro_documental | revision_v117_cierre_pendiente | manual | v117: generacion sistematica, cierre Git pendiente | Registrar validacion y cierre v117; regenerar derivados al cambiar fuentes |
+| docs/modelo_dominio.md | canonico | revisado_v115 | manual | v115: conciliacion documental contra base v114 | Entrenamiento conciliado para ACC; mantener distincion dataclass y frontera de importacion |
+| docs/semantic_guard.md | tecnico | revisado_v116 | manual | v116 cerrado: suite local 489 passed, 1 skipped | Mantener especificacion y regresiones del lint; semantic diff no reparado en v116 |
+
+Fuentes, dependencias y disparadores completos: consultar el mapa.

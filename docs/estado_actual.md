@@ -13,11 +13,11 @@
 
 ## Base confirmada
 
-Ultimo checkpoint cerrado confirmado al redactar: **v115**, commit `e39e73f`,
-tag `checkpoint-v115-conciliacion-funcional-documental`.
-Rama y tag publicados segun salida del usuario. Arbol de trabajo limpio al cierre de v115. Esto no afirma limpieza permanente.
+Ultimo checkpoint cerrado confirmado al redactar: **v116**, commit `d082c50`,
+tag `checkpoint-v116-reparacion-semantic-lint`.
+Rama y tag publicados segun salida del usuario. Arbol de trabajo limpio al cierre de v116. Esto no afirma limpieza permanente.
 
-Trabajo actual: **v116 - reparacion de semantic lint**, pendiente de cierre Git.
+Trabajo actual: **v117 - generacion sistematica de derivados**, pendiente de cierre Git.
 Base funcional: codigo exportado desde v114; v111-v114 fueron cambios documentales.
 El estado es referencia de seguimiento; contratos, decisiones e invariantes definen
 sus planos. El [mapa](mapa_documental.yml) declara fuentes y responsabilidades.
@@ -66,8 +66,12 @@ El resultado historico de v110 fue 463 passed. En v115 se realizaron inspeccion
 y comprobaciones sinteticas aisladas, sin pytest en el entorno de preparacion.
 La ejecucion local nueva no debe confundirse con aquella evidencia historica.
 
-La validacion local de v116 esta registrada. Quedan pendientes el cotejo final del
-diff preparado y el cierre Git (commit, tag y push).
+V116 quedo cerrado y publicado en d082c50. Su validacion local queda como evidencia
+de esa base. En preparacion v117: 21 pruebas unittest del generador aprobadas; --check confirma
+los dos derivados sincronizados y lint con 57 analizados, 6 excluidos, sin infracciones.
+Validacion v117 en Windows confirmada por el usuario: 510 passed, 1 skipped en 7.68 s.
+Generador --check y semantic lint con salida 0. Git diff --check sin errores.
+Cotejo final del diff y cierre Git pendientes.
 
 V114 reparo estructura y conservo numeraciones. V115 agrego contenido sustentado en
 codigo y quedo cerrado en e39e73f. V116 modifica solo la herramienta de lint, sus
@@ -82,10 +86,12 @@ completa ni reglas ATC. Semantic diff mantiene sus limitaciones anteriores.
 - Decision 54 y Contratos 26/27 completan contenido faltante sin sobreescribir 53/25.
 - La contradiccion entrenamiento/Turno ACC queda resuelta documentalmente contra codigo.
 - Referencias historicas a roster_service representan extraccion futura, no falta de versionado.
-- contexto_resumen y estado_docs siguen desactualizados; generacion prevista en v117.
+- contexto_resumen y estado_docs se generan desde estado_actual y mapa_documental
+  mediante tools/generar_documentacion.py; --check detecta desactualizacion.
 - README vacio y retiro material de contratos_resumen pendientes.
-- v116: lint reparado y 27 regresiones aprobadas en el entorno de preparacion; suite local 489 passed, 1 skipped; cierre Git pendiente.
-- v117: generacion de derivados; v118: cierre documental integral.
+- v116 cerrado: lint reparado, suite local 489 passed, 1 skipped por symlinks en Windows.
+- v117: generador y comprobacion validados en Windows; cierre Git pendiente.
+- v118: cierre documental integral.
 - v119: simulacion seleccionada prevista; revisar prioridad frente a deuda funcional detectada.
 - Bases SQLite transitorias versionadas y requirements UTF-16: deuda separada.
 
@@ -95,3 +101,6 @@ Al retomar, comprobar Git, leer este estado y consultar el mapa. Registrar la ba
 cada evidencia; no promover pruebas sinteticas a resultado de suite completa.
 El ultimo checkpoint cerrado identifica la base confirmada al redactar, no el hash
 futuro del propio documento. Mantener seguimiento de hallazgos en checkpoints siguientes.
+
+Despues de editar este estado o el mapa, ejecutar el generador con --write y
+--check. Instrucciones: [generacion_documental.md](generacion_documental.md).

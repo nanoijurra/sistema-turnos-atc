@@ -1,16 +1,17 @@
 # Mapa documental del sistema ATC
 version_esquema: 1
-base_cerrada: v115
-revision_documental: v116
+base_cerrada: v116
+revision_documental: v117
 cierre_v113_confirmado: true
 cierre_v114_confirmado: true
 cierre_v115_confirmado: true
-cierre_v116_confirmado: false
-alcance: "Base v115 exportada; 18 rutas documentales; reparacion de semantic lint v116 pendiente de cierre"
+cierre_v116_confirmado: true
+cierre_v117_confirmado: false
+alcance: "Base v116 exportada; 19 rutas documentales; derivados generados en v117, cierre Git pendiente"
 reglas:
   - "Canonicos: revision humana; no reescritura conceptual automatica"
   - "Historicos: conservar; no usarlos como estado vigente"
-  - "Derivados: generacion futura; actualmente manuales y desactualizados"
+  - "Derivados: generados desde fuentes declaradas; verificar mediante --check"
   - "Fuentes explican evidencia; dependencias declaran rutas documentales"
   - "Auditar no equivale a reparar ni a actualizar contenido"
 documentos:
@@ -25,22 +26,22 @@ documentos:
     accion_pendiente: "Completar como entrada estable; no duplicar estado"
   - ruta: "checkpoints.md"
     tipo: "historia_activa"
-    estado: "revision_v116_cierre_pendiente"
+    estado: "revision_v117_cierre_pendiente"
     fuentes: ["Git: commits, tags y diffs", "Resultados de validacion"]
     dependencias: ["docs/hitos/indice_checkpoints_v1_v95.md"]
     revisar_cuando: ["Cierre de checkpoint"]
     modo_actual: "manual"
-    ultima_revision: "v116: suite local 489 passed, 1 skipped; cierre Git pendiente"
-    accion_pendiente: "Verificar alcance y cerrar v116; preservar bloques anteriores"
+    ultima_revision: "v117: generacion sistematica, cierre Git pendiente"
+    accion_pendiente: "Registrar validacion y cierre v117; regenerar derivados al cambiar fuentes"
   - ruta: "docs/estado_actual.md"
     tipo: "estado_vigente"
-    estado: "revision_v116_cierre_pendiente"
+    estado: "revision_v117_cierre_pendiente"
     fuentes: ["docs/hitos/auditoria_documental_v110.md", "Git: cierre v114"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md", "checkpoints.md"]
     revisar_cuando: ["Cambio funcional, limite, deuda, validacion o eje aprobado"]
     modo_actual: "manual"
-    ultima_revision: "v116: suite local 489 passed, 1 skipped; cierre Git pendiente"
-    accion_pendiente: "Registrar cierre Git v116; prueba symlink omitida en Windows"
+    ultima_revision: "v117: generacion sistematica, cierre Git pendiente"
+    accion_pendiente: "Registrar validacion y cierre v117; regenerar derivados al cambiar fuentes"
   - ruta: "docs/contexto_sistema.md"
     tipo: "canonico"
     estado: "revisado_v115"
@@ -97,22 +98,22 @@ documentos:
     accion_pendiente: "Mantener terminos de reporte, multimes y normalizaciones conforme a codigo"
   - ruta: "docs/contexto_resumen.md"
     tipo: "derivado"
-    estado: "desactualizado"
-    fuentes: ["docs/estado_actual.md", "docs/contexto_sistema.md"]
-    dependencias: ["docs/estado_actual.md", "docs/contexto_sistema.md"]
+    estado: "generado_desde_fuente_declarada"
+    fuentes: ["docs/estado_actual.md"]
+    dependencias: ["docs/estado_actual.md"]
     revisar_cuando: ["Cambio de sus fuentes"]
-    modo_actual: "manual"
-    ultima_revision: "v111: auditado, no regenerado"
-    accion_pendiente: "Generar o verificar sistematicamente en v117; generador aun no implementado"
+    modo_actual: "generado"
+    ultima_revision: "v117: generacion sistematica, cierre Git pendiente"
+    accion_pendiente: "Regenerar ante cambios de fuente y ejecutar --check"
   - ruta: "docs/estado_docs.md"
     tipo: "derivado"
-    estado: "desactualizado_con_afirmaciones_incorrectas"
+    estado: "generado_desde_fuente_declarada"
     fuentes: ["docs/mapa_documental.yml"]
     dependencias: ["docs/mapa_documental.yml"]
     revisar_cuando: ["Cambio de sus fuentes"]
-    modo_actual: "manual"
-    ultima_revision: "v111: auditado, no regenerado"
-    accion_pendiente: "Generar o verificar sistematicamente en v117; generador aun no implementado"
+    modo_actual: "generado"
+    ultima_revision: "v117: generacion sistematica, cierre Git pendiente"
+    accion_pendiente: "Regenerar ante cambios de fuente y ejecutar --check"
   - ruta: "docs/contratos_resumen.md"
     tipo: "redundante_obsoleto"
     estado: "no_vigente_retiro_material_pendiente"
@@ -124,12 +125,12 @@ documentos:
     accion_pendiente: "Retirar materialmente en checkpoint documental posterior"
   - ruta: "docs/semantic_guard.md"
     tipo: "tecnico"
-    estado: "revision_v116_cierre_pendiente"
+    estado: "revisado_v116"
     fuentes: ["Implementacion real de semantic_guard", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Correccion de la herramienta o sus reglas"]
     modo_actual: "manual"
-    ultima_revision: "v116: suite local 489 passed, 1 skipped; cierre Git pendiente"
+    ultima_revision: "v116 cerrado: suite local 489 passed, 1 skipped"
     accion_pendiente: "Mantener especificacion y regresiones del lint; semantic diff no reparado en v116"
   - ruta: "docs/hitos/cierre_ambiguedad_semantica.md"
     tipo: "historico"
@@ -160,13 +161,13 @@ documentos:
     accion_pendiente: "Mantener limites probatorios; cotejo con Git confirmado en v112"
   - ruta: "docs/mapa_documental.yml"
     tipo: "registro_documental"
-    estado: "revision_v116_cierre_pendiente"
+    estado: "revision_v117_cierre_pendiente"
     fuentes: ["docs/hitos/auditoria_documental_v110.md", "Inventario documental aportado", "Git: cierre v114"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Alta, baja, reclasificacion o cambio de fuentes de documentos"]
     modo_actual: "manual"
-    ultima_revision: "v116: suite local 489 passed, 1 skipped; cierre Git pendiente"
-    accion_pendiente: "Mantener seguimiento documental; generacion de derivados pendiente v117"
+    ultima_revision: "v117: generacion sistematica, cierre Git pendiente"
+    accion_pendiente: "Registrar validacion y cierre v117; regenerar derivados al cambiar fuentes"
   - ruta: "docs/hitos/conciliacion_funcional_v115.md"
     tipo: "historico"
     estado: "revision_v115_cerrada"
@@ -176,3 +177,12 @@ documentos:
     modo_actual: "manual"
     ultima_revision: "v115: creado"
     accion_pendiente: "V115 cerrado; tratar deuda funcional mediante alcance explicito"
+  - ruta: "docs/generacion_documental.md"
+    tipo: "tecnico"
+    estado: "revision_v117_cierre_pendiente"
+    fuentes: ["tools/generar_documentacion.py", "tests/test_generar_documentacion.py"]
+    dependencias: ["docs/estado_actual.md", "docs/mapa_documental.yml"]
+    revisar_cuando: ["Cambio de generador, perfil del mapa o fuentes"]
+    modo_actual: "manual"
+    ultima_revision: "v117: creado"
+    accion_pendiente: "Mantener contrato del generador y registrar cierre"

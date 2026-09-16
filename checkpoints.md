@@ -1,6 +1,6 @@
-# CHECKPOINTS DEL PROYECTO - SISTEMA SWAPS ATC
+﻿# CHECKPOINTS DEL PROYECTO - SISTEMA SWAPS ATC
 
-Registro activo desde v96. Base cerrada confirmada: v115. Revision v116 en curso.
+Registro activo desde v96. Base cerrada confirmada: v116. Revision v117 en curso.
 
 Indice anterior: [v1-v95](docs/hitos/indice_checkpoints_v1_v95.md).
 Historia integra previa: tag `checkpoint-v111-auditoria-documental-integral-v110`.
@@ -4655,5 +4655,62 @@ commit, tag y push. No se confunde este resultado con los 463 passed de v110.
 
 Cerrar v116 despues del cotejo final del diff. Luego v117: generacion de derivados.
 Mantener deuda funcional identificada en v115 y limites del semantic diff abiertos.
+
+---
+
+## checkpoint-v117-generacion-documentos-derivados
+
+Fecha: 2026-09-10
+
+### Base
+
+v116 cerrado: d082c50, tag checkpoint-v116-reparacion-semantic-lint.
+Suite local previa: 489 passed, 1 skipped por permisos de symlinks en Windows.
+
+### Archivos del alcance
+
+- tools/generar_documentacion.py
+- tests/test_generar_documentacion.py
+- docs/generacion_documental.md
+- docs/contexto_resumen.md
+- docs/estado_docs.md
+- docs/estado_actual.md
+- docs/mapa_documental.yml
+- checkpoints.md
+
+### Cambios
+
+Resumen generado desde secciones completas del estado vigente, sin reinterpretacion.
+Estado documental generado desde mapa, con 19 entradas y tipos/estados declarados.
+--write genera; --check verifica sin escribir y falla ante salidas desactualizadas.
+Huella de fuente/generador, normalizacion LF/CRLF y BOM, sin marcas temporales.
+Validacion de secciones, esquema, fuentes, rutas y dependencias antes de escribir.
+Reemplazo atomico por archivo; no se promete transaccion conjunta de ambas salidas.
+
+### Alcance y limites
+
+No se agregan dependencias: lector del perfil YAML acotado existente, con rechazo
+explicito de sintaxis no soportada. No es parser YAML general.
+El generador no modifica documentos canonicos ni verifica sus afirmaciones.
+No se cambian motor, reglas operativas, SQLite, CSV reales ni semantic diff.
+La dependencia de contexto_resumen pasa a ser exclusivamente estado_actual;
+el contexto arquitectonico sigue enlazado desde esa fuente, no resumido por separado.
+
+### Validacion
+
+Pruebas de determinismo, idempotencia, cambios de fuentes, ediciones manuales,
+normalizacion Windows/Linux, errores de estructura/rutas y codigos de salida.
+Test de integridad de derivados incorporado a la suite para detectar drift.
+Preparacion: 21 pruebas unittest aprobadas, dos derivados sincronizados mediante
+--check; lint con 57 archivos analizados, 6 excluidos y cero infracciones.
+Suite completa Windows confirmada por el usuario: 510 passed, 1 skipped en 7.68 s.
+Generador --check: dos derivados sincronizados, salida 0.
+Semantic lint: 57 analizados, 6 excluidos, sin infracciones, salida 0.
+Git diff --check sin errores. Cotejo final del diff y cierre Git pendientes.
+
+### Proximo paso
+
+Validar localmente y cerrar v117. Luego v118: cierre documental integral.
+Mantener deuda funcional identificada en v115 abierta y explicitamente priorizada.
 
 ---
