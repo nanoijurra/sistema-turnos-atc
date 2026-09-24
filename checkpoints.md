@@ -1,6 +1,6 @@
 ﻿# CHECKPOINTS DEL PROYECTO - SISTEMA SWAPS ATC
 
-Registro activo desde v96. Base cerrada confirmada: v117. Revision v118 en curso.
+Registro activo desde v96. Base cerrada confirmada: v118. Revision v119 en curso.
 
 Indice anterior: [v1-v95](docs/hitos/indice_checkpoints_v1_v95.md).
 Historia integra previa: tag `checkpoint-v111-auditoria-documental-integral-v110`.
@@ -4756,5 +4756,69 @@ Cotejo final del diff preparado, commit, tag y push pendientes.
 
 Cerrar v118 con evidencia. Revisar prioridad de deuda funcional antes de v119;
 la simulacion seleccionada prevista no acredita aptitud operacional.
+
+---
+
+## checkpoint-v119-correccion-descanso-minimo
+
+Fecha: 2026-09-24
+
+### Base y decision
+
+Base v118 cerrada: 8a6a6b7, checkpoint-v118-cierre-documental-integral.
+Se prioriza descanso minimo sobre la simulacion seleccionada prevista.
+Requisito de proyecto: 16 horas, igualdad admitida. No verificacion normativa externa.
+
+### Cambios
+
+Defaults tradicional/timeline y wrappers en 16; comparador timeline < y mensaje
+coherente. Cuatro configuraciones incluidas usan horas_minimas: 16, incluso flexible.
+Engine y prefiltro comparten lectura con alias min_horas, default y errores explicitos.
+Se rechazan claves desconocidas, conflicto de aliases y umbrales no finitos/positivos.
+Las APIs conservan parametros explicitos; calendario no carga perfiles JSON.
+Ventana de anticipacion sin cambios. No migracion de solicitudes ya evaluadas,
+ni continuidad multimes o cobertura mensual nueva.
+
+### Validacion
+
+Preparacion Python 3.12/Linux: 532 passed, 5 skipped por CSV locales ausentes.
+Incluye 26 pruebas nuevas: fronteras, defaults, perfiles, alias y errores.
+Base Windows v118: 510 passed, 1 skipped en 7.23 s (historico).
+Lint: 58 archivos analizados, 6 excluidos, sin infracciones. Derivados sincronizados.
+Validacion v119 en Windows confirmada por el usuario:
+- Suite completa: 536 passed, 1 skipped en 7.47 s.
+- Unica omision: prueba de symlinks por permisos del sistema operativo.
+- Generador: dos derivados sincronizados, salida 0.
+- Semantic lint: 58 analizados, 6 excluidos, sin infracciones, salida 0.
+- Git diff --check sin errores.
+Cotejo final del diff preparado y cierre Git pendientes.
+
+### Archivos
+
+- README.md
+- checkpoints.md
+- config.json
+- config/config_equilibrado.json
+- config/config_flexible.json
+- config/config_restrictivo.json
+- docs/contexto_resumen.md
+- docs/contexto_sistema.md
+- docs/contratos.md
+- docs/decisiones.md
+- docs/estado_actual.md
+- docs/estado_docs.md
+- docs/invariantes.md
+- docs/mapa_documental.yml
+- src/engine.py
+- src/rest_policy.py
+- src/roster_timeline_validator.py
+- src/technical_prefilter.py
+- src/validator.py
+- tests/test_rest_policy.py
+
+### Proximo paso
+
+Validar impacto con CSV reales en Windows antes de cerrar v119. Priorizar deuda
+restante con alcance explicito; no presentar diagnostico como aprobacion operativa.
 
 ---

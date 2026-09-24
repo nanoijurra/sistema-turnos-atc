@@ -1,6 +1,7 @@
 from dataclasses import replace
 
 from src.engine import cargar_config
+from src.rest_policy import rest_hours_from_parameters
 from src.models import Asignacion, obtener_inicio_fin_asignacion
 from src.validator import validar_secuencia
 
@@ -32,11 +33,7 @@ def _obtener_horas_minimas_descanso(config_file: str = "config_equilibrado.json"
         if regla.get("funcion") != "validar_descanso_minimo":
             continue
 
-        parametros = regla.get("parametros", {})
-        horas_minimas = parametros.get("horas_minimas", parametros.get("min_horas"))
-
-        if isinstance(horas_minimas, (int, float)):
-            return float(horas_minimas)
+        return float(rest_hours_from_parameters(regla.get("parametros", {})))
 
     return None
 

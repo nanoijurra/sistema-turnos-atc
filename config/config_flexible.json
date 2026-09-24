@@ -4,7 +4,7 @@
       "nombre": "Descanso mínimo",
       "funcion": "validar_descanso_minimo",
       "prioridad": 2,
-      "parametros": { "horas_minimas": 8 }
+      "parametros": { "horas_minimas": 16 }
     },
     {
       "nombre": "Noches consecutivas",

@@ -1650,6 +1650,8 @@ politica universal para configuraciones futuras.
 
 El codigo timeline aplica maximos separados de A/B y C, no un maximo universal
 de toda secuencia mixta. Sus defaults no cubren 18 turnos o 144 horas mensuales.
-Descanso timeline: <= 12 por defecto; tradicional: < 12 por defecto.
+En v115: timeline <= 12 y tradicional < 12. En v119 ambos usan < 16 por defecto;
+la igualdad es valida. Los perfiles incluidos coinciden en 16 y engine/prefiltro
+comparten interpretacion de parametros. No se cambia la agrupacion por controlador.
 El entrypoint paralelo no recibe parametros de reglas. La reconciliacion con
 requisitos operativos y configuracion se mantiene como deuda funcional explicita.

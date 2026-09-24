@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from src.rest_policy import DEFAULT_MIN_REST_HOURS, validate_rest_hours
+
 from src.models import (
     Asignacion,
     Controlador,
@@ -151,8 +153,9 @@ def validar_libres_consecutivos_timeline(
 
 def validar_descanso_minimo_timeline(
     dias: list[RosterDiaImportado],
-    horas_minimas: int | float = 12,
+    horas_minimas: int | float = DEFAULT_MIN_REST_HOURS,
 ) -> list[Violation]:
+    validate_rest_hours(horas_minimas)
     violaciones: list[Violation] = []
     dias_operativos = _dias_operativos(dias)
 
@@ -168,7 +171,7 @@ def validar_descanso_minimo_timeline(
 
         descanso_horas = (inicio_siguiente - fin_actual).total_seconds() / 3600
 
-        if descanso_horas <= horas_minimas:
+        if descanso_horas < horas_minimas:
             violaciones.append(
                 _build_violation(
                     codigo="DESCANSO_INSUFICIENTE_TIMELINE",
@@ -176,7 +179,7 @@ def validar_descanso_minimo_timeline(
                         f"Descanso insuficiente para {dia_actual.controlador} "
                         f"entre {dia_actual.fecha} ({dia_actual.codigo_normalizado}) "
                         f"y {dia_siguiente.fecha} ({dia_siguiente.codigo_normalizado}): "
-                        f"{descanso_horas:.1f}h <= {horas_minimas}h."
+                        f"{descanso_horas:.1f}h < {horas_minimas}h."
                     ),
                     severidad="hard",
                     metadata={
@@ -200,7 +203,7 @@ def validar_timeline_controlador(
     max_ab_consecutivos: int = 5,
     max_c_consecutivos: int = 3,
     max_libres_consecutivos: int = 5,
-    horas_minimas_descanso: int | float = 12,
+    horas_minimas_descanso: int | float = DEFAULT_MIN_REST_HOURS,
 ) -> list[Violation]:
     violaciones: list[Violation] = []
 
@@ -238,7 +241,7 @@ def validar_timeline_importada(
     max_ab_consecutivos: int = 5,
     max_c_consecutivos: int = 3,
     max_libres_consecutivos: int = 5,
-    horas_minimas_descanso: int | float = 12,
+    horas_minimas_descanso: int | float = DEFAULT_MIN_REST_HOURS,
 ) -> list[Violation]:
     violaciones: list[Violation] = []
     grupos = agrupar_timeline_por_controlador(dias_importados)

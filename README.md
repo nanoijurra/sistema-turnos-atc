@@ -17,8 +17,8 @@ solicitudes mediante evaluacion, resolucion y aplicacion sobre versiones de rost
 Incluye un diagnostico calendar-aware paralelo y reportes de meses independientes.
 
 El diagnostico no aprueba cambios operativos. Persisten diferencias entre requisitos
-operativos y reglas implementadas, incluida la continuidad entre meses y los umbrales
-de descanso. Consultar los limites en [estado actual](docs/estado_actual.md) antes
+operativos y reglas implementadas, incluida la continuidad entre meses. En v119 se unifica el descanso
+predeterminado en 16 horas; esto no verifica por si solo las demas reglas. Consultar los limites en [estado actual](docs/estado_actual.md) antes
 de interpretar resultados. La documentacion completada no habilita uso decisorio.
 
 ## Preparacion local

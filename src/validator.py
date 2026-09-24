@@ -1,5 +1,6 @@
 from src.models import obtener_inicio_fin_asignacion
 from src.rule_types import Violation
+from src.rest_policy import DEFAULT_MIN_REST_HOURS, validate_rest_hours
 
 
 def build_violation(codigo, mensaje, severidad="hard", penalizacion=0, metadata=None) -> Violation:
@@ -12,7 +13,8 @@ def build_violation(codigo, mensaje, severidad="hard", penalizacion=0, metadata=
     )
 
 
-def validar_descanso_minimo(asignaciones, horas_minimas=12) -> list[Violation]:
+def validar_descanso_minimo(asignaciones, horas_minimas=DEFAULT_MIN_REST_HOURS) -> list[Violation]:
+    validate_rest_hours(horas_minimas)
     violaciones = []
 
     asignaciones_ordenadas = sorted(

@@ -104,17 +104,19 @@ Los meses faltantes se omiten por defecto; con `omitir_faltantes=False` se lanza
 `FileNotFoundError`. Los formatos soportados son CSV_SIMPLE y CSV_ACC_CBA.
 
 El timeline usa por defecto maximo 5 A/B consecutivos, 3 C consecutivos, aviso SOFT
-por mas de 5 libres, y descanso insuficiente cuando es menor o igual a 12 horas.
+por mas de 5 libres, y descanso insuficiente cuando es menor a 16 horas (v119).
+El tradicional comparte default y comparador: exactamente 16 horas es valido.
 No equivale a un control universal de cinco jornadas operativas mixtas, ni incluye
 por si mismo maximos mensuales de 18 turnos o 144 horas.
 
-El validador tradicional usa por defecto 12 horas pero compara con `<`, no `<=`.
-`config_equilibrado.json` declara `min_horas`, mientras la funcion acepta
-`horas_minimas`: engine filtra el nombre no reconocido y utiliza el default.
-El entrypoint calendar-aware no recibe ni propaga parametros de reglas.
-Estos son limites del codigo observado, no una validacion de normativa operativa.
-Conciliar el requisito operativo de descanso, los umbrales y su configuracion
-requiere un cambio funcional explicito posterior.
+Engine y prefiltro comparten el contrato de parametros de src/rest_policy.py.
+La clave canonica es horas_minimas; min_horas se acepta como alias compatible.
+Valores contradictorios, desconocidos, no finitos o no positivos fallan explicitamente.
+Los perfiles incluidos fijan 16 horas, incluso flexible; no se flexibiliza esa regla
+HARD por el nombre del perfil. Las APIs conservan umbrales explicitos para escenarios.
+El entrypoint calendar-aware no recibe ni propaga parametros de perfiles: usa el
+default compartido. Un perfil externo modificado no se propaga automaticamente
+al calendario. No se afirma cumplimiento de todas las reglas operativas.
 
 ## Evidencia y limites de validacion
 

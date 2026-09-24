@@ -13,11 +13,11 @@
 
 ## Base confirmada
 
-Ultimo checkpoint cerrado confirmado al redactar: **v117**, commit `6db14e9`,
-tag `checkpoint-v117-generacion-documentos-derivados`.
-Rama y tag publicados segun salida del usuario. Arbol de trabajo limpio al cierre de v117. Esto no afirma limpieza permanente.
+Ultimo checkpoint cerrado confirmado al redactar: **v118**, commit `8a6a6b7`,
+tag `checkpoint-v118-cierre-documental-integral`.
+Rama y tag publicados segun salida del usuario. Arbol de trabajo limpio al cierre de v118. Esto no afirma limpieza permanente.
 
-Trabajo actual: **v118 - cierre documental integral**, pendiente de cierre Git.
+Trabajo actual: **v119 - correccion del descanso minimo**, pendiente de cierre Git.
 Base funcional: codigo exportado desde v114; v111-v114 fueron cambios documentales.
 El estado es referencia de seguimiento; contratos, decisiones e invariantes definen
 sus planos. El [mapa](mapa_documental.yml) declara fuentes y responsabilidades.
@@ -39,40 +39,33 @@ Evidencia: [conciliacion funcional v115](hitos/conciliacion_funcional_v115.md).
 - Multimes no verifica automaticamente continuidad entre meses. Caso sintetico
   C/30-jun -> A/1-jul: agregado mensual 0 HARD, timeline concatenada 1 HARD.
 - VALIDO_SIN_HARD y apto_para_revision_carga no equivalen a aprobacion operativa.
-- Descanso timeline default 12 con <=; tradicional default 12 con <.
-- min_horas en config_equilibrado se filtra por no coincidir con horas_minimas.
+- V119 corrige descanso: default y perfiles incluidos 16 horas, comparacion <.
+  Engine y prefiltro comparten horas_minimas y alias min_horas, con validacion.
+- Timeline no lee perfiles JSON; umbrales explicitos externos siguen siendo posibles.
+- No se migran ni reevalúan solicitudes persistidas evaluadas con reglas anteriores.
 - Ventana operativa default configurada: 12 horas antes del turno; distinta del descanso.
 - No se acredita cobertura de 18 turnos, 144 horas ni maximo universal de jornadas mixtas
   mediante el diagnostico timeline inspeccionado.
 - Los requisitos operativos deben conciliarse con estas reglas antes de uso decisorio.
 - Cargar modulos puede inicializar tablas SQLite; no prometer cero acceso a DB.
 
-Estos limites se documentan sin modificar codigo ni parametros. Requieren un alcance
+Los limites que permanecen requieren un alcance
 funcional posterior explicito; no desaparecen por completar documentacion.
 
 ## Validacion
 
-Ultima suite completa confirmada por el usuario, sobre v117 en Windows:
-**510 passed, 1 skipped en 7.68 s**. Derivados sincronizados y lint con
-57 archivos analizados, 6 excluidos, sin infracciones; ambos con salida 0.
-El skip de symlinks fue identificado en v116 por permisos del sistema operativo;
-la salida agregada de v117 informa una omision sin repetir su motivo.
-
-V117 quedo cerrado y publicado en 6db14e9 con arbol limpio segun salida del usuario.
-La evidencia de v116 (489 passed, 1 skipped) y v110 (463 passed) es historica.
-Validacion v118 en Windows confirmada por el usuario:
-- Suite completa: 510 passed, 1 skipped en 7.23 s.
+Base v118 en Windows confirmada por el usuario: 510 passed, 1 skipped en 7.23 s.
+V118 cerrado y publicado en 8a6a6b7. Resultado historico, no ejecucion de v119.
+Preparacion v119 en Python 3.12/Linux: 532 passed, 5 skipped; las cinco omisiones
+requieren CSV reales locales no incluidos en el ZIP. Incluye 26 casos nuevos de
+descanso y parametros. Validacion v119 en Windows confirmada por el usuario:
+- Suite completa: 536 passed, 1 skipped en 7.47 s.
+- Unica omision: prueba de symlinks por permisos del sistema operativo.
 - Generador: dos derivados sincronizados, salida 0.
-- Semantic lint: 57 archivos analizados, 6 excluidos, sin infracciones, salida 0.
+- Semantic lint: 58 analizados, 6 excluidos, sin infracciones, salida 0.
 - Git diff --check sin errores.
-Cierre Git pendiente. No se atribuye la suite de v117 a una ejecucion nueva.
-
-V114 reparo estructura y conservo numeraciones. V115 agrego contenido sustentado en
-codigo y quedo cerrado en e39e73f. V116 modifica solo la herramienta de lint, sus
-tests y documentacion de seguimiento; no modifica reglas funcionales ATC.
-El lint de semantic_guard se repara en v116: recorrido completo, reglas acotadas,
-errores visibles y salida CLI verificable. No acredita integridad documental
-completa ni reglas ATC. Semantic diff mantiene sus limitaciones anteriores.
+Cotejo final del diff preparado y cierre Git pendientes.
+No se acredita uso operacional ni cobertura de todas las reglas ATC.
 
 ## Estado documental y siguientes pasos
 
@@ -85,9 +78,8 @@ completa ni reglas ATC. Semantic diff mantiene sus limitaciones anteriores.
 - README completado; contratos_resumen retirado del arbol y del mapa en v118.
 - v116 cerrado: lint reparado, suite local 489 passed, 1 skipped por symlinks en Windows.
 - v117 cerrado: generador y comprobacion validados en Windows.
-- v118: cierre del plan documental v111-v118 preparado; controles y limites en informe.
-  Validacion Windows y cierre Git pendientes.
-- v119: simulacion seleccionada prevista; revisar prioridad frente a deuda funcional detectada.
+- v118 cerrado: etapa documental completada y deuda funcional explicita.
+- v119: correccion del descanso priorizada; simulacion seleccionada postergada.
 - Bases SQLite transitorias versionadas y requirements UTF-16: deuda separada.
 
 ## Recuperacion y mantenimiento

@@ -5,7 +5,7 @@
       "funcion": "validar_descanso_minimo",
       "prioridad": 1,
       "parametros": {
-        "horas_minimas": 12
+        "horas_minimas": 16
       }
     },
     {

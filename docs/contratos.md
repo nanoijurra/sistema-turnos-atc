@@ -2,6 +2,8 @@
 
 ## Tabla de contenido
 
+- [Contrato 28 - Parametros de descanso](#contrato-28---parametros-de-descanso)
+
 - [1. Proposito](#1-proposito)
 - [2. Alcance](#2-alcance)
 - [3. Referencias](#3-referencias)
@@ -3521,3 +3523,19 @@ Cada mes se diagnostica independientemente. No se unen timelines entre entradas.
 ninguna con errores de importacion y ninguna con HARD calendar-aware mensual.
 No acredita descanso ni rachas en la frontera de dos meses, ni autoriza swaps.
 Una timeline concatenada manualmente es una entrada distinta del resumen multimes.
+
+
+## Contrato 28 - Parametros de descanso
+
+V119: descanso calculado desde fin de asignacion anterior hasta inicio de la
+siguiente, incluyendo cruces de medianoche. Violacion HARD si descanso < minimo;
+igualdad admitida. Default 16 horas en tradicional y timeline, incluidos wrappers.
+Los codigos de violacion y metadatos existentes se conservan.
+
+Engine y prefiltro interpretan horas_minimas o alias min_horas mediante contrato
+compartido; ausente usa 16, conflicto o valor invalido produce ValueError.
+Se aceptan numeros finitos positivos, sin booleanos, y se rechazan claves
+no reconocidas para esta regla. Perfiles distribuidos y config.json usan 16.
+Las APIs permiten umbrales explicitos; el calendario no carga perfiles JSON.
+La ventana operativa conserva su parametro independiente de anticipacion.
+Solicitudes ya evaluadas no se migran ni se reevalúan automaticamente en v119.

@@ -6,6 +6,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from src import validator
+from src.rest_policy import rest_hours_from_parameters
 from src.models import SwapRequest, RosterVersion
 from src.request_store import guardar_request
 from src.roster_store import (
@@ -121,6 +122,9 @@ def ejecutar_regla(asignaciones, regla_config: dict) -> RuleResult:
         raise ValueError(f"Regla no registrada en RULES_REGISTRY: '{nombre_funcion}'")
 
     funcion = RULES_REGISTRY[nombre_funcion]
+
+    if nombre_funcion == "validar_descanso_minimo":
+        parametros = {"horas_minimas": rest_hours_from_parameters(parametros)}
 
     firma = inspect.signature(funcion)
     parametros_validos = {

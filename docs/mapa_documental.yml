@@ -1,14 +1,15 @@
 # Mapa documental del sistema ATC
 version_esquema: 1
-base_cerrada: v117
-revision_documental: v118
+base_cerrada: v118
+revision_documental: v119
 cierre_v113_confirmado: true
 cierre_v114_confirmado: true
 cierre_v115_confirmado: true
 cierre_v116_confirmado: true
 cierre_v117_confirmado: true
-cierre_v118_confirmado: false
-alcance: "Base v117 exportada; 19 rutas documentales; cierre documental v118 preparado, cierre Git pendiente"
+cierre_v118_confirmado: true
+cierre_v119_confirmado: false
+alcance: "Base v118 exportada; 19 rutas documentales; correccion funcional de descanso v119 en curso"
 reglas:
   - "Canonicos: revision humana; no reescritura conceptual automatica"
   - "Historicos: conservar; no usarlos como estado vigente"
@@ -27,57 +28,57 @@ documentos:
     accion_pendiente: "Mantener comandos y enlaces; estado y resultados en sus fuentes"
   - ruta: "checkpoints.md"
     tipo: "historia_activa"
-    estado: "revision_v118_cierre_pendiente"
+    estado: "revision_v119_cierre_pendiente"
     fuentes: ["Git: commits, tags y diffs", "Resultados de validacion"]
     dependencias: ["docs/hitos/indice_checkpoints_v1_v95.md"]
     revisar_cuando: ["Cierre de checkpoint"]
     modo_actual: "manual"
-    ultima_revision: "v118: seguimiento y derivados actualizados"
-    accion_pendiente: "Registrar validacion y cierre v118; regenerar derivados al cambiar fuentes"
+    ultima_revision: "v119: descanso y seguimiento actualizados"
+    accion_pendiente: "Registrar validacion y cierre v119; regenerar derivados al cambiar fuentes"
   - ruta: "docs/estado_actual.md"
     tipo: "estado_vigente"
-    estado: "revision_v118_cierre_pendiente"
+    estado: "revision_v119_cierre_pendiente"
     fuentes: ["docs/hitos/auditoria_documental_v110.md", "Git: cierre v117"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md", "checkpoints.md"]
     revisar_cuando: ["Cambio funcional, limite, deuda, validacion o eje aprobado"]
     modo_actual: "manual"
-    ultima_revision: "v118: seguimiento y derivados actualizados"
-    accion_pendiente: "Registrar validacion y cierre v118; regenerar derivados al cambiar fuentes"
+    ultima_revision: "v119: descanso y seguimiento actualizados"
+    accion_pendiente: "Registrar validacion y cierre v119; regenerar derivados al cambiar fuentes"
   - ruta: "docs/contexto_sistema.md"
     tipo: "canonico"
-    estado: "revisado_v115"
+    estado: "revisado_v119"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
     modo_actual: "manual"
-    ultima_revision: "v115: conciliacion documental contra base v114"
+    ultima_revision: "v119: descanso y seguimiento actualizados"
     accion_pendiente: "Mantener arquitectura y limites segun codigo; deuda funcional no resuelta por documentacion"
   - ruta: "docs/decisiones.md"
     tipo: "canonico"
-    estado: "revisado_v115"
+    estado: "revisado_v119"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
     modo_actual: "manual"
-    ultima_revision: "v115: conciliacion documental contra base v114"
+    ultima_revision: "v119: descanso y seguimiento actualizados"
     accion_pendiente: "Conservar Decision 54 descriptiva; resolver deuda funcional con decision explicita"
   - ruta: "docs/contratos.md"
     tipo: "canonico"
-    estado: "revisado_v115"
+    estado: "revisado_v119"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
     modo_actual: "manual"
-    ultima_revision: "v115: conciliacion documental contra base v114"
+    ultima_revision: "v119: descanso y seguimiento actualizados"
     accion_pendiente: "Mantener Contratos 26/27; no presentar diagnostico como aprobacion"
   - ruta: "docs/invariantes.md"
     tipo: "canonico"
-    estado: "revisado_v115"
+    estado: "revisado_v119"
     fuentes: ["Codigo y tests correspondientes", "Decisiones y contratos versionados", "docs/hitos/auditoria_documental_v110.md"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Cambio conceptual o funcional que afecte su contenido"]
     modo_actual: "manual"
-    ultima_revision: "v115: conciliacion documental contra base v114"
+    ultima_revision: "v119: descanso y seguimiento actualizados"
     accion_pendiente: "Mantener CA-7/8/9 y limites; conciliar reglas en checkpoint funcional"
   - ruta: "docs/modelo_dominio.md"
     tipo: "canonico"
@@ -104,7 +105,7 @@ documentos:
     dependencias: ["docs/estado_actual.md"]
     revisar_cuando: ["Cambio de sus fuentes"]
     modo_actual: "generado"
-    ultima_revision: "v118: seguimiento y derivados actualizados"
+    ultima_revision: "v119: descanso y seguimiento actualizados"
     accion_pendiente: "Regenerar ante cambios de fuente y ejecutar --check"
   - ruta: "docs/estado_docs.md"
     tipo: "derivado"
@@ -113,7 +114,7 @@ documentos:
     dependencias: ["docs/mapa_documental.yml"]
     revisar_cuando: ["Cambio de sus fuentes"]
     modo_actual: "generado"
-    ultima_revision: "v118: seguimiento y derivados actualizados"
+    ultima_revision: "v119: descanso y seguimiento actualizados"
     accion_pendiente: "Regenerar ante cambios de fuente y ejecutar --check"
   - ruta: "docs/semantic_guard.md"
     tipo: "tecnico"
@@ -153,13 +154,13 @@ documentos:
     accion_pendiente: "Mantener limites probatorios; cotejo con Git confirmado en v112"
   - ruta: "docs/mapa_documental.yml"
     tipo: "registro_documental"
-    estado: "revision_v118_cierre_pendiente"
+    estado: "revision_v119_cierre_pendiente"
     fuentes: ["docs/hitos/auditoria_documental_v110.md", "Inventario documental aportado", "Git: cierre v117"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md"]
     revisar_cuando: ["Alta, baja, reclasificacion o cambio de fuentes de documentos"]
     modo_actual: "manual"
-    ultima_revision: "v118: seguimiento y derivados actualizados"
-    accion_pendiente: "Registrar validacion y cierre v118; regenerar derivados al cambiar fuentes"
+    ultima_revision: "v119: descanso y seguimiento actualizados"
+    accion_pendiente: "Registrar validacion y cierre v119; regenerar derivados al cambiar fuentes"
   - ruta: "docs/hitos/conciliacion_funcional_v115.md"
     tipo: "historico"
     estado: "revision_v115_cerrada"
@@ -171,7 +172,7 @@ documentos:
     accion_pendiente: "V115 cerrado; tratar deuda funcional mediante alcance explicito"
   - ruta: "docs/generacion_documental.md"
     tipo: "tecnico"
-    estado: "revision_v118_cierre_pendiente"
+    estado: "revision_v119_cierre_pendiente"
     fuentes: ["tools/generar_documentacion.py", "tests/test_generar_documentacion.py"]
     dependencias: ["docs/estado_actual.md", "docs/mapa_documental.yml"]
     revisar_cuando: ["Cambio de generador, perfil del mapa o fuentes"]
@@ -180,10 +181,10 @@ documentos:
     accion_pendiente: "Mantener contrato del generador; v117 cerrado"
   - ruta: "docs/hitos/cierre_documental_v118.md"
     tipo: "historico"
-    estado: "revision_v118_cierre_pendiente"
+    estado: "cerrado_v118"
     fuentes: ["Archivo exportado del tag v117", "Controles documentales v118", "Salida Git aportada por usuario"]
     dependencias: ["docs/hitos/auditoria_documental_v110.md", "docs/estado_actual.md", "README.md"]
     revisar_cuando: ["Registrar validacion y cierre de v118"]
     modo_actual: "manual"
     ultima_revision: "v118: creado"
-    accion_pendiente: "Confirmar validacion Windows y cierre Git; conservar como evidencia"
+    accion_pendiente: "Conservar evidencia historica; v118 cerrado en 8a6a6b7"

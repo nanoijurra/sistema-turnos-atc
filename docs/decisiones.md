@@ -2,6 +2,8 @@
 
 ## Tabla de contenido
 
+- [Decision 55 - Descanso minimo compartido](#decision-55---descanso-minimo-compartido)
+
 - [Arquitectura general](#arquitectura-general)
   - [Decision 1 - Separacion de capas](#decision-1---separacion-de-capas)
   - [Decision 2 - Engine sin logica de negocio](#decision-2---engine-sin-logica-de-negocio)
@@ -3482,12 +3484,32 @@ importacion con configuracion y esquema ACC. No se modifica su implementacion.
 #### Limites que se mantienen abiertos
 
 El resumen multimes no evalua continuidad intermensual automaticamente.
-El descanso timeline usa por defecto 12 y `<=`; el tradicional usa 12 y `<`.
-La clave min_horas de config_equilibrado no coincide con horas_minimas y es
-filtrada por engine. Cambiar parametros, comparadores o integracion requiere
-alcance funcional posterior. No se afirma cumplimiento de todas las reglas ATC.
+En la base v115 el descanso timeline usaba 12 y `<=`, y el tradicional 12 y `<`;
+engine filtraba min_horas. Esa discrepancia se corrige en v119 (Decision 55).
+No se afirma cumplimiento de todas las reglas ATC.
 
 #### Evidencia
 
 Ver `docs/hitos/conciliacion_funcional_v115.md`, fuentes de codigo y pruebas
 sinteticas alli registradas. La suite completa no se reejecuto en v115.
+
+
+## Decision 55 - Descanso minimo compartido
+
+V119 prioriza corregir descanso sobre la simulacion seleccionada prevista.
+Se adopta el requisito de proyecto indicado por el usuario: minimo 16 horas,
+con igualdad permitida. No constituye una verificacion legal externa.
+Defaults de ambos validadores y cuatro configuraciones incluidas quedan en 16.
+Flexible mantiene variaciones de otras reglas, no una excepcion al descanso HARD.
+
+Engine y prefiltro usan rest_hours_from_parameters: horas_minimas canonica,
+min_horas alias admitido, ausencia de ambas usa 16. Si ambas aparecen deben
+coincidir. Se rechazan nombres desconocidos en esta regla, booleanos, cadenas,
+ceros, negativos, NaN e infinitos. Otras reglas mantienen su contrato existente.
+Los validadores directos validan igualmente el umbral numerico recibido.
+
+Se mantienen umbrales explicitos de API para pruebas y escenarios; no se impone
+un piso global inmutable a configuraciones externas. El entrypoint calendar-aware
+usa el default, sin leer perfiles JSON. No cambia la ventana de anticipacion,
+continuidad entre meses ni cobertura mensual. No se migran solicitudes persistidas
+ni se reevalua automaticamente una solicitud ya evaluada bajo reglas anteriores.
