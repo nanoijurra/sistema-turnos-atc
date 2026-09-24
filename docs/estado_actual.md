@@ -13,11 +13,11 @@
 
 ## Base confirmada
 
-Ultimo checkpoint cerrado confirmado al redactar: **v116**, commit `d082c50`,
-tag `checkpoint-v116-reparacion-semantic-lint`.
-Rama y tag publicados segun salida del usuario. Arbol de trabajo limpio al cierre de v116. Esto no afirma limpieza permanente.
+Ultimo checkpoint cerrado confirmado al redactar: **v117**, commit `6db14e9`,
+tag `checkpoint-v117-generacion-documentos-derivados`.
+Rama y tag publicados segun salida del usuario. Arbol de trabajo limpio al cierre de v117. Esto no afirma limpieza permanente.
 
-Trabajo actual: **v117 - generacion sistematica de derivados**, pendiente de cierre Git.
+Trabajo actual: **v118 - cierre documental integral**, pendiente de cierre Git.
 Base funcional: codigo exportado desde v114; v111-v114 fueron cambios documentales.
 El estado es referencia de seguimiento; contratos, decisiones e invariantes definen
 sus planos. El [mapa](mapa_documental.yml) declara fuentes y responsabilidades.
@@ -52,26 +52,20 @@ funcional posterior explicito; no desaparecen por completar documentacion.
 
 ## Validacion
 
-Ultima ejecucion de la suite completa, sobre los cambios locales de v116:
-**489 passed, 1 skipped en 7.17 s**, confirmada por el usuario en Windows.
+Ultima suite completa confirmada por el usuario, sobre v117 en Windows:
+**510 passed, 1 skipped en 7.68 s**. Derivados sincronizados y lint con
+57 archivos analizados, 6 excluidos, sin infracciones; ambos con salida 0.
+El skip de symlinks fue identificado en v116 por permisos del sistema operativo;
+la salida agregada de v117 informa una omision sin repetir su motivo.
 
-- Regresiones nuevas locales: 26 passed, 1 skipped en 0.51 s.
-- Omision: test_symlink_directory_is_reported_instead_of_skipped_silently.
-- Motivo informado: OS does not permit creating symlinks.
-- Ese caso paso en el entorno de preparacion: 27 regresiones unittest aprobadas
-  en Python 3.12. No se presenta como comprobado en Windows.
-- Lint local: 56 archivos analizados, 6 excluidos, cero infracciones, salida 0.
-
-El resultado historico de v110 fue 463 passed. En v115 se realizaron inspeccion
-y comprobaciones sinteticas aisladas, sin pytest en el entorno de preparacion.
-La ejecucion local nueva no debe confundirse con aquella evidencia historica.
-
-V116 quedo cerrado y publicado en d082c50. Su validacion local queda como evidencia
-de esa base. En preparacion v117: 21 pruebas unittest del generador aprobadas; --check confirma
-los dos derivados sincronizados y lint con 57 analizados, 6 excluidos, sin infracciones.
-Validacion v117 en Windows confirmada por el usuario: 510 passed, 1 skipped en 7.68 s.
-Generador --check y semantic lint con salida 0. Git diff --check sin errores.
-Cotejo final del diff y cierre Git pendientes.
+V117 quedo cerrado y publicado en 6db14e9 con arbol limpio segun salida del usuario.
+La evidencia de v116 (489 passed, 1 skipped) y v110 (463 passed) es historica.
+Validacion v118 en Windows confirmada por el usuario:
+- Suite completa: 510 passed, 1 skipped en 7.23 s.
+- Generador: dos derivados sincronizados, salida 0.
+- Semantic lint: 57 archivos analizados, 6 excluidos, sin infracciones, salida 0.
+- Git diff --check sin errores.
+Cierre Git pendiente. No se atribuye la suite de v117 a una ejecucion nueva.
 
 V114 reparo estructura y conservo numeraciones. V115 agrego contenido sustentado en
 codigo y quedo cerrado en e39e73f. V116 modifica solo la herramienta de lint, sus
@@ -88,10 +82,11 @@ completa ni reglas ATC. Semantic diff mantiene sus limitaciones anteriores.
 - Referencias historicas a roster_service representan extraccion futura, no falta de versionado.
 - contexto_resumen y estado_docs se generan desde estado_actual y mapa_documental
   mediante tools/generar_documentacion.py; --check detecta desactualizacion.
-- README vacio y retiro material de contratos_resumen pendientes.
+- README completado; contratos_resumen retirado del arbol y del mapa en v118.
 - v116 cerrado: lint reparado, suite local 489 passed, 1 skipped por symlinks en Windows.
-- v117: generador y comprobacion validados en Windows; cierre Git pendiente.
-- v118: cierre documental integral.
+- v117 cerrado: generador y comprobacion validados en Windows.
+- v118: cierre del plan documental v111-v118 preparado; controles y limites en informe.
+  Validacion Windows y cierre Git pendientes.
 - v119: simulacion seleccionada prevista; revisar prioridad frente a deuda funcional detectada.
 - Bases SQLite transitorias versionadas y requirements UTF-16: deuda separada.
 

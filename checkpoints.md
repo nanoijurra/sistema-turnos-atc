@@ -1,6 +1,6 @@
 ﻿# CHECKPOINTS DEL PROYECTO - SISTEMA SWAPS ATC
 
-Registro activo desde v96. Base cerrada confirmada: v116. Revision v117 en curso.
+Registro activo desde v96. Base cerrada confirmada: v117. Revision v118 en curso.
 
 Indice anterior: [v1-v95](docs/hitos/indice_checkpoints_v1_v95.md).
 Historia integra previa: tag `checkpoint-v111-auditoria-documental-integral-v110`.
@@ -4712,5 +4712,49 @@ Git diff --check sin errores. Cotejo final del diff y cierre Git pendientes.
 
 Validar localmente y cerrar v117. Luego v118: cierre documental integral.
 Mantener deuda funcional identificada en v115 abierta y explicitamente priorizada.
+
+---
+
+## checkpoint-v118-cierre-documental-integral
+
+Fecha: 2026-09-16
+
+### Base
+
+V117 cerrado en 6db14e9, tag checkpoint-v117-generacion-documentos-derivados.
+Suite Windows de base: 510 passed, 1 skipped en 7.68 s. No es una ejecucion v118.
+
+### Alcance
+
+README con preparacion, validacion, navegacion y limites. Retiro material de
+contratos_resumen y de su entrada del mapa, con recuperacion desde Git documentada.
+Estado actualizado al cierre confirmado v117; derivados regenerados e informe
+que relaciona la auditoria v111 con las etapas v112-v118 y la deuda abierta.
+No modifica comportamiento productivo, configuracion, codigo ni tests.
+
+### Archivos
+
+- README.md
+- checkpoints.md
+- docs/estado_actual.md
+- docs/mapa_documental.yml
+- docs/contexto_resumen.md
+- docs/estado_docs.md
+- docs/hitos/cierre_documental_v118.md (nuevo)
+- docs/contratos_resumen.md (eliminado)
+
+### Validacion
+
+Validacion v118 en Windows confirmada por el usuario:
+- Suite completa: 510 passed, 1 skipped en 7.23 s.
+- Generador: dos derivados sincronizados, salida 0.
+- Semantic lint: 57 archivos analizados, 6 excluidos, sin infracciones, salida 0.
+- Git diff --check sin errores.
+Cotejo final del diff preparado, commit, tag y push pendientes.
+
+### Proximo paso
+
+Cerrar v118 con evidencia. Revisar prioridad de deuda funcional antes de v119;
+la simulacion seleccionada prevista no acredita aptitud operacional.
 
 ---
